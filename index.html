@@ -3659,6 +3659,7 @@ function draw(){
 
 function drawBrick(b){
   const wear=b.hp/b.maxHp;
+  const kd=b.kind?kindDef(b.kind):null;      // 특수 석판 정의는 함수 전체에서 쓴다
   ctx.save();
   if(b.quiz&&S.alert&&S.alert.layout==='diamond'&&S.alert.blocks[S.alert.blinkI]===b){
     const p=.5+.5*Math.sin(performance.now()/1000*6);
@@ -3671,8 +3672,7 @@ function drawBrick(b){
     ctx.strokeStyle=b.hit>0?'#fff':C['--vermilion'];
     ctx.lineWidth=4;ctx.shadowColor=C['--vermilion'];ctx.shadowBlur=12+10*p;
   }else{
-    const kd=b.kind?kindDef(b.kind):null;
-  if(kd){                                        // 특수 석판
+    if(kd){                                      // 특수 석판
     const p=.5+.5*Math.sin(performance.now()/1000*3);
     ctx.fillStyle=kd.col+'2E';
     ctx.strokeStyle=b.hit>0?'#fff':kd.col;
