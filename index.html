@@ -35,14 +35,14 @@ canvas{display:block;width:100%;height:100%}
 .rvWord{font-family:var(--font-carve);font-weight:700;font-size:1.3em;color:var(--stone)}
 .rvPos{font-size:.72em;color:var(--stone-deep)}
 .rvDef{font-size:.85em;line-height:1.5;color:rgba(243,237,223,.8)}
-#quizDef{font-family:var(--font-carve);font-size:1.35em;line-height:1.65;text-align:center;margin-bottom:1.5em}
-#quizDef .qpos{display:block;font-family:var(--font-ui);font-size:.55em;letter-spacing:.3em;color:var(--stone-deep);margin-bottom:.8em}
+#quizDef{font-family:var(--font-carve);font-size:1.6em;line-height:1.6;text-align:center;margin-bottom:1.4em}
+#quizDef .qpos{display:block;font-family:var(--font-ui);font-size:.52em;font-weight:700;letter-spacing:.2em;color:var(--gold);margin-bottom:.9em}
 #quizOpts{display:grid;grid-template-columns:1fr 1fr;gap:.7em;width:100%}
-.qOpt{font-family:var(--font-carve);font-weight:700;font-size:1.5em;text-align:center;padding:.62em .4em;
+.qOpt{font-family:var(--font-carve);font-weight:700;font-size:1.75em;text-align:center;padding:.62em .4em;
   background:rgba(222,211,184,.09);border:1px solid rgba(222,211,184,.22);border-radius:4px;color:var(--stone);cursor:pointer;transition:background .12s}
 .qOpt.right{background:rgba(82,191,160,.24);border-color:var(--jade);color:#fff}
 .qOpt.wrong{background:rgba(226,89,63,.22);border-color:var(--vermilion);color:#fff}
-#quizNote{margin-top:1.2em;font-size:.9em;color:var(--stone-deep);min-height:1.4em;text-align:center}
+#quizNote{margin-top:1.2em;font-size:1.02em;color:var(--stone-deep);min-height:1.4em;text-align:center}
 /* ── 융합 화면 ── */
 #vFuse{background:radial-gradient(circle at 50% 42%,rgba(82,191,160,.20),rgba(5,8,15,.97) 62%)}
 #fuseMark{font-family:var(--font-carve);font-weight:700;font-size:3.4em;letter-spacing:.22em;
@@ -208,6 +208,9 @@ canvas{display:block;width:100%;height:100%}
   color:var(--stone-deep);text-align:center;max-width:26em}
 #ghost::before{content:'묵귀';display:block;font-family:var(--font-ui);font-size:.62em;
   letter-spacing:.4em;color:var(--jade);margin-bottom:.6em}
+#btnAdmin{position:absolute;top:2.5%;right:3%;width:2.4em;height:2.4em;border-radius:50%;
+  background:transparent;border:none;color:rgba(222,211,184,.16);font-size:1em;cursor:pointer;z-index:2}
+#btnAdmin:active{color:var(--gold)}
 #titleMark{font-family:var(--font-carve);font-weight:700;font-size:2.9em;letter-spacing:.1em;line-height:1.25;text-align:center}
 #titleMark span{color:var(--gold)}
 #titleSub{margin-top:1em;font-size:.86em;line-height:1.9;color:rgba(243,237,223,.6);text-align:center}
@@ -257,6 +260,7 @@ canvas{display:block;width:100%;height:100%}
   </div>
 
   <div class="veil on" id="vTitle">
+    <button id="btnAdmin">·</button>
     <div id="titleMark">어휘의<br><span>구덩이</span></div>
     <div id="titleSub">
       가라앉은 낱말을 건져 올려라.<br>
@@ -269,7 +273,6 @@ canvas{display:block;width:100%;height:100%}
       <button class="btn gold" id="btnStart">내려간다</button>
       <button class="btn ghost" id="btnShop">대장간</button>
       <button class="btn ghost" id="btnChar">인물</button>
-      <button class="btn ghost" id="btnAdmin" style="opacity:.35;font-size:.8em">·</button>
       <button class="btn ghost" id="btnVibe">진동</button>
     </div>
   </div>
@@ -422,7 +425,9 @@ const CONFIG = {
   /* 오답 되돌리기 — 틀린 낱말을 기억했다가 더 자주 내보낸다 */
   weakMax:40,            // 기억해 둘 낱말 수
   weakNeed:2,            // 몇 번 맞혀야 목록에서 빠지는지
-  weakQuizRate:0.40,     // 경보·보스 퀴즈에서 오답 낱말이 뽑힐 확률
+  weakQuizRate:0.40,     // 경보·보스 퀴즈에서 오답 낱말이 뽑힐 최대 확률
+  weakFullAt:5,          // 오답이 이만큼 쌓여야 위 확률이 다 적용된다
+  recentSkip:6,          // 최근 이만큼의 출제 낱말은 다시 안 낸다
   weakBrickRate:0.25,    // 일반 석판에서 뽑힐 확률
   fusePerAlert:3,       // 경보 정답 몇 번마다 융합 기회를 주는지
   alertDescentMul:0.65, alertWrongDamage:0,
@@ -435,8 +440,8 @@ const CONFIG = {
   abyssBossDmg:1.20,     // 심연의 구덩이 — 보스 공격력이 이만큼 오른다
   bossShieldCut:0.70,    // 평소 보스가 받는 피해 감소
   bossVulnMul:2.2,       // 뜻을 맞힌 뒤 받는 피해 배수
-  bossVulnSec:12.0,      // 방벽이 열려 있는 시간(초)
-  bossQuizEvery:6.3,     // 몇 초마다 뜻을 묻는지 (이전 9.0에서 30% 단축)
+  bossVulnSec:9.0,       // 방벽이 열려 있는 시간(초)
+  bossQuizEvery:3.5,     // 방벽이 닫힌 뒤 몇 초 만에 다시 묻는지
   bossQuizDamage:0.12,   // 맞히면 최대 체력의 이만큼이 즉시 깎인다
   bossVerseVuln:28.0,    // 소월 — 세 소절을 다 맞혔을 때 방벽이 열리는 시간
   bossVerseDamage:0.30,  // 소월 — 세 소절 완주 시 즉시 피해
@@ -968,9 +973,12 @@ const UPGRADES = [
    ⑤-5 인물 — 교과서 속 사람들. 저마다 다른 재주를 쓴다
    ══════════════════════════════════════════════════════════ */
 const CHARS = [
+  {id:'none', name:'이름 없는 자', work:'구덩이로 내려온 채자인',
+   skill:'—', desc:'재주가 없다. 오로지 구슬로만 싸운다',
+   floor:0, cost:0, color:'#52BFA0'},
   {id:'kwon', name:'권씨', work:'아홉 켤레의 구두로 남은 사내',
    skill:'맴돌이', desc:'작은 석판 하나가 곁을 돌며 다른 석판을 친다',
-   floor:0, cost:0, color:'#9E8F6E'},
+   floor:0, cost:180, color:'#9E8F6E'},
   {id:'gildong', name:'홍길동', work:'홍길동전',
    skill:'분신', desc:'10초마다 그림자가 2초간 나타나 함께 쏜다',
    floor:10, cost:250, color:'#52BFA0'},
@@ -991,7 +999,7 @@ const charDef=id=>CHARS.find(c=>c.id===id)||CHARS[0];
 
 /* ---------- 저장 (기기 안에만 남는다) ---------- */
 const SAVE_KEY='vocab-pit-save-v1';
-let META={ink:0, up:{}, best:0, bestInk:0, abyss:0, runs:0, totalWords:0, lastBall:null, weak:{}, cleared:{}, met:{}, chars:{kwon:1}, char:'kwon',
+let META={ink:0, up:{}, best:0, bestInk:0, abyss:0, runs:0, totalWords:0, lastBall:null, weak:{}, cleared:{}, met:{}, chars:{none:1}, char:'none',
   seen:{}, today:null, day:0, plan:null, runsToday:0, admin:null};
 let saveOK=true;
 function loadMeta(){
@@ -1119,6 +1127,7 @@ function loadLessonFor(stage){
   const q=plan[idx];
   if(S) S.lesson=q;
   WORDS=wordsOf(q);
+  recentAsked=[];
   if(!WORDS.length) WORDS=wordsOf(VOCAB.lessons[0]);
 }
 
@@ -1137,16 +1146,25 @@ function weakHit(word){
   saveMeta();
 }
 /* 오답 낱말을 우선해서 하나 뽑는다 */
+let recentAsked=[];
+function noteAsked(w){
+  recentAsked.push(w);
+  if(recentAsked.length>CONFIG.recentSkip) recentAsked.shift();
+}
 function pickWord(exclude, rate){
-  const ex=exclude||new Set();
+  const ex=new Set(exclude||[]);
+  for(const r of recentAsked) ex.add(r);        // 최근에 낸 낱말은 잠시 쉰다
   if(META.weak){
     const w=Object.keys(META.weak).filter(k=>!ex.has(k));
-    if(w.length && Math.random()<rate){
+    // 오답이 적을 때는 확률도 낮춘다 — 한둘뿐인데 계속 나오지 않게
+    const eff=rate*Math.min(1, w.length/CONFIG.weakFullAt);
+    if(w.length && Math.random()<eff){
       const hit=WORDS.find(x=>x.w===w[Math.floor(Math.random()*w.length)]);
       if(hit) return hit;
     }
   }
-  const pool=WORDS.filter(x=>!ex.has(x.w));
+  let pool=WORDS.filter(x=>!ex.has(x.w));
+  if(!pool.length) pool=WORDS.filter(x=>!(exclude&&exclude.has&&exclude.has(x.w)));
   const src=pool.length?pool:WORDS;
   return src[Math.floor(Math.random()*src.length)];
 }
@@ -1179,7 +1197,7 @@ const BOSS_QUIZ_Y=540;          // 보스 퀴즈 후보가 놓이는 높이
 const PAD_L={x:172,y:1412,r:94,k:40};
 const PAD_R={x:VW-172,y:1412,r:94,k:40};
 const BTN_F={x:VW-172,y:1188,r:62};
-const BTN_P={x:VW-46,y:VH-1518,r:30};   // 우상단 일시정지
+const BTN_P={x:VW-46,y:VH-1512,r:30};   // 우상단 일시정지
 
 const cv=document.getElementById('cv'),ctx=cv.getContext('2d'),frame=document.getElementById('frame');
 let scale=1,dpr=1;
@@ -1390,7 +1408,7 @@ function spawnAlert(){
   S.balls=[]; S.queue=[]; S.cool=CONFIG.shotCooldown*S.rateMul;
   const n=CONFIG.alertChoicesByChapter[chapterOf(S.stage)];
   const span=Math.max(2,Math.floor(cols()/n));
-  const ans=pickWord(new Set(), CONFIG.weakQuizRate);
+  const ans=pickWord(new Set(), CONFIG.weakQuizRate); noteAsked(ans.w);
   const picks=[ans,...WORDS.filter(x=>x.w!==ans.w).sort(()=>Math.random()-.5).slice(0,n-1)]
               .sort(()=>Math.random()-.5);
   const ansIdx=picks.indexOf(ans);
@@ -1820,7 +1838,7 @@ function spawnBossQuiz(verse){
   S.balls=[]; S.queue=[]; S.cool=CONFIG.shotCooldown*S.rateMul;
   const n=def.quizN||CONFIG.alertChoicesByChapter[chapterOf(S.stage)];
   const layout=def.quizLayout||'row';
-  const ans=pickWord(new Set(), CONFIG.weakQuizRate);
+  const ans=pickWord(new Set(), CONFIG.weakQuizRate); noteAsked(ans.w);
   const picks=[ans,...WORDS.filter(x=>x.w!==ans.w).sort(()=>Math.random()-.5).slice(0,n-1)]
               .sort(()=>Math.random()-.5);
   const ai=picks.indexOf(ans);
@@ -2450,6 +2468,7 @@ function startQuiz(afterBoss){
   let ans=pickWord(new Set(), CONFIG.weakQuizRate);
   if(!afterBoss && pool.length && !pool.some(x=>x.w===ans.w) && Math.random()>CONFIG.weakQuizRate)
     ans=pool[Math.floor(Math.random()*pool.length)];
+  noteAsked(ans.w);
   const wrong=WORDS.filter(x=>x.w!==ans.w).sort(()=>Math.random()-.5).slice(0,3);
   const opts=[ans,...wrong].sort(()=>Math.random()-.5);
   el('quizDef').innerHTML=`<span class="qpos">${ans.b?BOOKNAME[ans.b]+' '+ans.l+'회':''}</span>${ans.def}`;
@@ -3645,33 +3664,33 @@ function wrapText(text,x,y,maxW,lh){
 }
 function drawHud(){
   ctx.save();ctx.textBaseline='middle';
-  const ex=MARGIN+2,ey=34,ew=330,eh=26;
+  const ex=MARGIN+2,ey=38,ew=340,eh=32;
   ctx.textAlign='left';
-  ctx.font=`500 17px 'IBM Plex Sans KR',sans-serif`;ctx.fillStyle=C['--stone-deep'];
-  ctx.fillText('기력',ex,16);
+  ctx.font=`600 20px 'IBM Plex Sans KR',sans-serif`;ctx.fillStyle=C['--stone-deep'];
+  ctx.fillText('기력',ex,14);
   ctx.fillStyle='rgba(5,8,15,.55)';roundRect(ex,ey-eh/2,ew,eh,eh/2);ctx.fill();
   const ratio=Math.max(0,S.energy/S.energyMax);
   const lowc=ratio<.3?C['--vermilion']:(ratio<.6?C['--gold']:C['--jade']);
   ctx.fillStyle=lowc;roundRect(ex+3,ey-eh/2+3,(ew-6)*ratio,eh-6,(eh-6)/2);ctx.fill();
   ctx.strokeStyle='rgba(222,211,184,.3)';ctx.lineWidth=2;
   roundRect(ex,ey-eh/2,ew,eh,eh/2);ctx.stroke();
-  ctx.font=`700 17px 'IBM Plex Sans KR',sans-serif`;ctx.fillStyle=C['--paper'];
-  ctx.fillText(`${Math.ceil(S.energy)} / ${S.energyMax}`,ex+12,ey);
+  ctx.font=`700 21px 'IBM Plex Sans KR',sans-serif`;ctx.fillStyle=C['--paper'];
+  ctx.fillText(`${Math.ceil(S.energy)} / ${S.energyMax}`,ex+14,ey);
 
   ctx.textAlign='right';
-  ctx.font=`700 30px 'Gowun Batang',serif`;ctx.fillStyle=C['--gold'];
+  ctx.font=`700 34px 'Gowun Batang',serif`;ctx.fillStyle=C['--gold'];
   const RX=WALL_R-72;
   ctx.fillText(`${S.stage}층`,RX,ey-4);
-  ctx.font=`500 14px 'IBM Plex Sans KR',sans-serif`;ctx.fillStyle='rgba(222,211,184,.4)';
+  ctx.font=`600 18px 'IBM Plex Sans KR',sans-serif`;ctx.fillStyle='rgba(222,211,184,.55)';
   ctx.fillText(zoneOf(S.stage).name+(S.lesson?` · ${BOOKNAME[S.lesson.b]} ${S.lesson.l}회`:''),RX,ey-26);
-  ctx.font=`500 17px 'IBM Plex Sans KR',sans-serif`;ctx.fillStyle=C['--stone-deep'];
-  if(S.isBoss)ctx.fillText('보스',RX,ey+24);
+  ctx.font=`600 20px 'IBM Plex Sans KR',sans-serif`;ctx.fillStyle=C['--stone-deep'];
+  if(S.isBoss)ctx.fillText('보스',RX,ey+26);
   else{
     const need=clearNeed();
-    ctx.fillText(`${Math.min(S.destroyed,need)} / ${need}`,RX,ey+24);
-    const bw2=150,bx2=RX-bw2;
-    ctx.fillStyle='rgba(222,211,184,.13)';roundRect(bx2,ey+34,bw2,7,4);ctx.fill();
-    ctx.fillStyle=C['--jade'];roundRect(bx2,ey+34,bw2*Math.min(1,S.destroyed/need),7,4);ctx.fill();
+    ctx.fillText(`${Math.min(S.destroyed,need)} / ${need}`,RX,ey+26);
+    const bw2=160,bx2=RX-bw2;
+    ctx.fillStyle='rgba(222,211,184,.13)';roundRect(bx2,ey+38,bw2,8,4);ctx.fill();
+    ctx.fillStyle=C['--jade'];roundRect(bx2,ey+38,bw2*Math.min(1,S.destroyed/need),8,4);ctx.fill();
   }
   // 장착한 구슬 / 문방
   // 일시정지
