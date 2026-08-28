@@ -107,6 +107,29 @@ canvas{display:block;width:100%;height:100%}
 #admLessons{display:grid;grid-template-columns:repeat(10,1fr);gap:.3em;width:100%;margin:.4em 0}
 #admLessons .tg{padding:.5em 0;text-align:center;font-size:.85em}
 #admNow{font-size:.78em;color:var(--jade);text-align:center;margin-top:.6em;line-height:1.6;min-height:2.4em}
+/* ── 인물의 기억 ── */
+#vMem{justify-content:flex-end;padding-bottom:14%;cursor:pointer;
+  background:radial-gradient(circle at 50% 62%,rgba(82,191,160,.13),rgba(5,8,15,.97) 62%)}
+#memWho{font-family:var(--font-carve);font-size:.95em;letter-spacing:.3em;
+  color:var(--stone-deep);margin-bottom:.9em}
+#memBox{width:100%;padding:1.5em 1.3em;border-radius:10px;
+  background:rgba(5,8,15,.82);border-left:3px solid var(--jade);min-height:5.5em;
+  display:flex;align-items:center}
+#memText{font-family:var(--font-carve);font-size:1.3em;line-height:1.95;color:var(--paper)}
+#memGo{margin-top:1.2em;font-size:.7em;letter-spacing:.3em;color:var(--stone-deep);
+  animation:talkBlink 1.6s ease-in-out infinite}
+#bookTabs{display:flex;gap:.35em;flex-wrap:wrap;justify-content:center;margin-bottom:.8em;width:100%}
+#bookTabs .tb{padding:.4em .7em;border-radius:5px;font-size:.78em;cursor:pointer;
+  background:rgba(222,211,184,.07);border:1px solid rgba(222,211,184,.22);color:var(--stone)}
+#bookTabs .tb.on{border-color:var(--gold);color:var(--gold);font-weight:700;background:rgba(229,178,79,.16)}
+#bookList{display:flex;flex-direction:column;gap:.42em;width:100%;max-height:58vh;overflow-y:auto}
+.bkRow{display:flex;gap:.7em;padding:.6em .8em;border-radius:6px;
+  background:rgba(222,211,184,.05);border-left:2px solid rgba(222,211,184,.2)}
+.bkRow.on{border-left-color:var(--jade);background:rgba(82,191,160,.08)}
+.bkRow .bf{font-family:var(--font-carve);font-weight:700;color:var(--stone-deep);
+  width:2.6em;flex:none;font-size:.9em}
+.bkRow .bt{font-family:var(--font-carve);font-size:.92em;line-height:1.6;color:rgba(243,237,223,.88)}
+.bkRow.locked .bt{color:rgba(222,211,184,.22)}
 #pathList{display:flex;flex-direction:column;gap:.8em;width:100%}
 .path{padding:1.1em 1.2em;cursor:pointer;border-radius:10px;border:2px solid}
 .path:active{transform:scale(.985)}
@@ -187,12 +210,25 @@ canvas{display:block;width:100%;height:100%}
 .card .body{flex:1}
 .card .cname{font-family:var(--font-carve);font-weight:700;font-size:1.05em;color:var(--gold)}
 .card .cdesc{font-size:.76em;line-height:1.4;color:rgba(243,237,223,.74);margin-top:.1em}
+.card.up{border-color:var(--jade);border-width:2px;
+  background:linear-gradient(100deg,rgba(82,191,160,.20),rgba(222,211,184,.04))}
+.card.up .cname{color:var(--jade)}
+.card .upmark{flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:.3em .55em;border-radius:6px;background:rgba(82,191,160,.22);
+  border:1px solid var(--jade);color:var(--jade);line-height:1.1;
+  animation:upPulse 1.5s ease-in-out infinite}
+.card .upmark span{font-size:.62em;letter-spacing:.1em;font-weight:700;margin-top:.15em}
+@keyframes upPulse{0%,100%{transform:translateY(0);opacity:.85}50%{transform:translateY(-3px);opacity:1}}
 .card .cstack{font-size:.68em;letter-spacing:.14em;color:var(--stone-deep);flex:none}
 .btn{margin-top:1.3em;font-weight:500;font-size:1em;letter-spacing:.14em;padding:.75em 2em;cursor:pointer;
   background:transparent;border:1px solid var(--jade);border-radius:2px;color:var(--jade);transition:background .15s,color .15s}
 .btn:active{background:var(--jade);color:var(--pit-void)}
 .btn.gold{border-color:var(--gold);color:var(--gold)}
 .btn.gold:active{background:var(--gold);color:var(--pit-void)}
+.btn.glow{animation:btnGlow 1.4s ease-in-out infinite}
+@keyframes btnGlow{0%,100%{box-shadow:0 0 0 rgba(229,178,79,0);transform:scale(1)}
+  50%{box-shadow:0 0 22px rgba(229,178,79,.75);transform:scale(1.04)}}
+.up.hint{animation:btnGlow 1.4s ease-in-out infinite;border-color:var(--gold)!important}
 .btn.ghost{border-color:rgba(222,211,184,.4);color:rgba(222,211,184,.75)}
 #introText{font-family:var(--font-carve);font-size:1.35em;line-height:2;text-align:center;
   color:var(--paper);max-width:24em;min-height:7em;display:flex;align-items:center;justify-content:center}
@@ -217,6 +253,11 @@ canvas{display:block;width:100%;height:100%}
 #titleSub b{color:var(--stone);font-weight:500}
 #titleRec{margin-top:1.2em;display:flex;gap:1.6em;justify-content:center;font-size:.8em;color:var(--stone-deep)}
 #titleRec b{display:block;font-family:var(--font-carve);font-size:1.9em;color:var(--gold);font-weight:700;line-height:1.2}
+#endBest{margin:.2em 0 .6em;font-family:var(--font-carve);font-weight:700;font-size:1.15em;
+  color:var(--gold);letter-spacing:.06em;min-height:1.2em;
+  animation:bestPop .5s cubic-bezier(.2,.9,.3,1.3)}
+@keyframes bestPop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+#endLoad{margin-bottom:.4em}
 #endStats{display:flex;gap:1.6em;margin:.3em 0 .2em}
 .stat{text-align:center}
 .stat .num{font-family:var(--font-carve);font-weight:700;font-size:2.2em;color:var(--gold);line-height:1}
@@ -273,6 +314,7 @@ canvas{display:block;width:100%;height:100%}
       <button class="btn gold" id="btnStart">내려간다</button>
       <button class="btn ghost" id="btnShop">대장간</button>
       <button class="btn ghost" id="btnChar">인물</button>
+      <button class="btn ghost" id="btnBook">기억</button>
       <button class="btn ghost" id="btnVibe">진동</button>
     </div>
   </div>
@@ -317,6 +359,8 @@ canvas{display:block;width:100%;height:100%}
     <div class="eyebrow" id="endEyebrow">구덩이 밖으로 밀려나다</div>
     <h2 id="endTitle">뜻을 놓치고 <em>밀려났다</em></h2>
     <div id="endStats"></div>
+    <div id="endBest"></div>
+    <div class="loadout" id="endLoad"></div>
     <div id="inkGain"></div>
     <div id="ghost"></div>
     <button class="btn gold" id="btnToShop">묵귀에게</button>
@@ -349,7 +393,15 @@ canvas{display:block;width:100%;height:100%}
     <div class="row">
       <button class="btn gold" id="btnResume">이어서 내려간다</button>
       <button class="btn ghost" id="btnQuit">저장하고 나간다</button>
+      <button class="btn ghost" id="btnGiveUp" style="border-color:rgba(226,89,63,.5);color:var(--vermilion)">여기서 끝내고 먹을 정산한다</button>
     </div>
+  </div>
+
+  <div class="veil" id="vBook">
+    <div class="eyebrow" id="bookEyebrow">기억</div>
+    <div id="bookTabs"></div>
+    <div id="bookList"></div>
+    <button class="btn ghost" id="btnBookBack">돌아간다</button>
   </div>
 
   <div class="veil" id="vChar">
@@ -383,6 +435,12 @@ canvas{display:block;width:100%;height:100%}
     <button class="btn ghost" id="btnAdmBack">돌아간다</button>
   </div>
 
+  <div class="veil" id="vMem">
+    <div id="memWho"></div>
+    <div id="memBox"><div id="memText"></div></div>
+    <div id="memGo">눌러서 넘긴다</div>
+  </div>
+
   <div class="veil" id="vShop">
     <div class="eyebrow" id="shopEyebrow">대장간</div>
     <div id="shopHead"><span class="amt" id="shopInk">0</span><span class="unit">먹</span></div>
@@ -412,10 +470,23 @@ const CONFIG = {
   /* 장(10층)마다 판이 넓어지고 하강 속도는 되돌아간다 */
   colsByChapter:[8,10,11,12,13],
   descentByChapter:[26,29,32,35,38],
-  descentPerFloor:1.2,
+  descentPerFloor:2.0,
   fillRatio:0.72,
   brickHpFromLength:true, brickHpFixed:3,
   hpByChapter:[0,0,1,1,2],   // 구간마다 석판이 조금씩 단단해진다
+
+  /* 석판 종류 — 누적 판수로 열리고, 정해진 층부터 나온다 */
+  kindsMax:2,            // 화면에 동시에 존재할 수 있는 특수 석판 수
+  kindsPerRow:1,         // 한 줄에 들어갈 수 있는 특수 석판 수
+  kindChance:0.55,       // 한 줄에 특수 석판이 섞일 확률
+  goldSpeed:2.0,         // 금 석판 하강 배수
+  goldInk:6,             // 금 석판을 깼을 때 먹
+  hardMul:2,             // 굳은 석판 체력 배수
+  shootEvery:3.0,        // 쏘는 석판 발사 주기
+  breedEvery:8.0,        // 번식 석판 주기
+  landslideFrom:25,      // 사태가 열리는 층
+  landslideEvery:40,     // 사태 주기(초)
+  landslideMul:3.0,      // 사태 줄의 하강 배수
 
   /* 어휘 회차 */
   lessonEvery:5,         // 몇 층마다 회차가 바뀌는지
@@ -942,6 +1013,28 @@ const EVOS = [
    ══════════════════════════════════════════════════════════ */
 const TOMES = BOSSES.map(b=>b.tome);   // 문인마다 고유 천서
 
+/* ══════════════════════════════════════════════════════════
+   석판 종류
+   ══════════════════════════════════════════════════════════ */
+const KINDS = [
+  {id:'hard',  name:'굳은 석판', runs:7,  floor:2, col:'#9E8F6E',
+   note:'단단하지만 먹을 두 배로 준다'},
+  {id:'gold',  name:'금 석판',   runs:9,  floor:3, col:'#E5B24F',
+   note:'먹을 많이 주지만 두 배로 빨리 내려간다'},
+  {id:'shield',name:'방패 석판', runs:12, floor:4, col:'#6FA8E0',
+   note:'아래가 막혀 있다. 위나 옆에서 쳐야 깨진다'},
+  {id:'shoot', name:'쏘는 석판', runs:16, floor:5, col:'#E2593F',
+   note:'아래로 탄을 뱉는다'},
+  {id:'twin',  name:'쌍 석판',   runs:20, floor:6, col:'#8E7BD8',
+   note:'둘이 한 몸이다. 둘 다 깨야 사라진다'},
+  {id:'breed', name:'번식 석판', runs:25, floor:7, col:'#52BFA0',
+   note:'가만두면 옆으로 번진다'},
+];
+const kindDef=id=>KINDS.find(k=>k.id===id);
+function openKinds(){
+  return KINDS.filter(k=>(META.runs||0)>=k.runs && S.stage>=k.floor);
+}
+
 const BALLDEF=id=>BALLS.find(b=>b.id===id)||EVOS.find(b=>b.id===id);
 const GEARDEF=id=>GEARS.find(g=>g.id===id);
 
@@ -999,7 +1092,8 @@ const charDef=id=>CHARS.find(c=>c.id===id)||CHARS[0];
 
 /* ---------- 저장 (기기 안에만 남는다) ---------- */
 const SAVE_KEY='vocab-pit-save-v1';
-let META={ink:0, up:{}, best:0, bestInk:0, abyss:0, runs:0, totalWords:0, lastBall:null, weak:{}, cleared:{}, met:{}, chars:{none:1}, char:'none',
+let META={ink:0, up:{}, best:0, bestInk:0, abyss:0, runs:0, totalWords:0, lastBall:null, weak:{}, cleared:{}, met:{}, chars:{none:1}, char:'none', tip:{},
+  mem:{}, deep:{}, shopVisits:0,
   seen:{}, today:null, day:0, plan:null, runsToday:0, admin:null};
 let saveOK=true;
 function loadMeta(){
@@ -1131,6 +1225,40 @@ function loadLessonFor(stage){
   if(!WORDS.length) WORDS=wordsOf(VOCAB.lessons[0]);
 }
 
+/* ══════════════════════════════════════════════════════════
+   인물의 기억 — 30층을 깨면 뒷세계가 열린다
+   ══════════════════════════════════════════════════════════ */
+function deepOpen(id){ return !!(META.deep&&META.deep[id]); }
+function memList(id){
+  const m=MEM.mem[id]; if(!m)return [];
+  return deepOpen(id)? m.back : m.front;
+}
+function memKey(id,floor){ return id+'_'+(deepOpen(id)?'b':'f')+'_'+floor; }
+/* 층에 닿았을 때 열 조각이 있으면 돌려준다 */
+function memAt(floor){
+  const id=META.char, list=memList(id);
+  for(const [f,t] of list){
+    if(f===floor && !(META.mem&&META.mem[memKey(id,f)])){
+      META.mem=META.mem||{}; META.mem[memKey(id,f)]=1; saveMeta();
+      return t;
+    }
+  }
+  return null;
+}
+/* 묵귀 */
+function ghostAt(n){
+  const deep=deepOpen(META.char);
+  const list=deep?MEM.ghost.back:MEM.ghost.front;
+  for(const [k,t] of list){
+    const key='g_'+(deep?'b':'f')+'_'+k;
+    if(n>=k && !(META.mem&&META.mem[key])){
+      META.mem=META.mem||{}; META.mem[key]=1; saveMeta();
+      return t;
+    }
+  }
+  return null;
+}
+
 /* ---------- 오답 되돌리기 ---------- */
 function weakAdd(word){
   if(!META.weak) META.weak={};
@@ -1171,7 +1299,7 @@ function pickWord(exclude, rate){
 
 const lvOf   = id=>META.up[id]||0;
 const COST_EXP=1.6;
-const costAt = (u,n)=>Math.round(u.unit*Math.pow(n,COST_EXP));
+const costAt = (u,n)=>(u.id==='vigor'&&n===1)?1:Math.round(u.unit*Math.pow(n,COST_EXP));
 const costOf = u=>costAt(u,lvOf(u.id)+1);
 const costTotal=u=>{let t=0;for(let n=1;n<=u.cap;n++)t+=costAt(u,n);return t;};
 const costSpent=u=>{let t=0;for(let n=1;n<=lvOf(u.id);n++)t+=costAt(u,n);return t;};
@@ -1230,7 +1358,8 @@ function newRun(){
       sizeMul:1, rateMul:1, speedMul:1, speedMulBase:1, lifeMul:1,
       moveMul:1, descentMul:1,
       alertSlow:1-0.08*lvOf('focus'), lifeBonus:0,
-      hpRelief:0, hardLeft:0,
+      hpRelief:0, hardLeft:0, goldT:14, slideT:0, kindMsg:null,
+      tutStarted:false, tutLeft:0, tutStep:0,
       px:VW/2, py:1150, aimX:0, aimY:-1,
       bossPick:{}, abyssBoss:null, isAbyss:false, lesson:null,
       bricks:[], balls:[], bullets:[], sparks:[], beams:[], queue:[], sweeps:[], nums:[],
@@ -1240,7 +1369,7 @@ function newRun(){
       clearedThisStage:[], destroyed:0, totalWords:0,
       learned:new Set(), learnedWords:[],
       bonusInk:0, alertRight:0, alertWrong:0,
-      shake:0, flash:0, winFlash:0, btnGlow:0,
+      shake:0, flash:0, winFlash:0, btnGlow:0, phaseFx:0,
       touchL:null, touchR:null, lx:0, ly:0, rx:0, ry:0 };
   // 각오 — 기력을 깎는 대신 첫 카드를 더 본다
   if(lvOf('resolve')){
@@ -1377,11 +1506,30 @@ function makeBrick(c,span,word,hp,extra){
   return Object.assign({x:MARGIN+c*CL+4,y:SPAWN_Y,w:span*CL-8,h:BRICK_H,
                         hp,maxHp:hp,word,hit:0,quiz:false,isAnswer:false,bleedN:0,bleedT:0,freeze:0},extra||{});
 }
+/* 첫 판 1층 — 벽 옆에만 석판을 둔다. 곧게 쏘면 안 맞는다 */
+function isTutorial(){ return !tipSeen('intro') && S.stage===1 && S.startStage===1; }
+function spawnTutorialRow(){
+  const N=cols(), used=new Set();
+  for(const c of [0, N-2]){
+    const w=pickWord(used,0); used.add(w.w);
+    const span=Math.max(2,Math.min(4,w.w.length));
+    S.bricks.push(makeBrick(c===0?0:N-span,span,w,2,{tut:true}));
+  }
+  const w=pickWord(used,0);
+  const span=Math.max(2,Math.min(4,w.w.length));
+  S.bricks.push(makeBrick(0,span,w,2,{tut:true}));
+  S.bricks[S.bricks.length-1].y=SPAWN_Y+ROW_STEP;
+  S.tutLeft=3;
+}
 function spawnRow(){
+  if(isTutorial()){
+    if(!S.tutStarted){ S.tutStarted=true; spawnTutorialRow(); }
+    return;                                    // 튜토리얼 동안엔 새 줄이 안 나온다
+  }
   const N=cols();
   const used=new Set(S.bricks.map(b=>b.word.w));
   const slots=new Array(N).fill(false);
-  let placed=0,guard=0;const budget=Math.round(N*CONFIG.fillRatio);
+  let placed=0,guard=0,rowKind=false;const budget=Math.round(N*CONFIG.fillRatio);
   while(placed<budget&&guard++<40){
     const word=pickWord(used, CONFIG.weakBrickRate);
     const span=Math.min(N,Math.min(4,word.w.length));
@@ -1397,7 +1545,37 @@ function spawnRow(){
     let hp=CONFIG.brickHpFromLength?Math.min(4,word.w.length):CONFIG.brickHpFixed;
     hp=Math.max(1,hp-S.hpRelief)+CONFIG.hpByChapter[chapterOf(S.stage)];
     if(S.hardLeft>0) hp+=CONFIG.hardHpBonus;
-    S.bricks.push(makeBrick(c,span,word,hp,S.hardLeft>0?{hard:true}:null));
+    const extra=S.hardLeft>0?{hard:true}:{};
+    // 특수 석판을 한 줄에 하나까지 섞는다
+    if(!rowKind && S.bricks.filter(x=>x.kind).length<CONFIG.kindsMax){
+      const open=openKinds();
+      if(open.length && Math.random()<CONFIG.kindChance){
+        const k=open[Math.floor(Math.random()*open.length)];
+        if(k.id!=='gold'){                 // 금 석판은 줄에 섞이지 않는다
+          extra.kind=k.id; rowKind=true;
+          if(k.id==='hard') hp*=CONFIG.hardMul;
+          if(k.id==='shoot') extra.shootT=CONFIG.shootEvery;
+          if(k.id==='breed') extra.breedT=CONFIG.breedEvery;
+          announceKind(k);
+        }
+      }
+    }
+    const nb=makeBrick(c,span,word,hp,extra);
+    S.bricks.push(nb);
+    if(extra.kind==='twin'){               // 쌍 석판 — 짝을 하나 더
+      let mate=null;
+      for(let cc=0;cc<=N-span;cc++){
+        let free=true; for(let k2=0;k2<span;k2++) if(slots[cc+k2]) free=false;
+        if(free){ mate=cc; break; }
+      }
+      if(mate!==null){
+        for(let k2=0;k2<span;k2++) slots[mate+k2]=true;
+        const w2=pickWord(used,0); used.add(w2.w);
+        const b2=makeBrick(mate,span,w2,hp,{kind:'twin'});
+        nb.twin=b2; b2.twin=nb;
+        S.bricks.push(b2); placed+=span;
+      }else{ nb.kind=null; rowKind=false; }
+    }
     placed+=span;
   }
 }
@@ -1457,9 +1635,9 @@ cv.addEventListener('pointerdown',e=>{
   cv.setPointerCapture(e.pointerId);
   const p=toV(e);
   if(near(p,BTN_P,14)){ pauseGame(); return; }
-  if(near(p,BTN_F,18)){tryFire();return;}
-  if(p.x<VW/2){ if(S.touchL==null){S.touchL=e.pointerId;S.lx=p.x;S.ly=p.y;} }
-  else        { if(S.touchR==null){S.touchR=e.pointerId;S.rx=p.x;S.ry=p.y;} }
+  if(near(p,BTN_F,18)){S.gFire=true;tryFire();return;}
+  if(p.x<VW/2){ if(S.touchL==null){S.touchL=e.pointerId;S.lx=p.x;S.ly=p.y;S.gTouchL=true;} }
+  else        { if(S.touchR==null){S.touchR=e.pointerId;S.rx=p.x;S.ry=p.y;S.gTouchR=true;} }
 });
 cv.addEventListener('pointermove',e=>{
   if(!S)return;const p=toV(e);
@@ -1540,10 +1718,16 @@ function burst(x,y,n,c){
 }
 function countWord(b){
   S.destroyed++;S.totalWords++;S.sinceAlert++;
+  if(b.kind==='hard') addInk(2);
+  if(b.kind==='gold') addInk(CONFIG.goldInk);
   if(!S.learned.has(b.word.w)){S.learned.add(b.word.w);S.learnedWords.push(b.word);}
   if(!S.clearedThisStage.some(x=>x.w===b.word.w))S.clearedThisStage.push(b.word);
 }
 function checkClear(){
+  if(S.tutLeft>0){
+    S.tutLeft--;
+    if(S.tutLeft<=0){ tipDone('intro'); S.tutStarted=false; }
+  }
   if(S.isBoss)return;
   if(S.destroyed>=clearNeed()){stageClear();return;}
   if(!S.alert&&!S.alertPending&&S.sinceAlert>=CONFIG.alertEvery) S.alertPending=true;
@@ -1597,6 +1781,11 @@ function applyEffects(b,ball){
   }
 }
 function hitBrick(b,ball){
+  if(b.kind==='shield'&&ball.vy<0){          // 방패 — 아래에서 올라오는 것은 막는다
+    b.hit=.12; burst(ball.x,ball.y,3,'stone');
+    S.alertMsg=S.alertMsg||{text:'막혔다',t:.7,ok:false};
+    return;
+  }
   if(b.flip&&!b.open){          // 지용 — 뒤집힌 석판은 한 번 때리면 열린다
     b.open=true; b.openT=CONFIG.bossFlipOpen; b.hit=.2;
     burst(ball.x,ball.y,6,'gold');
@@ -1637,6 +1826,10 @@ function breakBrick(b,ball){
           pierce:0,home:0,bounces:0,wallB:0,skip:null,trail:[]});
       }
     }
+  }
+  if(b.twin&&S.bricks.includes(b.twin)){     // 쌍 석판 — 짝이 남으면 되살아난다
+    b.twin.hp=b.twin.maxHp; b.twin.twin=null;
+    S.alertMsg={text:'짝이 남았다',t:1.2,ok:false};
   }
   if(b.quiz&&S.alert){ if(S.alert.boss) resolveBossQuiz(!!b.isAnswer);
                        else resolveAlert(!!b.isAnswer); return; }
@@ -1752,14 +1945,15 @@ function moveBall(ball,dt){
 }
 
 /* ---------- 반사 예측 ---------- */
-function predictPath(){
+function predictPath(maxB){
+  const MAXB=(maxB===undefined)?CONFIG.predictBounces:maxB;
   const base=Math.atan2(S.aimY,S.aimX);
   const pts=[{x:S.px+Math.cos(base)*30,y:S.py+Math.sin(base)*30}];
   let x=pts[0].x,y=pts[0].y,vx=S.aimX,vy=S.aimY;
   const r=CONFIG.ballRadius*S.sizeMul,STEP=7;
   let bounces=0,dist=0;
   const solids=S.boss?[...S.bricks,S.boss]:S.bricks;
-  while(bounces<=CONFIG.predictBounces&&dist<2600){
+  while(bounces<=MAXB&&dist<2600){
     x+=vx*STEP;y+=vy*STEP;dist+=STEP;
     let hit=false;
     if(x-r<WALL_L){x=WALL_L+r;vx=Math.abs(vx);hit=true;}
@@ -1968,9 +2162,10 @@ function updateBoss(dt){
   if(!B.phase2&&B.hp<=B.maxHp*0.5){
     B.phase2=true; B.stun=CONFIG.bossStunSec;
     S.bullets=[]; S.sweeps=[];
-    S.shake=26; S.winFlash=.9;
+    S.shake=40; S.winFlash=1.4;
+    S.phaseFx=1.6;                       // 화면 전체가 그 색으로 번쩍인다
     S.bossCry={text:B.def.cry||'', t:2.6};
-    vibe('open');
+    vibe('boss');
     for(let i=0;i<50;i++) S.sparks.push({x:B.x+B.w/2,y:B.y+B.h/2,
       vx:(Math.random()-.5)*900,vy:(Math.random()-.5)*900,t:.8,c:'gold'});
   }
@@ -2120,6 +2315,32 @@ function charTick(dt){
     }
     if(S.sword){ S.sword.t-=dt; if(S.sword.t<=0) S.sword=null; }
   }
+}
+
+/* 처음 보는 석판을 알려준다 */
+/* 필요해지는 순간에 한 줄씩. 각각 한 번만 */
+const TIPS={
+  card :'한 장만 고른다. 구슬은 날아가는 것, 문방은 모든 구슬을 강하게 한다',
+  full :'구슬은 세 자리뿐이다. 새것을 넣으려면 하나를 먹으로 바꿔야 한다',
+  level:'같은 것을 또 고르면 레벨이 오른다. 한 가지를 깊게 키우는 길도 있다',
+  fuse :'만렙 구슬과 짝이 되는 문방이 만나면, 둘이 하나로 물든다',
+  shop :'먹이 남았다. 대장간에서 벼려 두면 다음에 더 깊이 내려간다',
+};
+function tipSeen(k){ return !!(META.tip&&META.tip[k]); }
+function tipDone(k){ META.tip=META.tip||{}; META.tip[k]=1; saveMeta(); }
+function showTip(k){
+  if(tipSeen(k))return false;
+  tipDone(k);
+  S.kindMsg={name:'', note:TIPS[k], col:'#52BFA0', t:4.6};
+  return true;
+}
+
+function announceKind(k){
+  if(!k)return;
+  META.kinds=META.kinds||{};
+  if(META.kinds[k.id])return;
+  META.kinds[k.id]=1; saveMeta();
+  S.kindMsg={name:k.name,note:k.note,col:k.col,t:3.4};
 }
 
 function updateTrait(dt){
@@ -2441,6 +2662,10 @@ function defeatBoss(){
   addInk(CONFIG.inkPerBoss);
   if(!META.cleared) META.cleared={};
   if(!META.cleared[S.stage]){ META.cleared[S.stage]=1; saveMeta(); }
+  if(S.stage>=30){                                   // 30층을 넘기면 뒷세계가 열린다
+    META.deep=META.deep||{};
+    if(!META.deep[META.char]){ META.deep[META.char]=1; saveMeta(); }
+  }
   S.tomePending=(S.tomePending||0)+1;
   S.lastBossTome=B.def.tome;
   for(let i=S.bricks.length-1;i>=0;i--) if(S.bricks[i].quiz) S.bricks.splice(i,1);
@@ -2603,20 +2828,28 @@ function bindSell(id){
 
 function offerCards(n){
   S.screen='card';
-  const pick=drawCards(n);
-  el('cardEyebrow').textContent=`${pick.length}장 중 한 장을 고른다`;
+  const first=!tipSeen('card');
+  const pick=drawCards(first?2:n);         // 처음엔 구슬 하나 문방 하나만
+  if(first){ showTip('card'); }
+  else if(S.ballSlots.length>=maxBallSlots() && !tipSeen('full')) showTip('full');
+  else if(pick.some(c=>c.own) && !tipSeen('level')) showTip('level');
+  el('cardEyebrow').textContent=first
+    ? '구슬은 날아가는 것 · 문방은 모든 구슬을 강하게 한다'
+    : `${pick.length}장 중 한 장을 고른다`;
   renderLoadout('loadCard'); bindSell('loadCard');
   const row=el('cardRow');row.innerHTML='';
   for(const c of pick){
     const t=c.def.tier||1;
     const d=document.createElement('div');d.className='card t'+t;
-    const tag=(c.kind==='ball'?'구슬':'문방')+(c.own?` Lv.${c.lv}`:' 새것');
+    if(c.own) d.classList.add('up');
+    const tag=(c.kind==='ball'?'구슬':'문방')+(c.own?` Lv.${c.lv-1} → Lv.${c.lv}`:' 새것');
     d.innerHTML=`<div class="icon">${c.def.icon}</div>
       <div class="body">
         <div class="cname">${c.def.name}</div>
         <div class="cdesc">${c.def.text(c.lv)}</div>
         <div class="stars">${'★'.repeat(t)} ${tag}</div>
-      </div>`;
+      </div>
+      ${c.own?'<div class="upmark">▲<span>강화</span></div>':''}`;
     d.onclick=()=>{ if(takeCard(c)!==false) afterCard(); };
     row.appendChild(d);
   }
@@ -2670,6 +2903,7 @@ function fusePool(){
 }
 function offerFuse(){
   S.screen='fuse';
+  showTip('fuse');
   const pool=fusePool();
   el('fuseEyebrow').textContent=`융합 기회 ${S.fuseTok}회 · 뜻을 맞혀 얻었다`;
   const list=el('fuseList');list.innerHTML='';
@@ -2763,13 +2997,16 @@ function nextStage(){
   S.alert=null;S.alertPending=false;S.sinceAlert=0;S.alertMsg=null;
   S.cool=0;S.invuln=0;S.cyc=0;S.pendingCard=0;dropTouches();
   S.isBoss=isBossStage(S.stage);
+  loadLessonFor(S.stage);            // 층이 바뀌면 회차도 바뀐다
   saveRun();
   if(S.isBoss){
-    const d=bossOf(S.stage);
-    el('bossHo').textContent=d.ho;el('bossName').textContent=d.name;
-    el('bossLine').innerHTML=LORE.bossPre+'<br>'+d.line+'<br><span style="color:var(--gold)">'+d.trait+'</span>';
-    S.screen='bossintro';show('vBoss');
+    S.isAbyss=false; S.abyssBoss=null;
+    if(META.cleared&&META.cleared[S.stage]){ offerPath(); return; }   // 깨본 층이면 갈림길
+    showBossIntro();
   }else{
+    const t=memAt(S.stage);
+    if(t){ sayMem(t,()=>{ S.screen='play';show(null);
+             if(zoneOf(S.stage)!==zoneOf(S.stage-1)) announceZone(S.stage); }); return; }
     S.screen='play';show(null);
     if(zoneOf(S.stage)!==zoneOf(S.stage-1)) announceZone(S.stage);
   }
@@ -2803,6 +3040,20 @@ function sayBoss(d, kind, after){
   show('vTalk');
 }
 el('vTalk').onclick=()=>{ const f=talkAfter; talkAfter=null; if(f)f(); };
+
+/* 인물의 기억을 띄운다 */
+let memAfter=null;
+function sayMem(text,after){
+  memAfter=after;
+  const c=charDef(META.char);
+  el('memWho').textContent=(deepOpen(c.id)?'':'')+c.name;
+  el('memBox').style.borderColor=c.color;
+  el('vMem').style.background=
+    `radial-gradient(circle at 50% 62%, ${c.color}26, rgba(5,8,15,.97) 62%)`;
+  el('memText').textContent=text;
+  S.screen='mem'; show('vMem');
+}
+el('vMem').onclick=()=>{ const f=memAfter; memAfter=null; if(f)f(); };
 
 function showBossIntro(){
   const d=bossOf(S.stage);
@@ -2850,10 +3101,14 @@ function runEnd(won){
   if(lvOf('rub')) S.bonusInk+=S.learned.size*lvOf('rub');   // 탁본
   if(S.ballSlots.length) META.lastBall=S.ballSlots[0].def.id; // 각인
   const gained=runInk();
+  const newBest = S.stage>META.best, newInk = gained>META.bestInk;
   META.ink+=gained; META.runs++; META.totalWords+=S.totalWords;
-  if(S.stage>META.best) META.best=S.stage;
-  if(gained>META.bestInk) META.bestInk=gained;
-  if(won) META.abyss++;                    // 완주하면 다음 심연이 열린다
+  if(newBest) META.best=S.stage;
+  if(newInk) META.bestInk=gained;
+  if(won){
+    META.abyss++;                                    // 완주하면 다음 심연이 열린다
+    if(META.deep) delete META.deep[META.char];       // 50층을 끝내면 뒷세계가 닫힌다
+  }
   clearRun();
   saveMeta();
 
@@ -2865,6 +3120,16 @@ function runEnd(won){
     <div class="stat"><div class="num">${S.totalWords}</div><div class="lab">깨뜨린 석판</div></div>
     <div class="stat"><div class="num">${acc?Math.round(S.alertRight/acc*100):0}%</div><div class="lab">경보 정답률</div></div>`;
   el('ghost').textContent = won ? pick(LORE.ghostWin) : pick(LORE.ghostDeath);
+  const marks=[];
+  if(newBest) marks.push(`최고 기록 · ${S.stage}층`);
+  if(newInk)  marks.push(`먹 최고 · ${gained}`);
+  el('endBest').textContent = marks.length? '◆ '+marks.join('   ◆ ') : '';
+  const btn=el('btnToShop');
+  if(!tipSeen('shop')){
+    btn.classList.add('glow');
+    btn.textContent='먹을 벼리러 간다';
+  }else{ btn.classList.remove('glow'); btn.textContent='묵귀에게'; }
+  renderLoadout('endLoad');
   el('inkGain').innerHTML = won
     ? `먹 <b>+${gained}</b><br><span style="font-size:.6em;color:var(--jade)">심연 ${META.abyss}회차가 열렸다</span>`
     : `먹 <b>+${gained}</b>`;
@@ -2877,14 +3142,22 @@ let shopFromEnd=false;
 function openShop(fromEnd){
   shopFromEnd=!!fromEnd;
   el('shopEyebrow').textContent = META.abyss>0 ? `대장간 · 심연 ${META.abyss}회차` : '대장간';
+  META.shopVisits=(META.shopVisits||0)+1;
+  const gl=ghostAt(META.shopVisits);
   renderShop();
-  el('ghost2').textContent=pick(LORE.ghostShop);
+  if(gl){ el('ghost2').textContent=gl; show('vShop'); return; }
+  if(!tipSeen('shop')){
+    tipDone('shop');
+    el('ghost2').textContent='먹으로 벼려 두면 다음에 더 깊이 내려간다. 하나 골라 보게.';
+  }else el('ghost2').textContent=pick(LORE.ghostShop);
   show('vShop');
 }
 function renderShop(){
   el('shopInk').textContent=META.ink;
   const list=el('shopList');list.innerHTML='';
-  for(const u of UPGRADES){
+  let cheapest=false;
+  const order=[...UPGRADES].sort((a,b)=>costOf(a)-costOf(b));
+  for(const u of (META.bought?UPGRADES:order)){
     const l=lvOf(u.id), c=costOf(u), full=maxed(u), can=!full&&META.ink>=c;
     const d=document.createElement('div');
     d.className='up'+(full?' maxed':(can?' can':''));
@@ -2897,7 +3170,10 @@ function renderShop(){
       </div>
       <div class="price${can?'':' no'}">${full?'만렙':c+' 먹'}
         ${full?'':`<span style="display:block;font-family:var(--font-ui);font-weight:500;font-size:.55em;color:var(--stone-deep)">만렙까지 ${costTotal(u)-costSpent(u)}</span>`}</div>`;
-    if(can) d.onclick=()=>{ META.ink-=c; META.up[u.id]=l+1; saveMeta(); renderShop(); };
+    if(can){
+      d.onclick=()=>{ META.ink-=c; META.up[u.id]=l+1; META.bought=1; saveMeta(); renderShop(); };
+      if(!META.bought && !cheapest) { d.classList.add('hint'); cheapest=true; }
+    }
     list.appendChild(d);
   }
   const spent=UPGRADES.reduce((a,u)=>a+costSpent(u),0);
@@ -2947,6 +3223,10 @@ function pauseGame(){
   show('vPause');
 }
 el('btnResume').onclick=()=>{ S.screen='play'; show(null); };
+el('btnGiveUp').onclick=()=>{
+  clearRun();
+  runEnd(false);
+};
 el('btnQuit').onclick=()=>{
   saveRun();
   newRun(); S.screen='title';
@@ -3034,6 +3314,43 @@ el('btnAdmSave').onclick=()=>{
 el('btnAdmClear').onclick=()=>{ META.admin=null; META.plan=null; admSel=new Set(); saveMeta(); renderAdmin(); };
 el('btnAdmBack').onclick=()=>{ refreshTitle(); show('vTitle'); };
 
+/* ---------- 기억 모음 ---------- */
+let bookId='none', bookDeep=false;
+function renderBook(){
+  const tabs=el('bookTabs'); tabs.innerHTML='';
+  for(const c of CHARS){
+    const b=document.createElement('div');
+    b.className='tb'+(bookId===c.id?' on':'');
+    b.textContent=c.name;
+    b.onclick=()=>{ bookId=c.id; bookDeep=false; renderBook(); };
+    tabs.appendChild(b);
+  }
+  const m=MEM.mem[bookId]; if(!m)return;
+  const hasBack=(m.back||[]).some(([f])=>META.mem&&META.mem[bookId+'_b_'+f]);
+  if(hasBack||deepOpen(bookId)){
+    const b=document.createElement('div');
+    b.className='tb'+(bookDeep?' on':'');
+    b.style.borderColor='rgba(226,89,63,.6)';
+    b.textContent='뒷세계';
+    b.onclick=()=>{ bookDeep=!bookDeep; renderBook(); };
+    tabs.appendChild(b);
+  }
+  const list=el('bookList'); list.innerHTML='';
+  const src=bookDeep?m.back:m.front, tag=bookDeep?'b':'f';
+  let got=0;
+  for(const [f,t] of src){
+    const has=!!(META.mem&&META.mem[bookId+'_'+tag+'_'+f]);
+    if(has) got++;
+    const d=document.createElement('div');
+    d.className='bkRow'+(has?' on':' locked');
+    d.innerHTML=`<div class="bf">${f}층</div><div class="bt">${has?t:'아직 닿지 못한 기억'}</div>`;
+    list.appendChild(d);
+  }
+  el('bookEyebrow').textContent=`기억 · ${got} / ${src.length}`;
+}
+el('btnBook').onclick=()=>{ bookId=META.char; bookDeep=deepOpen(META.char); renderBook(); show('vBook'); };
+el('btnBookBack').onclick=()=>{ refreshTitle(); show('vTitle'); };
+
 function refreshVibeBtn(){
   const b=el('btnVibe');
   if(!('vibrate' in navigator)){ b.style.display='none'; return; }
@@ -3056,7 +3373,7 @@ function refreshTitle(){
   el('titleRec').innerHTML =
     `<div><b>${META.best}</b>최고 층</div>
      <div><b>${META.ink}</b>보유 먹</div>
-     <div><b>${META.abyss}</b>심연</div>`;
+     <div><b>${META.runs||0}</b>내려간 횟수</div>`;
 }
 el('btnStart').onclick=()=>{clearRun();newRun();show(null);announceZone(S.stage);};
 el('btnRetry')?.addEventListener('click',()=>{clearRun();newRun();show(null);});
@@ -3068,8 +3385,10 @@ function update(dt){
   S.invuln=Math.max(0,S.invuln-dt);
   S.cool=Math.max(0,S.cool-dt);
   S.winFlash=Math.max(0,S.winFlash-dt*1.4);
+  S.phaseFx=Math.max(0,S.phaseFx-dt*0.9);
   if(S.alert)S.alert.t+=dt;
   if(S.alertMsg){S.alertMsg.t-=dt;if(S.alertMsg.t<=0)S.alertMsg=null;}
+  if(S.kindMsg){S.kindMsg.t-=dt;if(S.kindMsg.t<=0)S.kindMsg=null;}
   if(S.bossCry){S.bossCry.t-=dt;if(S.bossCry.t<=0)S.bossCry=null;}
 
   charTick(dt); if(S.screen!=='play')return;
@@ -3128,7 +3447,32 @@ function update(dt){
       const b=S.bricks[i];if(!b)continue;
       // 서리: 얼어 있는 동안은 내려오지 않는다
       if(b.freeze>0) b.freeze=Math.max(0,b.freeze-dt);
-      else b.y+=v*(b.quiz?CONFIG.alertDescentMul*S.alertSlow:1);
+      else{
+        let m=b.quiz?CONFIG.alertDescentMul*S.alertSlow:1;
+        if(b.kind==='gold') m*=CONFIG.goldSpeed;
+        if(b.slide) m*=CONFIG.landslideMul;
+        b.y+=v*m;
+      }
+      if(b.kind==='shoot'){                       // 쏘는 석판
+        b.shootT-=dt;
+        if(b.shootT<=0){
+          b.shootT=CONFIG.shootEvery;
+          S.bullets.push({x:b.x+b.w/2,y:b.y+b.h,vx:0,vy:230,r:10,hold:0,k:'rand'});
+        }
+      }
+      if(b.kind==='breed'){                       // 번식 석판
+        b.breedT-=dt;
+        if(b.breedT<=0){
+          b.breedT=CONFIG.breedEvery;
+          const CL=cell(), nx=b.x+(Math.random()<.5?-1:1)*(b.w+8);
+          const clash=S.bricks.some(x=>Math.abs(x.x-nx)<b.w&&Math.abs(x.y-b.y)<b.h);
+          if(!clash && nx>WALL_L && nx+b.w<WALL_R && S.bricks.length<40){
+            const w=pickWord(new Set(),0);
+            const nb2=makeBrick(0,Math.max(2,Math.min(4,w.w.length)),w,b.maxHp,{kind:'breed',breedT:CONFIG.breedEvery});
+            nb2.x=nx; nb2.y=b.y; S.bricks.push(nb2);
+          }
+        }
+      }
       b.hit=Math.max(0,b.hit-dt);
       // 출혈: 겹수만큼 초당 피해
       if(b.bleedT>0){
@@ -3150,6 +3494,33 @@ function update(dt){
         hurt(touched?CONFIG.brickTouchDamage*(1-(S.touchCut||0)):CONFIG.brickDamage);
         if(S.screen!=='play')return;
         if(wasQuiz&&S.alert){resolveAlert(false);if(S.screen!=='play')return;}
+      }
+    }
+    // 금 석판 — 줄에 섞이지 않고 혼자, 빈 칸을 골라 내려온다
+    if(!S.alert && openKinds().some(k=>k.id==='gold')){
+      S.goldT=(S.goldT||14)-dt;
+      if(S.goldT<=0 && !S.bricks.some(x=>x.kind==='gold')){
+        S.goldT=16+Math.random()*8;
+        const N2=cols(), CL=cell();
+        const busy=new Set();
+        for(const b of S.bricks) if(b.y<CEIL_Y+260)
+          for(let c2=0;c2<N2;c2++){ const x=MARGIN+c2*CL; if(x+CL>b.x&&x<b.x+b.w) busy.add(c2); }
+        const free=[...Array(N2-1).keys()].filter(c2=>!busy.has(c2)&&!busy.has(c2+1));
+        if(free.length){
+          const c2=free[Math.floor(Math.random()*free.length)];
+          const w=pickWord(new Set(),0);
+          S.bricks.push(makeBrick(c2,2,w,3,{kind:'gold'}));
+          announceKind(kindDef('gold'));
+        }
+      }
+    }
+    if(S.stage>=CONFIG.landslideFrom){          // 사태 — 한 줄이 쏟아진다
+      S.slideT=(S.slideT||CONFIG.landslideEvery)-dt;
+      if(S.slideT<=0){
+        S.slideT=CONFIG.landslideEvery;
+        for(const b of S.bricks) if(b.y<CEIL_Y+200&&!b.quiz) b.slide=true;
+        S.alertMsg={text:'사태가 인다',t:1.6,ok:false};
+        S.shake=20; S.flash=.4; vibe('wrong');
       }
     }
     if(S.alertPending&&!S.alert&&roomForNewRow()){ spawnAlert(); }
@@ -3253,7 +3624,22 @@ function draw(){
     ctx.restore();
   }
   drawAlertOverlay();
+  if(S.kindMsg){                                 // 새 석판 안내
+    const m=S.kindMsg,a=Math.min(1,m.t*1.2);
+    ctx.save();ctx.globalAlpha=a;
+    ctx.fillStyle='rgba(5,8,15,.86)';
+    roundRect(WALL_L+20,700,WALL_R-WALL_L-40,132,10);ctx.fill();
+    ctx.strokeStyle=m.col;ctx.lineWidth=3;
+    roundRect(WALL_L+20,700,WALL_R-WALL_L-40,132,10);ctx.stroke();
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.font=`700 38px 'Gowun Batang',serif`;ctx.fillStyle=m.col;
+    ctx.fillText(m.name,VW/2,748);
+    ctx.font=`400 24px 'Gowun Batang',serif`;ctx.fillStyle=C['--paper'];
+    wrapText(m.note,VW/2,800,WALL_R-WALL_L-90,30);
+    ctx.restore();
+  }
   drawBossCry();
+  if(isTutorial()) drawGuide();
   drawControls();drawHud();
   if(S.boss&&S.boss.def.traitId==='season'){       // 사계 — 테두리가 물든다
     const q=SEASONS[S.boss.season];
@@ -3281,6 +3667,17 @@ function draw(){
   }
   if(S.flash>0){ctx.fillStyle=`rgba(226,89,63,${S.flash*.3})`;ctx.fillRect(-40,-40,VW+80,VH+80);}
   if(S.winFlash>0){ctx.fillStyle=`rgba(229,178,79,${S.winFlash*.28})`;ctx.fillRect(-40,-40,VW+80,VH+80);}
+  if(S.phaseFx>0){                       // 2페이즈 전환 — 보스 색으로 명멸
+    const col=S.boss?S.boss.def.color:'#E2593F';
+    const p=Math.abs(Math.sin(S.phaseFx*14))*S.phaseFx;
+    ctx.save();
+    ctx.globalAlpha=Math.min(.55,p*.5);
+    ctx.fillStyle=col;ctx.fillRect(-40,-40,VW+80,VH+80);
+    ctx.globalAlpha=Math.min(1,S.phaseFx);
+    ctx.strokeStyle=col;ctx.lineWidth=22;
+    ctx.strokeRect(8,8,VW-16,VH-16);
+    ctx.restore();
+  }
 }
 
 function drawBrick(b){
@@ -3297,7 +3694,13 @@ function drawBrick(b){
     ctx.strokeStyle=b.hit>0?'#fff':C['--vermilion'];
     ctx.lineWidth=4;ctx.shadowColor=C['--vermilion'];ctx.shadowBlur=12+10*p;
   }else{
-    if(b.hard){
+    const kd=b.kind?kindDef(b.kind):null;
+  if(kd){                                        // 특수 석판
+    const p=.5+.5*Math.sin(performance.now()/1000*3);
+    ctx.fillStyle=kd.col+'2E';
+    ctx.strokeStyle=b.hit>0?'#fff':kd.col;
+    ctx.lineWidth=4; ctx.shadowColor=kd.col; ctx.shadowBlur=8+6*p;
+  }else if(b.hard){
       ctx.fillStyle=`rgba(12,16,26,${.72+wear*.16})`;
       ctx.strokeStyle=b.hit>0?C['--gold']:`rgba(158,143,110,${.5+wear*.3})`;
       ctx.lineWidth=b.hit>0?4:3;
@@ -3308,6 +3711,24 @@ function drawBrick(b){
     }
   }
   roundRect(b.x,b.y,b.w,b.h,5);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
+  // 종류별 표식
+  if(kd){
+    ctx.shadowBlur=0;
+    if(kd.id==='shield'){                        // 아래에 막
+      ctx.fillStyle=kd.col;ctx.fillRect(b.x+4,b.y+b.h-7,b.w-8,5);
+    }
+    if(kd.id==='twin'&&b.twin){                  // 짝을 잇는 선
+      ctx.strokeStyle=kd.col;ctx.lineWidth=2;ctx.globalAlpha=.5;
+      ctx.beginPath();ctx.moveTo(b.x+b.w/2,b.y+b.h/2);
+      ctx.lineTo(b.twin.x+b.twin.w/2,b.twin.y+b.twin.h/2);ctx.stroke();
+      ctx.globalAlpha=1;
+    }
+    ctx.font=`600 15px 'IBM Plex Sans KR',sans-serif`;
+    ctx.textAlign='right';ctx.textBaseline='top';
+    ctx.fillStyle=kd.col;
+    ctx.fillText({hard:'굳',gold:'금',shield:'방',shoot:'쏨',twin:'쌍',breed:'번'}[kd.id],
+                 b.x+b.w-6,b.y+16);
+  }
   const seg=b.w/b.maxHp;ctx.fillStyle=b.quiz?C['--vermilion']:C['--gold'];
   for(let i=0;i<Math.ceil(b.hp);i++)ctx.fillRect(b.x+i*seg+4,b.y+5,seg-8,4);
   // 상태이상 표시
@@ -3522,11 +3943,12 @@ function drawHazards(){
   ctx.restore();
 }
 function drawAim(){
-  const pts=predictPath(),ready=S.cool<=0;
+  const tut=isTutorial();
+  const pts=predictPath(tut?4:CONFIG.predictBounces),ready=S.cool<=0;
   ctx.save();
   for(let i=0;i<pts.length-1;i++){
     const a=pts[i],b=pts[i+1];
-    ctx.globalAlpha=i===0?.5:(i===1?.28:.14);
+    ctx.globalAlpha=tut?(i===0?.85:.55):(i===0?.5:(i===1?.28:.14));
     ctx.strokeStyle=ready?C['--jade']:'rgba(222,211,184,.7)';
     ctx.lineWidth=i===0?4:3;ctx.setLineDash(i===0?[10,10]:[6,14]);
     ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
@@ -3606,6 +4028,38 @@ function drawHero(){
     ctx.font=`600 16px 'IBM Plex Sans KR',sans-serif`;ctx.textAlign='center';
     ctx.fillText('✚'.repeat(S.revives),x,y+40);ctx.restore();
   }
+}
+/* 첫 판 — 어디를 만져야 하는지 손으로 짚어준다 */
+function drawGuide(){
+  const t=performance.now()/1000;
+  const ring=(c,label,done)=>{
+    if(done)return;
+    ctx.save();
+    const p=.5+.5*Math.sin(t*3);
+    ctx.globalAlpha=.45+.35*p;
+    ctx.strokeStyle=C['--gold'];ctx.lineWidth=5;
+    ctx.beginPath();ctx.arc(c.x,c.y,c.r+10+p*10,0,7);ctx.stroke();
+    ctx.globalAlpha=.95;
+    ctx.font=`700 20px 'IBM Plex Sans KR',sans-serif`;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle=C['--gold'];
+    ctx.fillText(label,c.x,c.y-c.r-34);
+    ctx.restore();
+  };
+  ring(PAD_L,'여기로 움직인다',S.touchL!=null||S.gTouchL);
+  ring(PAD_R,'여기로 겨눈다',S.touchR!=null||S.gTouchR);
+  ring(BTN_F,'눌러서 쏜다',S.gFire);
+  // 남은 석판
+  ctx.save();
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font=`700 42px 'Gowun Batang',serif`;
+  ctx.fillStyle=C['--paper'];
+  ctx.shadowColor='rgba(0,0,0,.9)';ctx.shadowBlur=14;
+  ctx.fillText(`석판 ${Math.max(0,S.tutLeft)}개`,VW/2,150);
+  ctx.font=`400 22px 'IBM Plex Sans KR',sans-serif`;
+  ctx.fillStyle='rgba(222,211,184,.75)';
+  ctx.fillText('벽에 튕겨야 닿는다',VW/2,192);
+  ctx.restore();
 }
 function drawControls(){
   ctx.save();
