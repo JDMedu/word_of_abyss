@@ -1359,7 +1359,7 @@ function newRun(){
       moveMul:1, descentMul:1,
       alertSlow:1-0.08*lvOf('focus'), lifeBonus:0,
       hpRelief:0, hardLeft:0, goldT:14, slideT:0, kindMsg:null,
-      tutStarted:false, tutLeft:0, tutStep:0,
+      gTouchL:false, gTouchR:false, gFire:false,
       px:VW/2, py:1150, aimX:0, aimY:-1,
       bossPick:{}, abyssBoss:null, isAbyss:false, lesson:null,
       bricks:[], balls:[], bullets:[], sparks:[], beams:[], queue:[], sweeps:[], nums:[],
@@ -1506,26 +1506,7 @@ function makeBrick(c,span,word,hp,extra){
   return Object.assign({x:MARGIN+c*CL+4,y:SPAWN_Y,w:span*CL-8,h:BRICK_H,
                         hp,maxHp:hp,word,hit:0,quiz:false,isAnswer:false,bleedN:0,bleedT:0,freeze:0},extra||{});
 }
-/* 첫 판 1층 — 벽 옆에만 석판을 둔다. 곧게 쏘면 안 맞는다 */
-function isTutorial(){ return !tipSeen('intro') && S.stage===1 && S.startStage===1; }
-function spawnTutorialRow(){
-  const N=cols(), used=new Set();
-  for(const c of [0, N-2]){
-    const w=pickWord(used,0); used.add(w.w);
-    const span=Math.max(2,Math.min(4,w.w.length));
-    S.bricks.push(makeBrick(c===0?0:N-span,span,w,2,{tut:true}));
-  }
-  const w=pickWord(used,0);
-  const span=Math.max(2,Math.min(4,w.w.length));
-  S.bricks.push(makeBrick(0,span,w,2,{tut:true}));
-  S.bricks[S.bricks.length-1].y=SPAWN_Y+ROW_STEP;
-  S.tutLeft=3;
-}
 function spawnRow(){
-  if(isTutorial()){
-    if(!S.tutStarted){ S.tutStarted=true; spawnTutorialRow(); }
-    return;                                    // 튜토리얼 동안엔 새 줄이 안 나온다
-  }
   const N=cols();
   const used=new Set(S.bricks.map(b=>b.word.w));
   const slots=new Array(N).fill(false);
@@ -1724,10 +1705,6 @@ function countWord(b){
   if(!S.clearedThisStage.some(x=>x.w===b.word.w))S.clearedThisStage.push(b.word);
 }
 function checkClear(){
-  if(S.tutLeft>0){
-    S.tutLeft--;
-    if(S.tutLeft<=0){ tipDone('intro'); S.tutStarted=false; }
-  }
   if(S.isBoss)return;
   if(S.destroyed>=clearNeed()){stageClear();return;}
   if(!S.alert&&!S.alertPending&&S.sinceAlert>=CONFIG.alertEvery) S.alertPending=true;
@@ -2320,7 +2297,7 @@ function charTick(dt){
 /* 처음 보는 석판을 알려준다 */
 /* 필요해지는 순간에 한 줄씩. 각각 한 번만 */
 const TIPS={
-  card :'한 장만 고른다. 구슬은 날아가는 것, 문방은 모든 구슬을 강하게 한다',
+  card :'한 장만 고를 수 있다. 구슬은 직접 날아가는 것, 문방은 모든 구슬을 강하게 하는 것.',
   full :'구슬은 세 자리뿐이다. 새것을 넣으려면 하나를 먹으로 바꿔야 한다',
   level:'같은 것을 또 고르면 레벨이 오른다. 한 가지를 깊게 키우는 길도 있다',
   fuse :'만렙 구슬과 짝이 되는 문방이 만나면, 둘이 하나로 물든다',
@@ -2834,7 +2811,7 @@ function offerCards(n){
   else if(S.ballSlots.length>=maxBallSlots() && !tipSeen('full')) showTip('full');
   else if(pick.some(c=>c.own) && !tipSeen('level')) showTip('level');
   el('cardEyebrow').textContent=first
-    ? '구슬은 날아가는 것 · 문방은 모든 구슬을 강하게 한다'
+    ? '한 장만 고른다 · 구슬은 날아가는 것, 문방은 모두를 강하게'
     : `${pick.length}장 중 한 장을 고른다`;
   renderLoadout('loadCard'); bindSell('loadCard');
   const row=el('cardRow');row.innerHTML='';
@@ -3639,7 +3616,7 @@ function draw(){
     ctx.restore();
   }
   drawBossCry();
-  if(isTutorial()) drawGuide();
+  drawGuide();
   drawControls();drawHud();
   if(S.boss&&S.boss.def.traitId==='season'){       // 사계 — 테두리가 물든다
     const q=SEASONS[S.boss.season];
@@ -3943,12 +3920,11 @@ function drawHazards(){
   ctx.restore();
 }
 function drawAim(){
-  const tut=isTutorial();
-  const pts=predictPath(tut?4:CONFIG.predictBounces),ready=S.cool<=0;
+  const pts=predictPath(),ready=S.cool<=0;
   ctx.save();
   for(let i=0;i<pts.length-1;i++){
     const a=pts[i],b=pts[i+1];
-    ctx.globalAlpha=tut?(i===0?.85:.55):(i===0?.5:(i===1?.28:.14));
+    ctx.globalAlpha=i===0?.5:(i===1?.28:.14);
     ctx.strokeStyle=ready?C['--jade']:'rgba(222,211,184,.7)';
     ctx.lineWidth=i===0?4:3;ctx.setLineDash(i===0?[10,10]:[6,14]);
     ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
@@ -4029,36 +4005,29 @@ function drawHero(){
     ctx.fillText('✚'.repeat(S.revives),x,y+40);ctx.restore();
   }
 }
-/* 첫 판 — 어디를 만져야 하는지 손으로 짚어준다 */
+/* 처음 시작할 때 — 세 곳이 차례로 커졌다 작아진다 */
 function drawGuide(){
+  if(tipSeen('touch'))return;
+  if(S.gTouchL&&S.gTouchR&&S.gFire){ tipDone('touch'); return; }
   const t=performance.now()/1000;
-  const ring=(c,label,done)=>{
-    if(done)return;
-    ctx.save();
-    const p=.5+.5*Math.sin(t*3);
-    ctx.globalAlpha=.45+.35*p;
-    ctx.strokeStyle=C['--gold'];ctx.lineWidth=5;
-    ctx.beginPath();ctx.arc(c.x,c.y,c.r+10+p*10,0,7);ctx.stroke();
-    ctx.globalAlpha=.95;
-    ctx.font=`700 20px 'IBM Plex Sans KR',sans-serif`;
-    ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillStyle=C['--gold'];
-    ctx.fillText(label,c.x,c.y-c.r-34);
-    ctx.restore();
-  };
-  ring(PAD_L,'여기로 움직인다',S.touchL!=null||S.gTouchL);
-  ring(PAD_R,'여기로 겨눈다',S.touchR!=null||S.gTouchR);
-  ring(BTN_F,'눌러서 쏜다',S.gFire);
-  // 남은 석판
+  const step=Math.floor(t/1.1)%3;                 // 1.1초마다 다음 자리로
+  const items=[[PAD_L,'이동',S.gTouchL],[PAD_R,'조준',S.gTouchR],[BTN_F,'발사',S.gFire]];
   ctx.save();
-  ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.font=`700 42px 'Gowun Batang',serif`;
-  ctx.fillStyle=C['--paper'];
-  ctx.shadowColor='rgba(0,0,0,.9)';ctx.shadowBlur=14;
-  ctx.fillText(`석판 ${Math.max(0,S.tutLeft)}개`,VW/2,150);
-  ctx.font=`400 22px 'IBM Plex Sans KR',sans-serif`;
-  ctx.fillStyle='rgba(222,211,184,.75)';
-  ctx.fillText('벽에 튕겨야 닿는다',VW/2,192);
+  items.forEach(([c,label,done],i)=>{
+    if(done)return;
+    const on=(i===step);
+    const p=on?(.5+.5*Math.sin(t*5)):0;
+    ctx.globalAlpha=.35+.5*p;
+    ctx.strokeStyle=C['--gold'];ctx.lineWidth=on?6:3;
+    ctx.beginPath();ctx.arc(c.x,c.y,c.r+8+p*16,0,7);ctx.stroke();
+    if(on){
+      ctx.globalAlpha=.95;
+      ctx.font=`700 22px 'IBM Plex Sans KR',sans-serif`;
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillStyle=C['--gold'];
+      ctx.fillText(label,c.x,c.y-c.r-36);
+    }
+  });
   ctx.restore();
 }
 function drawControls(){
