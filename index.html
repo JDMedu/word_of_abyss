@@ -502,10 +502,10 @@ const CONFIG = {
   landslideMul:3.0,      // 사태 줄의 하강 배수
 
   /* 어휘 회차 */
-  lessonEvery:5,         // 몇 층마다 회차가 바뀌는지
-  lessonsPerRun:5,       // 한 판에 도는 회차 수 — 5회차 × 5층 = 25층에 한 바퀴
-  newLessons:3,          // 그중 새 회차
-  revLessons:2,          // 그중 복습 회차
+  lessonBlock:[3,2],     // 5층 한 덩이를 3층 + 2층으로 나눠 회차를 바꾼다
+  lessonsPerRun:10,      // 한 판에 도는 회차 수 — 10회차 × 2.5층 = 25층에 한 바퀴
+  newLessons:7,          // 그중 새 회차
+  revLessons:3,          // 그중 복습 회차
 
   alertEvery:10, alertChoicesByChapter:[4,5,5,6,6], alertBrickHp:3,
   /* 오답 되돌리기 — 틀린 낱말을 기억했다가 더 자주 내보낸다 */
@@ -521,8 +521,12 @@ const CONFIG = {
   clearBase:20, clearPerCycle:1,
   bossEvery:5, maxFloor:50,
 
-  bossHpBase:340, bossHpPerBoss:180,
+  bossHpBase:340, bossHpPerBoss:140,     // 체력 증가는 줄이고 그만큼을 위협으로 옮긴다
   bossBulletSpeed:290, bossCycleBase:1.9,
+  bossDmgPerBoss:0.075,   // 보스 한 번째마다 탄 피해 +7.5%
+  bossSpdPerBoss:0.050,   // 탄 속도 +5%
+  bossCycPerBoss:0.026,   // 공격 주기 -2.6%
+  bossRagePerBoss:0.6,    // 격노가 이만큼씩 길어진다(초)
   abyssBossDmg:1.20,     // 심연의 구덩이 — 보스 공격력이 이만큼 오른다
   bossShieldCut:0.70,    // 평소 보스가 받는 피해 감소
   bossVulnMul:2.2,       // 뜻을 맞힌 뒤 받는 피해 배수
@@ -1333,14 +1337,25 @@ function planLessons(){
   return plan;
 }
 /* 층에 맞는 회차를 WORDS 에 올린다 */
+/* 5층 한 덩이 안에서 3층 → 2층으로 회차가 갈린다.
+   덩이의 끝이 늘 보스층이라, 보스가 묻는 낱말은 직전 두 층에서 본 것이 된다 */
+function lessonIndexAt(stage){
+  const B=CONFIG.lessonBlock, per=B.reduce((a,b)=>a+b,0);
+  const blk=Math.floor((stage-1)/per), within=(stage-1)%per;
+  let k=0, acc=0;
+  for(let i=0;i<B.length;i++){ acc+=B[i]; if(within<acc){ k=i; break; } }
+  return blk*B.length + k;
+}
 function loadLessonFor(stage){
   const plan=META.plan&&META.plan.length?META.plan:planLessons();
-  const idx=Math.floor((stage-1)/CONFIG.lessonEvery)%plan.length;
+  const idx=lessonIndexAt(stage)%plan.length;
   const q=plan[idx];
+  const same=S&&S.lesson&&lessonKey(S.lesson)===lessonKey(q);
   if(S) S.lesson=q;
   WORDS=wordsOf(q);
   recentAsked=[];
   if(!WORDS.length) WORDS=wordsOf(VOCAB.lessons[0]);
+  if(!same) refillBag();                        // 회차가 바뀌면 통을 새로 채운다
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -1397,6 +1412,10 @@ function noteAsked(w){
   recentAsked.push(w);
   if(recentAsked.length>CONFIG.recentSkip) recentAsked.shift();
 }
+let wordBag=[];
+function refillBag(){
+  wordBag=[...WORDS].sort(()=>Math.random()-.5);
+}
 function pickWord(exclude, rate){
   const ex=new Set(exclude||[]);
   for(const r of recentAsked) ex.add(r);        // 최근에 낸 낱말은 잠시 쉰다
@@ -1409,8 +1428,14 @@ function pickWord(exclude, rate){
       if(hit) return hit;
     }
   }
-  let pool=WORDS.filter(x=>!ex.has(x.w));
-  if(!pool.length) pool=WORDS.filter(x=>!(exclude&&exclude.has&&exclude.has(x.w)));
+  // 통에서 앞에서부터 꺼낸다. 다 쓰면 다시 섞어 채운다
+  for(let pass=0;pass<2;pass++){
+    for(let i=0;i<wordBag.length;i++){
+      if(!ex.has(wordBag[i].w)) return wordBag.splice(i,1)[0];
+    }
+    refillBag();
+  }
+  const pool=WORDS.filter(x=>!ex.has(x.w));
   const src=pool.length?pool:WORDS;
   return src[Math.floor(Math.random()*src.length)];
 }
@@ -1480,7 +1505,7 @@ function newRun(){
       tome:null, tomes:[], tomePending:0, fuseTok:0, pendingCard:0, mergeNo:{}, cardHold:null,
       orb:null, shadow:0, shadowT:0, zealT:0, zealCd:0, flowerT:0,
       wallT:0, wallBlk:null, swordT:0, sword:null, charT:0,
-      wallCharge:0, healFx:0, stunT:0,
+      wallCharge:0, healFx:0, stunT:0, bossStep:0, bossDmg:CONFIG.bulletDamage, bossSpd:1,
       statusMul:1, healMul:1, touchCut:0, dmgMul:1,
       revives:lvOf('revive'), cardBonus:lvOf('eye'),
       ballSlots:[], gearSlots:[], cyc:0,
@@ -2184,7 +2209,7 @@ function moveBall(ball,dt){
         c.hp-=dmgOf(ball); burst(ball.x,ball.y,4,'gold');
         if(c.hp<=0){
           c.alive=false; burst(c.x+c.w/2,c.y+c.h/2,30,'gold');
-          enrage(CONFIG.rageSec);
+          enrage(CONFIG.rageSec+CONFIG.bossRagePerBoss*(S.bossStep||0));
         }
         done2=true;break;
       }
@@ -2243,10 +2268,15 @@ function bossOf(stage){
 }
 function spawnBoss(){
   const n=Math.floor(S.stage/CONFIG.bossEvery),d=bossOf(S.stage);
-  const hp=Math.round((CONFIG.bossHpBase+(n-1)*CONFIG.bossHpPerBoss)*(1+CONFIG.abyssBossHp*META.abyss));
+  const step=n-1;                        // 몇 번째 보스인가 (5층=0 … 50층=9)
+  const hp=Math.round((CONFIG.bossHpBase+step*CONFIG.bossHpPerBoss)*(1+CONFIG.abyssBossHp*META.abyss));
+  S.bossStep=step;
+  S.bossDmg=Math.round(CONFIG.bulletDamage*(1+CONFIG.bossDmgPerBoss*step)
+                       *(1+CONFIG.abyssBossDmg*META.abyss*0.15));
+  S.bossSpd=1+CONFIG.bossSpdPerBoss*step;
   const bw=d.bw||320, bh=d.bh||190;
   S.boss={def:d,x:VW/2-bw/2,y:250,w:bw,h:bh,hp,maxHp:hp,hit:0,
-          t:0,cycle:CONFIG.bossCycleBase,atkT:1.6,pi:0,rep:0,spiralA:0,phase2:false,
+          t:0,cycle:CONFIG.bossCycleBase*(1-CONFIG.bossCycPerBoss*(n-1)),atkT:1.6,pi:0,rep:0,spiralA:0,phase2:false,
           vuln:0,quizT:3.0,tpT:2.4,homeX:VW/2,stun:0,
           open:0,rage:0,atkCount:0,tele:[],season:0,seasonT:10,
 };
@@ -2702,11 +2732,12 @@ function enrage(sec){
 function bossShoot(kind){
   const B=S.boss,cx=B.x+B.w/2,cy=B.y+B.h+10;
   const rage=B.rage>0;
-  const sp=CONFIG.bossBulletSpeed*(B.phase2?1.18:1)*(rage?CONFIG.rageSpeed:1)*(S.seasonSpd||1);
+  const sp=CONFIG.bossBulletSpeed*(S.bossSpd||1)*(B.phase2?1.18:1)*(rage?CONFIG.rageSpeed:1)*(S.seasonSpd||1);
   const more=n=>Math.round(n*(rage?CONFIG.rageCount:1)*(S.seasonCnt||1));
   /* kindOf: 'aim' 조준탄(붉음) · 'rand' 무작위탄(흼) · 'fix' 고정탄(푸름) */
   const push=(ang,speed,k,extra)=>S.bullets.push(Object.assign(
-    {x:cx,y:cy,vx:Math.cos(ang)*(speed||sp),vy:Math.sin(ang)*(speed||sp),r:11,hold:0,k:k||'fix'},extra||{}));
+    {x:cx,y:cy,vx:Math.cos(ang)*(speed||sp),vy:Math.sin(ang)*(speed||sp),r:11,hold:0,
+     dmg:S.bossDmg||CONFIG.bulletDamage,k:k||'fix'},extra||{}));
   const tele=(sec,fn)=>B.tele.push({t:sec,fire:fn});
 
   if(kind==='ring'){
@@ -2721,7 +2752,7 @@ function bossShoot(kind){
     const n=more(B.phase2?10:7);
     for(let i=0;i<n;i++){
       const x=WALL_L+30+Math.random()*(WALL_R-WALL_L-60);
-      S.bullets.push({x,y:CEIL_Y+20,vx:(Math.random()-.5)*60,vy:sp*.9,r:11,hold:0,k:'rand'});
+      S.bullets.push({x,y:CEIL_Y+20,vx:(Math.random()-.5)*60,vy:sp*.9,r:11,hold:0,dmg:S.bossDmg,k:'rand'});
     }
   }
   else if(kind==='spiral'){
@@ -2731,7 +2762,7 @@ function bossShoot(kind){
     const n=9, gap=Math.floor(Math.random()*n), step=(WALL_R-WALL_L)/n;
     for(let i=0;i<n;i++){
       if(i===gap||(!B.phase2&&i===gap+1))continue;
-      S.bullets.push({x:WALL_L+step*(i+.5),y:CEIL_Y+16,vx:0,vy:sp*.72,r:12,hold:0,k:'fix'});
+      S.bullets.push({x:WALL_L+step*(i+.5),y:CEIL_Y+16,vx:0,vy:sp*.72,r:12,hold:0,dmg:S.bossDmg,k:'fix'});
     }
   }
   else if(kind==='star'){
@@ -2927,7 +2958,7 @@ function updateBullets(dt){
     if(b.trail!==undefined){
       b.trail-=dt;
       if(b.trail<=0){S.bullets.splice(i,1);continue;}
-      if(S.invuln<=0&&Math.hypot(b.x-S.px,b.y-(S.py-6))<b.r+14){hurt(CONFIG.bulletDamage);if(S.screen!=='play')return;}
+      if(S.invuln<=0&&Math.hypot(b.x-S.px,b.y-(S.py-6))<b.r+14){hurt(b.dmg||CONFIG.bulletDamage);if(S.screen!=='play')return;}
       continue;
     }
     if(b.hold>0){ b.hold-=dt; if(b.hold<=0){b.vx*=1.5;b.vy*=1.5;} continue; }
@@ -2985,7 +3016,8 @@ function updateBullets(dt){
         continue;
       }
       if(S.invuln<=0){
-        S.bullets.splice(i,1);hurt(CONFIG.bulletDamage);
+        const dmg=b.dmg||CONFIG.bulletDamage;
+        S.bullets.splice(i,1);hurt(dmg);
         if(S.screen!=='play')return;
       }
     }
@@ -4874,7 +4906,7 @@ function loop(now){
   try{update(dt);draw();}catch(err){console.error('게임 루프 오류:',err);}
   requestAnimationFrame(loop);
 }
-const BUILD='c4-0';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c4-2';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();ensureToday();newRun();S.screen='title';refreshTitle();
