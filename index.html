@@ -3861,6 +3861,7 @@ function update(dt){
 
   charTick(dt); if(S.screen!=='play')return;
   statusTick(dt); if(S.screen!=='play')return;
+  updateBullets(dt); if(S.screen!=='play')return;   // 층 종류를 가리지 않는다
   for(let i=S.queue.length-1;i>=0;i--){
     S.queue[i].t-=dt;
     if(S.queue[i].t<=0){spawnBall(S.queue[i].ang,S.queue[i].slot);S.queue.splice(i,1);}
@@ -3909,7 +3910,6 @@ function update(dt){
       }
       if(b.quiz) continue;            // 퀴즈 후보는 몸으로 밀어도 터지지 않는다
     }
-    updateBullets(dt); if(S.screen!=='play')return;
   }else{
     const v=descentSpd()*dt;
     for(let i=S.bricks.length-1;i>=0;i--){
@@ -4260,22 +4260,56 @@ function drawBrick(b){
     ctx.strokeStyle=b.hit>0?'#fff':C['--vermilion'];
     ctx.lineWidth=4;ctx.shadowColor=C['--vermilion'];ctx.shadowBlur=12+10*p;
   }else{
-    if(kd){                                      // 특수 석판
-    const p=.5+.5*Math.sin(performance.now()/1000*3);
-    ctx.fillStyle=kd.col+'2E';
-    ctx.strokeStyle=b.hit>0?'#fff':kd.col;
-    ctx.lineWidth=4; ctx.shadowColor=kd.col; ctx.shadowBlur=8+6*p;
-  }else if(b.hard){
-      ctx.fillStyle=`rgba(12,16,26,${.72+wear*.16})`;
-      ctx.strokeStyle=b.hit>0?C['--gold']:`rgba(158,143,110,${.5+wear*.3})`;
-      ctx.lineWidth=b.hit>0?4:3;
-    }else{
-      ctx.fillStyle=`rgba(222,211,184,${.12+wear*.14})`;
+    if(kd){                                      // 특수 석판 — 종류마다 결이 다르다
+      const p=.5+.5*Math.sin(performance.now()/1000*3);
+      const g=ctx.createLinearGradient(b.x,b.y,b.x,b.y+b.h);
+      if(kd.id==='hard'){                        // 굳은 석판 — 거의 검다
+        g.addColorStop(0,'rgba(26,28,34,.97)');
+        g.addColorStop(.5,'rgba(10,12,17,.99)');
+        g.addColorStop(1,'rgba(3,4,7,1)');
+        ctx.fillStyle=g;
+        ctx.strokeStyle=b.hit>0?'#fff':'rgba(120,110,88,.9)';
+        ctx.lineWidth=b.hit>0?4:3; ctx.shadowBlur=0;
+      }else if(kd.id==='gold'){                  // 금 석판 — 안에서 빛이 돈다
+        g.addColorStop(0,'rgba(255,226,150,.60)');
+        g.addColorStop(.55,'rgba(229,178,79,.34)');
+        g.addColorStop(1,'rgba(120,84,20,.42)');
+        ctx.fillStyle=g;
+        ctx.strokeStyle=b.hit>0?'#fff':'#F4D48A';
+        ctx.lineWidth=4; ctx.shadowColor=kd.col; ctx.shadowBlur=16+10*p;
+      }else if(kd.id==='ice'){                   // 얼음 석판 — 서리가 낀 유리
+        g.addColorStop(0,'rgba(210,244,252,.42)');
+        g.addColorStop(.5,'rgba(127,212,232,.24)');
+        g.addColorStop(1,'rgba(40,96,120,.40)');
+        ctx.fillStyle=g;
+        ctx.strokeStyle=b.hit>0?'#fff':'#BDEBF6';
+        ctx.lineWidth=3; ctx.shadowColor=kd.col; ctx.shadowBlur=12+8*p;
+      }else{
+        g.addColorStop(0,kd.col+'55');
+        g.addColorStop(.6,kd.col+'26');
+        g.addColorStop(1,'rgba(5,8,15,.62)');
+        ctx.fillStyle=g;
+        ctx.strokeStyle=b.hit>0?'#fff':kd.col;
+        ctx.lineWidth=4; ctx.shadowColor=kd.col; ctx.shadowBlur=8+6*p;
+      }
+    }else{                                       // 보통 석판 — 위가 밝은 돌결
+      const g=ctx.createLinearGradient(b.x,b.y,b.x,b.y+b.h);
+      g.addColorStop(0,`rgba(232,222,196,${.20+wear*.16})`);
+      g.addColorStop(.6,`rgba(222,211,184,${.10+wear*.12})`);
+      g.addColorStop(1,`rgba(8,11,18,${.34+(1-wear)*.18})`);
+      ctx.fillStyle=g;
       ctx.strokeStyle=b.hit>0?C['--gold']:`rgba(222,211,184,${.26+wear*.32})`;
       ctx.lineWidth=b.hit>0?4:2;
     }
   }
   roundRect(b.x,b.y,b.w,b.h,5);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
+  ctx.save();                                    // 위는 밝고 아래는 앉는다
+  roundRect(b.x,b.y,b.w,b.h,5);ctx.clip();
+  ctx.fillStyle='rgba(255,255,255,.10)';
+  ctx.fillRect(b.x,b.y,b.w,Math.max(3,b.h*0.16));
+  ctx.fillStyle='rgba(0,0,0,.22)';
+  ctx.fillRect(b.x,b.y+b.h-Math.max(3,b.h*0.14),b.w,Math.max(3,b.h*0.14));
+  ctx.restore();
   // 종류별 표식
   if(kd){
     ctx.shadowBlur=0;
@@ -4408,6 +4442,41 @@ function drawBossCry(){
   wrapText(c.text,VW/2,640,VW-110,44);
   ctx.restore();
 }
+/* 보스 윤곽 — 문인마다 다른 도형을 쓴다 */
+const BOSSSHAPE=['rect','circle','tri','star','hex','diamond','shield','flame'];
+function bossShape(B){ return BOSSSHAPE[(BOSSES.indexOf(B.def)+1)%BOSSSHAPE.length]; }
+function shapePath(kind,x,y,w,h,pad){
+  const L=x-pad, T=y-pad, W=w+pad*2, H=h+pad*2;
+  const cx=L+W/2, cy=T+H/2, rx=W/2, ry=H/2;
+  ctx.beginPath();
+  if(kind==='circle'){ ctx.ellipse(cx,cy,rx,ry,0,0,7); return; }
+  if(kind==='tri'){ ctx.moveTo(cx,T); ctx.lineTo(L+W,T+H); ctx.lineTo(L,T+H); ctx.closePath(); return; }
+  if(kind==='diamond'){ ctx.moveTo(cx,T); ctx.lineTo(L+W,cy); ctx.lineTo(cx,T+H); ctx.lineTo(L,cy); ctx.closePath(); return; }
+  if(kind==='hex'){
+    for(let i=0;i<6;i++){ const a=Math.PI/6+i*Math.PI/3;
+      const px=cx+Math.cos(a)*rx, py=cy+Math.sin(a)*ry;
+      i?ctx.lineTo(px,py):ctx.moveTo(px,py); }
+    ctx.closePath(); return;
+  }
+  if(kind==='star'){
+    for(let i=0;i<12;i++){ const a=-Math.PI/2+i*Math.PI/6, k=(i%2)?0.56:1;
+      const px=cx+Math.cos(a)*rx*k, py=cy+Math.sin(a)*ry*k;
+      i?ctx.lineTo(px,py):ctx.moveTo(px,py); }
+    ctx.closePath(); return;
+  }
+  if(kind==='shield'){
+    ctx.moveTo(L,T+H*.10); ctx.lineTo(cx,T); ctx.lineTo(L+W,T+H*.10);
+    ctx.lineTo(L+W,T+H*.58); ctx.quadraticCurveTo(L+W,T+H, cx,T+H);
+    ctx.quadraticCurveTo(L,T+H, L,T+H*.58); ctx.closePath(); return;
+  }
+  if(kind==='flame'){
+    ctx.moveTo(cx,T);
+    ctx.bezierCurveTo(L+W,T+H*.28, L+W*.72,T+H*.62, L+W,T+H);
+    ctx.lineTo(L,T+H);
+    ctx.bezierCurveTo(L+W*.28,T+H*.62, L,T+H*.28, cx,T); ctx.closePath(); return;
+  }
+  roundRect(L,T,W,H,12);
+}
 function drawBoss(){
   const B=S.boss,col=B.rage>0?C['--vermilion']:B.def.color;
   const guarded=B.vuln<=0;
@@ -4418,28 +4487,42 @@ function drawBoss(){
     ctx.beginPath();ctx.arc(B.x+B.w/2,B.y+B.h/2,225,0,7);ctx.stroke();
     ctx.globalAlpha=1;
   }
+  const SH=bossShape(B);
   if(B.rage>0){                    // 분노 — 붉게 타오른다
     ctx.globalAlpha=.4+.3*Math.sin(B.t*12);
     ctx.strokeStyle=C['--vermilion'];ctx.lineWidth=8;
-    roundRect(B.x-14,B.y-14,B.w+28,B.h+28,18);ctx.stroke();
+    shapePath(SH,B.x,B.y,B.w,B.h,14);ctx.stroke();
     ctx.globalAlpha=1;
   }
   if(B.open>0){                    // 허점 — 흰빛으로 벌어진다
     ctx.globalAlpha=.5+.3*Math.sin(B.t*14);
     ctx.strokeStyle='#FFFFFF';ctx.lineWidth=5;
-    roundRect(B.x-5,B.y-5,B.w+10,B.h+10,12);ctx.stroke();
+    shapePath(SH,B.x,B.y,B.w,B.h,5);ctx.stroke();
     ctx.globalAlpha=1;
   }
   if(B.vuln>0){                    // 무방비 — 금빛으로 달아오른다
     ctx.globalAlpha=.5+.3*Math.sin(B.t*10);
     ctx.strokeStyle=C['--gold'];ctx.lineWidth=6;
-    roundRect(B.x-9,B.y-9,B.w+18,B.h+18,14);ctx.stroke();
+    shapePath(SH,B.x,B.y,B.w,B.h,9);ctx.stroke();
     ctx.globalAlpha=1;
   }
-  ctx.fillStyle=B.hit>0?'rgba(255,255,255,.3)':'rgba(222,211,184,.13)';
+  // 몸통 — 위가 밝고 아래가 어두운 결
+  const bg=ctx.createLinearGradient(B.x,B.y,B.x,B.y+B.h);
+  bg.addColorStop(0,   B.hit>0?'rgba(255,255,255,.42)':'rgba(222,211,184,.22)');
+  bg.addColorStop(0.55,B.hit>0?'rgba(255,255,255,.24)':'rgba(222,211,184,.10)');
+  bg.addColorStop(1,   'rgba(5,8,15,.55)');
+  ctx.fillStyle=bg;
   ctx.strokeStyle=col;ctx.lineWidth=4;
   ctx.shadowColor=col;ctx.shadowBlur=B.phase2?34:18;
-  roundRect(B.x,B.y,B.w,B.h,10);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
+  shapePath(SH,B.x,B.y,B.w,B.h,0);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
+  // 윗면 광택
+  ctx.save();
+  shapePath(SH,B.x,B.y,B.w,B.h,0);ctx.clip();
+  const gl=ctx.createLinearGradient(B.x,B.y,B.x,B.y+B.h*.42);
+  gl.addColorStop(0,'rgba(255,255,255,.20)');
+  gl.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=gl;ctx.fillRect(B.x-20,B.y-20,B.w+40,B.h*.62);
+  ctx.restore();
   ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.font=`400 26px 'Gowun Batang',serif`;ctx.fillStyle=col;
   ctx.fillText(B.def.ho,B.x+B.w/2,B.y+52);
@@ -4791,7 +4874,7 @@ function loop(now){
   try{update(dt);draw();}catch(err){console.error('게임 루프 오류:',err);}
   requestAnimationFrame(loop);
 }
-const BUILD='c3-6';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c4-0';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();ensureToday();newRun();S.screen='title';refreshTitle();
