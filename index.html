@@ -503,7 +503,9 @@ const CONFIG = {
 
   /* 어휘 회차 */
   lessonEvery:5,         // 몇 층마다 회차가 바뀌는지
-  newLessons:2,          // 하루에 새로 뽑는 회차 수 (여기에 복습 1개가 더 붙는다)
+  lessonsPerRun:5,       // 한 판에 도는 회차 수 — 5회차 × 5층 = 25층에 한 바퀴
+  newLessons:3,          // 그중 새 회차
+  revLessons:2,          // 그중 복습 회차
 
   alertEvery:10, alertChoicesByChapter:[4,5,5,6,6], alertBrickHp:3,
   /* 오답 되돌리기 — 틀린 낱말을 기억했다가 더 자주 내보낸다 */
@@ -1274,20 +1276,25 @@ function rollLessons(){
   const all=VOCAB.lessons.map(q=>({b:q.b,l:q.l}));
   const age=q=>{const d=META.seen[lessonKey(q)];return d?t-d:99999;};
   const sorted=[...all].sort((x,y)=>age(y)-age(x));
-  const fresh=sorted.slice(0,8).sort(()=>Math.random()-.5).slice(0,CONFIG.newLessons);
-  const rev=all.filter(q=>{const a=age(q);return a>=2&&a<=5;});
+  const need=CONFIG.lessonsPerRun;
+  const has=q=>pick.some(x=>lessonKey(x)===lessonKey(q));
+  const fresh=sorted.slice(0,12).sort(()=>Math.random()-.5).slice(0,CONFIG.newLessons);
   const pick=[...fresh];
-  if(rev.length) pick.push(rev[Math.floor(Math.random()*rev.length)]);
-  while(pick.length<CONFIG.newLessons+1){
-    const q=sorted[Math.floor(Math.random()*Math.min(20,sorted.length))];
-    if(!pick.some(x=>lessonKey(x)===lessonKey(q))) pick.push(q);
+  const rev=all.filter(q=>{const a=age(q);return a>=2&&a<=7;}).sort(()=>Math.random()-.5);
+  for(const q of rev){ if(pick.length>=CONFIG.newLessons+CONFIG.revLessons)break;
+                       if(!has(q)) pick.push(q); }
+  let guard=0;
+  while(pick.length<need && guard++<200){          // 모자라면 오래된 것부터 채운다
+    const q=sorted[Math.floor(Math.random()*Math.min(24,sorted.length))];
+    if(!has(q)) pick.push(q);
   }
+  pick.length=Math.min(pick.length,need);
   META.day=t; META.today=pick; META.runsToday=0; META.usedToday={};
   saveMeta();
   return pick;
 }
 function ensureToday(){
-  if(!META.today||META.day!==today()) rollLessons();
+  if(!META.today||META.day!==today()||META.today.length!==CONFIG.lessonsPerRun) rollLessons();
   return META.today;
 }
 /* 이번 판에 쓸 회차 차례를 정한다 */
@@ -1317,6 +1324,7 @@ function planLessons(){
   // 같은 회차가 두 번 들어가면 5층마다 바뀌어도 제자리로 돌아온다
   const seenK=new Set();
   plan=plan.filter(q=>{const k=lessonKey(q); if(seenK.has(k))return false; seenK.add(k); return true;});
+  plan.length=Math.min(plan.length,CONFIG.lessonsPerRun);   // 5회차에서 한 바퀴가 돈다
   if(!plan.length) plan=[VOCAB.lessons[0]];
 
   META.plan=plan;
@@ -4783,7 +4791,7 @@ function loop(now){
   try{update(dt);draw();}catch(err){console.error('게임 루프 오류:',err);}
   requestAnimationFrame(loop);
 }
-const BUILD='c3-5';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c3-6';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();ensureToday();newRun();S.screen='title';refreshTitle();
