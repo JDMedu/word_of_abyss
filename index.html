@@ -307,6 +307,8 @@ canvas{display:block;width:100%;height:100%}
       가라앉은 낱말을 건져 올려라.<br>
       <b>왼쪽</b> 이동 · <b>오른쪽</b> 조준 · <b>버튼</b> 발사<br>
       경보가 울리면 뜻에 맞는 낱말을 먼저 깨뜨려라.
+      <div id="buildTag" style="margin-top:1.4em;font-size:.7em;letter-spacing:.1em;
+           color:rgba(158,143,110,.55)"></div>
     </div>
     <div id="titleRec"></div>
     <div class="row">
@@ -4153,6 +4155,7 @@ function brickFont(b){
 }
 function drawBrick(b){
   const wear=b.hp/b.maxHp;
+  const kd=b.kind?kindDef(b.kind):null;      // 함수 전체에서 쓰인다
   ctx.save();
   if(b.quiz&&S.alert&&S.alert.layout==='diamond'&&S.alert.blocks[S.alert.blinkI]===b){
     const p=.5+.5*Math.sin(performance.now()/1000*6);
@@ -4165,8 +4168,7 @@ function drawBrick(b){
     ctx.strokeStyle=b.hit>0?'#fff':C['--vermilion'];
     ctx.lineWidth=4;ctx.shadowColor=C['--vermilion'];ctx.shadowBlur=12+10*p;
   }else{
-    const kd=b.kind?kindDef(b.kind):null;
-  if(kd){                                        // 특수 석판
+    if(kd){                                      // 특수 석판
     const p=.5+.5*Math.sin(performance.now()/1000*3);
     ctx.fillStyle=kd.col+'2E';
     ctx.strokeStyle=b.hit>0?'#fff':kd.col;
@@ -4690,6 +4692,9 @@ function loop(now){
   try{update(dt);draw();}catch(err){console.error('게임 루프 오류:',err);}
   requestAnimationFrame(loop);
 }
+const BUILD='c3-2';                       // 배포한 파일을 눈으로 확인하는 표시
+try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
+console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();ensureToday();newRun();S.screen='title';refreshTitle();
 if(META.sawIntro) show('vTitle'); else showIntro();
 requestAnimationFrame(loop);
