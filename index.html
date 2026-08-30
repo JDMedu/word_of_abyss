@@ -1258,6 +1258,25 @@ function loadRun(){
   try{ const r=localStorage.getItem(RUN_KEY); return r?JSON.parse(r):null; }catch(e){ return null; }
 }
 function clearRun(){ try{ localStorage.removeItem(RUN_KEY); }catch(e){} }
+/* 이어하지 않고 새로 내려갈 때 — 두고 온 판을 먼저 정산한다 */
+function settleSavedRun(){
+  const d=loadRun();
+  if(!d) return 0;
+  let t=0;
+  const from=d.startStage||1, to=d.stage||from;
+  for(let f=from;f<=to;f++) t+=CONFIG.inkPerFloor*zoneMul(f);
+  t+=d.bonusInk||0;
+  const learned=(d.learned||[]).length;
+  if(lvOf('rub')) t+=Math.floor(learned/10)*lvOf('rub');           // 탁본
+  const gained=Math.round(t*(1+CONFIG.abyssInk*(META.abyss||0)));
+  META.ink=(META.ink||0)+gained;
+  META.runs=(META.runs||0)+1;
+  META.totalWords=(META.totalWords||0)+(d.totalWords||0);
+  if(to>(META.best||0)) META.best=to;
+  if(gained>(META.bestInk||0)) META.bestInk=gained;
+  clearRun(); saveMeta();
+  return gained;
+}
 
 /* ══════════════════════════════════════════════════════════
    회차 배정 — 날짜를 가로지르는 간격 반복
@@ -3871,8 +3890,12 @@ function refreshTitle(){
      <div><b>${META.ink}</b>보유 먹</div>
      <div><b>${META.runs||0}</b>내려간 횟수</div>`;
 }
-el('btnStart').onclick=()=>{clearRun();newRun();show(null);announceZone(S.stage);};
-el('btnRetry')?.addEventListener('click',()=>{clearRun();newRun();show(null);});
+el('btnStart').onclick=()=>{
+  const got=settleSavedRun();
+  newRun();show(null);announceZone(S.stage);
+  if(got>0) S.alertMsg={text:`두고 온 판을 정산했다 · 먹 +${got}`,t:2.8,ok:true};
+};
+el('btnRetry')?.addEventListener('click',()=>{settleSavedRun();newRun();show(null);});
 
 /* ---------- 갱신 ---------- */
 function update(dt){
@@ -4906,7 +4929,7 @@ function loop(now){
   try{update(dt);draw();}catch(err){console.error('게임 루프 오류:',err);}
   requestAnimationFrame(loop);
 }
-const BUILD='c4-2';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c4-3';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();ensureToday();newRun();S.screen='title';refreshTitle();
