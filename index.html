@@ -518,7 +518,7 @@ const CONFIG = {
   /* 석판 종류 — 누적 판수로 열리고, 정해진 층부터 나온다 */
   kindsMax:60,           // 화면에 동시에 존재할 수 있는 특수 석판 수(사실상 제한 없음)
   /* 층에 따라 한 줄에 들어가는 특수 석판 수 — 사이는 이어서 늘어난다 */
-  kindCurve:[[1,0.2],[10,0.35],[15,0.42],[20,0.5],[30,1.0],[40,2.0],[50,2.0]],
+  kindCurve:[[1,0.3],[10,0.8],[15,1.0],[20,1.2],[30,2.0],[40,3.0],[50,3.0]],
   goldSpeed:2.0,         // 금 석판 하강 배수
   goldInk:1,             // 금 석판을 깼을 때 먹 (구간 배율 없음)
   hardInk:0.5,           // 굳은 석판 (구간 배율 없음)
@@ -634,9 +634,13 @@ const CONFIG = {
   spillN:5,                  // 몇 칸까지 퍼지는가
   spillRange:230,            // 퍼지는 거리(px)
 
-  hpCurveFrom:15,            // 이 층부터 석판이 지수로 단단해진다
+  hpFloorFrom:6,             // 이 층부터 석판 기본 체력을 들어올린다
+  hpFloorAdd:14,             // 얼마나
+  hitCapPct:0.50,            // 일반 석판은 한 번에 최대 체력의 이만큼까지만 깎인다
+
+  hpCurveFrom:1,             // 이 층부터 석판이 지수로 단단해진다 — 처음부터
   hpCurveEvery:5,            // 몇 층마다
-  hpCurveMul:1.40,           // 얼마씩
+  hpCurveMul:1.20,           // 얼마씩 (49층에 걸쳐 곱하므로 완만하게)
 
   axGear:[1,1.10,1.18,1.26,1.34,1.45,1.55],   // 곱하는 문방, 레벨별
   axBall:[1,1.08,1.16,1.24,1.32,1.42,1.52],   // 융합·진화 구슬, 레벨별
@@ -815,7 +819,7 @@ const BOSSES = [
    lines:{meet:'넓은 벌 동쪽 끝으로 옛이야기 지즐대는 실개천이 있었소. 여기엔 없구려.',
      talk:['질화로의 재는 식은 지 오래요. 이 아래에는 데울 것이 없구려.','흙에서 자란 내 마음, 파아란 하늘빛이 그리워 활을 쏘았소.','내 이름은 오래도록 인쇄되지 못했소. ○○○, 이렇게만 적혔지.'],
      win:'그곳이 차마 꿈엔들 잊힐 리야.', again:'또 오셨소. 여기도 고향은 아니오만.'},
-   quizN:4, quizLayout:'scatter', quizFlip:true, quizShoot:true,
+   quizN:4, quizLayout:'wander', quizShoot:true,
    line:'감각의 파편이 흩어졌다가 터진다.',
    patterns:['mine','rain','spiral'], p2:['mine','mine','rain'],
    cry:'― 그곳이 차마 꿈엔들 잊힐 리야…',
@@ -2045,7 +2049,8 @@ function spawnRow(){
     used.add(word.w);
     let hp=CONFIG.brickHpBase+Math.min(4,word.w.length);
     hp=Math.max(1,hp-S.hpRelief)+floorHp(S.stage);
-    hp=Math.max(1,Math.round(hp*hpCurve(S.stage)));      // 20층부터 지수로 단단해진다
+    if(S.stage>=CONFIG.hpFloorFrom) hp+=CONFIG.hpFloorAdd;   // 6층부터 통째로 무거워진다
+    hp=Math.max(1,Math.round(hp*hpCurve(S.stage)));          // 그 위에 지수 곡선
     if(S.hardLeft>0) hp+=CONFIG.hardHpBonus;
     const extra=S.hardLeft>0?{hard:true}:{};
     // 특수 석판을 한 줄에 하나까지 섞는다
@@ -2116,7 +2121,8 @@ function resolveAlert(correct){
     weakHit(ans.w);
     healPct(CONFIG.healAlert);
     if(S.tome&&S.tome.alertCard) S.pendingCard=(S.pendingCard||0)+1;
-    const list=[...S.bricks]; S.bricks=[];
+    const list=S.bricks.filter(x=>x.quiz);        // 앞에 선 경보 석판만 터진다
+    S.bricks=S.bricks.filter(x=>!x.quiz);
     for(const x of list){ countWord(x); burst(x.x+x.w/2,x.y+x.h/2,10,'gold'); }
     S.winFlash=1; S.shake=26; vibe('right');
     S.alertMsg={text:`${ans.w} — 뜻이 풀렸다`,t:2.0,ok:true};
@@ -2437,10 +2443,16 @@ function hitBrick(b,ball){
   if(b.brandT>0) dv=Math.round(dv*(1+(b.brandV||0.3)));      // 낙인
   if(S.finish&&b.hp<=b.maxHp/2) dv=Math.round(dv*(1+S.finish)); // 모루
   const wasSick=hasStatus(b);
-  const over=dv-Math.max(0,b.hp);          // 석판을 넘긴 몫
+  /* 일반 석판은 한 번에 최대 체력의 절반까지만 깎인다 — 일반전은 타격전이다 */
+  let capped=0;
+  if(!b.quiz){
+    const cap=Math.max(1,Math.ceil(b.maxHp*CONFIG.hitCapPct));
+    if(dv>cap){ capped=dv-cap; dv=cap; }
+  }
+  const over=capped+Math.max(0,dv-Math.max(0,b.hp));   // 상한에 막힌 몫 + 체력을 넘긴 몫
   b.hp-=dv;b.hit=.16;
   burst(ball.x,ball.y,4,'stone');
-  /* 월 — 넘친 위력은 버려지지 않고 옆으로 퍼진다 */
+  /* 월 — 남는 위력은 버려지지 않고 옆으로 퍼진다 */
   if(over>0 && (S.ax&&S.ax['월']>1.05)){
     const share=Math.round(over*CONFIG.spillPct/CONFIG.spillN);
     if(share>0){
@@ -2713,7 +2725,7 @@ function spawnBoss(){
 /* ── 보스가 뜻을 묻는다. 맞는 낱말을 깨야 방벽이 열린다 ── */
 function quizPlace(i,n,layout,w,h){
   const cy=BOSS_QUIZ_Y;
-  if(layout==='fixed'||layout==='flow'||layout==='row'||layout==='orbit'){
+  if(layout==='fixed'||layout==='flow'||layout==='row'||layout==='orbit'||layout==='wander'){
     const span=(WALL_R-WALL_L)/n;
     return {x:WALL_L+span*i+(span-w)/2, y:cy};
   }
@@ -2825,6 +2837,26 @@ function updateQuiz(dt){
       g.y=B.y+B.h/2+Math.sin(g.ang)*g.rad*0.42-g.h/2;
       g.x=Math.max(WALL_L+4,Math.min(WALL_R-4-g.w,g.x));
       g.y=Math.max(CEIL_Y+4,g.y);
+    }
+  }
+  if(A.layout==='wander'){                       // 지용 — 낱말은 보이되 정처 없이 떠돈다
+    const sp=(B.phase2?150:105);
+    for(const g of alive){
+      if(g.wvx===undefined){                     // 처음 만난 석판에 방향을 준다
+        const a0=Math.random()*Math.PI*2;
+        g.wvx=Math.cos(a0); g.wvy=Math.sin(a0); g.wt=0.7+Math.random()*1.1;
+      }
+      g.wt-=dt;
+      if(g.wt<=0){                               // 이따금 마음을 바꾼다
+        const a0=Math.atan2(g.wvy,g.wvx)+(Math.random()-.5)*2.4;
+        g.wvx=Math.cos(a0); g.wvy=Math.sin(a0);
+        g.wt=0.7+Math.random()*1.1;
+      }
+      g.x+=g.wvx*sp*dt; g.y+=g.wvy*sp*dt*0.75;
+      if(g.x<WALL_L+4){ g.x=WALL_L+4; g.wvx=Math.abs(g.wvx); }
+      if(g.x+g.w>WALL_R-4){ g.x=WALL_R-4-g.w; g.wvx=-Math.abs(g.wvx); }
+      if(g.y<CEIL_Y+40){ g.y=CEIL_Y+40; g.wvy=Math.abs(g.wvy); }
+      if(g.y+g.h>DANGER_Y-260){ g.y=DANGER_Y-260-g.h; g.wvy=-Math.abs(g.wvy); }
     }
   }
   if(A.layout==='flow'){                         // 소월 — 좌우로 흘러 지나간다
@@ -4882,7 +4914,7 @@ function update(dt){
       if(!S.alert && S.quizDone<CONFIG.quizRoomN){ S.bricks=[]; spawnAlert(); }
     }
     else if(S.alertPending&&!S.alert&&roomForNewRow()){ spawnAlert(); }
-    else if(!S.alert&&roomForNewRow()){
+    else if(roomForNewRow()){                       // 경보 중에도 뒤에서 계속 내려온다
       spawnRow();
       if(S.hardLeft>0) S.hardLeft--;
     }
@@ -5978,7 +6010,7 @@ function loop(now){
   try{update(dt);draw();}catch(err){console.error('게임 루프 오류:',err);}
   requestAnimationFrame(loop);
 }
-const BUILD='c9-0';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c9-3';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();ensureToday();newRun();S.screen='title';refreshTitle();
