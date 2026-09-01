@@ -613,6 +613,7 @@ const CONFIG = {
 
   bossBulletPer10:0.30,      // 10층마다 보스가 뱉는 탄이 이만큼 늘어난다
   bossQuizMax:3,             // 보스가 한 번에 내거는 낱말 수
+  quizRoamW:230,             // 떠다니는 경보 석판의 최대 폭
   newPatFrom:10,             // 이 층부터 새 가락이 섞인다
   newPatRate:0.34,           // 공격 한 번마다 이만한 확률로
   bossHpBase:340, bossHpPerBoss:140,     // 체력 증가는 줄이고 그만큼을 위협으로 옮긴다
@@ -1449,25 +1450,35 @@ const UPGRADES = [
    ══════════════════════════════════════════════════════════ */
 const CHARS = [
   {id:'none', name:'이름 없는 자', work:'구덩이로 내려온 채자인',
-   skill:'—', desc:'재주가 없다. 오로지 구슬로만 싸운다',
+   skill:'재주 없음', desc:'남다른 것이 없다. 오로지 구슬로만 싸운다',
    floor:0, cost:0, color:'#52BFA0'},
   {id:'kwon', name:'권씨', work:'아홉 켤레의 구두로 남은 사내',
-   skill:'맴돌이', desc:'작은 석판 하나가 곁을 돌며 다른 석판을 친다',
+   skill:'맴돌이',
+   desc:'작은 석판 <b>셋</b>이 곁을 돌며 닿는 석판을 친다<br>구두를 아홉 켤레 지고 다니듯, 늘 곁에 둔다',
    floor:0, cost:100, color:'#9E8F6E'},
   {id:'gildong', name:'홍길동', work:'홍길동전',
-   skill:'분신', desc:'10초마다 그림자가 2초간 나타나 함께 쏜다',
+   skill:'분신',
+   desc:'10초마다 그림자가 2초간 선다<br>화면 반대쪽에서 똑같은 구슬이 함께 나간다',
    floor:10, cost:150, color:'#52BFA0'},
   {id:'chunhyang', name:'춘향', work:'춘향전',
-   skill:'수절', desc:'맞으면 4초간 구슬이 두 배로 나간다 (20초에 한 번)',
+   skill:'부채살 · 수절',
+   desc:'구슬이 <b>45° 부채꼴</b>로 퍼진다. 한가운데 것만 1.7배 빠르다<br>'
+       +'맞으면 4초간 구슬이 두 배로 나간다 (20초에 한 번)',
    floor:20, cost:220, color:'#E2593F'},
   {id:'jeomsun', name:'점순이', work:'동백꽃',
-   skill:'동백꽃', desc:'10초마다 석판이 모두 2초간 멈춘다',
+   skill:'짧은 구슬 · 동백꽃',
+   desc:'구슬이 <b>다섯 칸만</b> 날고 스러진다. 그 대신 <b>위력 두 배</b><br>'
+       +'10초마다 석판이 모두 2초간 멈춘다',
    floor:30, cost:300, color:'#E5B24F'},
   {id:'kimcheomji', name:'김첨지', work:'운수 좋은 날',
-   skill:'인력거', desc:'7초마다 판 가운데에 벽이 3초간 선다',
+   skill:'차징샷 · 인력거',
+   desc:'발사를 <b>누르고 있으면</b> 힘이 실린다. 1초마다 한 배씩, 다섯 배까지<br>'
+       +'손을 떼면 나간다. 실린 만큼 구슬이 금빛으로 물든다<br>'
+       +'7초마다 판 가운데에 벽이 3초간 선다',
    floor:40, cost:380, color:'#6FA8E0'},
   {id:'yuchungryeol', name:'유충렬', work:'유충렬전',
-   skill:'장성검', desc:'10초마다 겨눈 쪽으로 빛줄기를 내지른다',
+   skill:'장성검',
+   desc:'10초마다 겨눈 쪽으로 빛줄기를 내지른다<br>줄기에 닿는 석판이 모두 한꺼번에 상한다',
    floor:50, cost:480, color:'#8E7BD8'},
 ];
 const charDef=id=>CHARS.find(c=>c.id===id)||CHARS[0];
@@ -2905,7 +2916,9 @@ function spawnBossQuiz(verse){
               .sort(()=>Math.random()-.5);
   const ai=picks.indexOf(ans);
   const span=Math.max(2,Math.floor(cols()/Math.max(n,2)));
-  const w=span*cell()-8, h=84;
+  /* 떠다니는 배치는 폭이 좁아야 서로 안 겹친다 */
+  const roam=(layout==='orbit'||layout==='scatter'||layout==='wander'||layout==='flow');
+  const w=Math.min(span*cell()-8, roam?CONFIG.quizRoamW:9999), h=84;
   quizPlace.order=[...Array(n).keys()].sort(()=>Math.random()-.5);
   const blocks=[];
   for(let i=0;i<n;i++){
@@ -2977,13 +2990,10 @@ function updateQuiz(dt){
 
   if(A.layout==='orbit'){                        // 정철 — 공전. 서로 겹치지 않게 벌린다
     const share=Math.PI*2/Math.max(1,alive.length);
-    alive.forEach((g,i)=>{
-      if(g.slotI===undefined){ g.slotI=i; g.ang0=g.ang; }
-      g.ang=(g.ang0||0)+g.slotI*share;
-    });
+    alive.forEach((g,i)=>{ if(g.slotI===undefined){ g.slotI=i; g.ang0=0; } });
     for(const g of alive){
       g.ang0=(g.ang0||0)+dt*(B.phase2?0.72:0.45);
-      g.ang=g.ang0+ (g.slotI||0)*share;
+      g.ang=g.ang0+(g.slotI||0)*share;          // 저마다 제 몫만큼 벌어져 돈다
       g.x=B.x+B.w/2+Math.cos(g.ang)*g.rad-g.w/2;
       g.y=B.y+B.h/2+Math.sin(g.ang)*g.rad*0.42-g.h/2;
       g.x=Math.max(WALL_L+4,Math.min(WALL_R-4-g.w,g.x));
@@ -3008,6 +3018,19 @@ function updateQuiz(dt){
       if(g.x+g.w>WALL_R-4){ g.x=WALL_R-4-g.w; g.wvx=-Math.abs(g.wvx); }
       if(g.y<CEIL_Y+40){ g.y=CEIL_Y+40; g.wvy=Math.abs(g.wvy); }
       if(g.y+g.h>DANGER_Y-260){ g.y=DANGER_Y-260-g.h; g.wvy=-Math.abs(g.wvy); }
+    }
+    /* 떠돌다 부딪히면 서로 튕겨 나간다 */
+    for(let a=0;a<alive.length;a++)for(let b2=a+1;b2<alive.length;b2++){
+      const p=alive[a], q=alive[b2];
+      if(!(p.x<q.x+q.w&&p.x+p.w>q.x&&p.y<q.y+q.h&&p.y+p.h>q.y)) continue;
+      const dx=(p.x+p.w/2)-(q.x+q.w/2), dy=(p.y+p.h/2)-(q.y+q.h/2);
+      const d=Math.hypot(dx,dy)||1, nx=dx/d, ny=dy/d;
+      const need=((p.w+q.w)/2+10)-Math.abs(dx);
+      p.x+=nx*Math.max(6,need/2); q.x-=nx*Math.max(6,need/2);
+      p.y+=ny*6; q.y-=ny*6;
+      p.wvx=nx; p.wvy=ny; q.wvx=-nx; q.wvy=-ny;
+      p.x=Math.max(WALL_L+4,Math.min(WALL_R-4-p.w,p.x));
+      q.x=Math.max(WALL_L+4,Math.min(WALL_R-4-q.w,q.x));
     }
   }
   if(A.layout==='flow'){                         // 소월 — 좌우로 흘러 지나간다
@@ -5072,7 +5095,7 @@ function renderChars(){
       <div class="ci">
         <div class="cn">${c.name}</div>
         <div class="cw">${c.work}</div>
-        <div class="cs"><b>${c.skill}</b> · ${c.desc}</div>
+        <div class="cs"><b>${c.skill}</b><br>${c.desc}</div>
       </div>
       <button class="cp ${pcls}">${price}</button>`;
     const act = (own&&!cur) ? ()=>{ META.char=c.id; saveMeta(); vibe('open'); renderChars(); }
@@ -6640,7 +6663,7 @@ function loop(now){
   try{update(dt);draw();}catch(err){console.error('게임 루프 오류:',err);}
   requestAnimationFrame(loop);
 }
-const BUILD='c15-0';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c15-4';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();ensureToday();newRun();S.screen='title';refreshTitle();
