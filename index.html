@@ -3671,6 +3671,15 @@ function updateNewPats(dt){
       B.y=Math.max(CEIL_Y+20,Math.min(DANGER_Y-460,B.y)); }
   }
   if(B&&B.gone>0) B.gone-=dt;
+  if(B&&B.def.name==='조세희') B.ballT=(B.ballT||0)+dt;   // 쇠공이 솟았다 내려온다
+  /* 구운몽 — 셋으로 갈라졌다 이내 다시 모인다 */
+  if(B&&B.def.name==='김만중'){
+    B.cloudT=(B.cloudT||0)+dt;
+    const cyc=B.phase2?7:9, hold=4;
+    const ph=B.cloudT%cyc;
+    const want = ph<hold ? Math.min(1,ph/0.6) : Math.max(0,1-(ph-hold)/0.8);
+    B.cloudSplit=(B.cloudSplit||0)+(want-(B.cloudSplit||0))*Math.min(1,dt*3);
+  }
 }
 function updateHazards(dt){
   for(let i=S.marks.length-1;i>=0;i--){
@@ -4186,8 +4195,7 @@ function takeCard(c){
       S.alertMsg={text:'먹 마흔',t:1.6,ok:true}; }
     if(c.def.id==='dice'){                        // 다음 카드가 두 배 또는 절반
       S.dice=Math.random()<0.5?2:0.5;
-      S.alertMsg={text:S.dice>1?'주사위 — 다음 카드가 두 배':'주사위 — 다음 카드가 절반',
-                  t:2.2,ok:S.dice>1};
+      S.diceShow=true;                            // 결과를 크게 띄운다
     }
     if(c.def.id==='sansam'){                      // 그릇이 커진다
       const add=Math.round(S.energyBase*0.20);
@@ -4371,6 +4379,20 @@ function askJade(){
   show('vJade');
 }
 /* 하늘이 내린다 */
+/* 무엇이 나왔는지 크게 보여주고, 눌러야 넘어간다 */
+function showResult(eyebrow,icon,name,text,good,after){
+  S.screen='fate'; dropTouches();
+  const col=good?'var(--gold)':'var(--vermilion)';
+  el('fateEyebrow').textContent=eyebrow;
+  el('fateIcon').textContent=icon;   el('fateIcon').style.color=col;
+  el('fateName').textContent=name;   el('fateName').style.color=col;
+  el('fateText').innerHTML=text;
+  const go=()=>{ el('vFate').onclick=null; el('fateGo').onclick=null;
+                 S.screen='play'; show(null); after(); };
+  el('fateGo').onclick=go; el('vFate').onclick=go;
+  vibe(good?'right':'wrong'); S.shake=good?18:24;
+  show('vFate');
+}
 function giveFate(bless){
   const pool=bless?BLESS:CURSE;
   const def=pool[Math.floor(Math.random()*pool.length)];
@@ -4460,6 +4482,17 @@ el('btnSwapCancel').onclick=()=>{ swapPending=null; S.screen='card'; show('vCard
 
 /* 카드를 고른 뒤: 융합 → 천서 → 다음 층 */
 function afterCard(){
+  if(S.diceShow){                                 // 주사위 — 나온 눈을 보여준다
+    S.diceShow=false;
+    const up=S.dice>1;
+    showResult('주사위를 굴렸다', up?'⚅':'⚀',
+      up?'두 배':'절반',
+      up ? '다음에 고를 카드가 <b style="color:var(--gold)">두 배</b>로 깔린다'
+         : '다음에 고를 카드가 <b style="color:var(--vermilion)">절반</b>으로 준다'
+           +'<br><span style="color:var(--stone-deep)">그래도 두 장은 나온다</span>',
+      up, afterCard);
+    return;
+  }
   if(S.pendingCard>0){ S.pendingCard--; offerCards(3+S.cardBonus); return; }
   if(S.tomePending>0){ S.tomePending--; offerTome(4+S.cardBonus); return; }
   /* 관상 — 정해진 층에 이르면 관상가가 기다린다 */
@@ -6027,6 +6060,892 @@ function drawBossCry(){
 }
 /* 보스 윤곽 — 문인마다 다른 도형을 쓴다 */
 const BOSSSHAPE=['rect','circle','tri','star','hex','diamond','shield','flame'];
+
+/* ══════════════════════════════════════════════════════════
+   문인마다 다른 몸 — 판정은 그대로 사각 하나, 그림만 바뀐다
+   ART[이름](B, k) — k는 남은 체력 비율(1 → 0)
+   ══════════════════════════════════════════════════════════ */
+const ART={};
+/* 그리는 데 자주 쓰는 것들 */
+function aP(){ ctx.beginPath(); }
+function aFill(col,a){ ctx.globalAlpha=a===undefined?1:a; ctx.fillStyle=col; ctx.fill(); }
+function aLine(col,w,a){ ctx.globalAlpha=a===undefined?1:a; ctx.strokeStyle=col; ctx.lineWidth=w; ctx.stroke(); }
+function aGrad(x,y,h,top,bot){
+  const g=ctx.createLinearGradient(x,y,x,y+h);
+  g.addColorStop(0,top); g.addColorStop(1,bot); return g;
+}
+/* 잎·꽃잎 하나 — 끝이 뾰족한 물방울 */
+function aPetal(cx,cy,ang,len,wid){
+  const c=Math.cos(ang), s2=Math.sin(ang);
+  const tx=cx+c*len, ty=cy+s2*len;
+  const nx=-s2*wid, ny=c*wid;
+  aP();
+  ctx.moveTo(cx,cy);
+  ctx.quadraticCurveTo(cx+c*len*.45+nx, cy+s2*len*.45+ny, tx,ty);
+  ctx.quadraticCurveTo(cx+c*len*.45-nx, cy+s2*len*.45-ny, cx,cy);
+}
+/* ── 만해 한용운 · 연꽃 ── */
+ART['한용운']=(B,k,col)=>{
+  const cx=B.x+B.w/2, cy=B.y+B.h*0.66, R=Math.min(B.w,B.h*1.5)*0.46;
+  const br=Math.sin(B.t*1.6)*0.10;                 // 숨쉬기
+  const open=(k<0.6?0.22:0)+(B.phase2?0.30:0)+br;  // 체력이 줄면 더 벌어진다
+  /* 물 위의 연잎 */
+  aP(); ctx.ellipse(cx,cy+R*0.30,R*1.32,R*0.30,0,0,7);
+  aFill(aGrad(cx,cy,R*0.6,'rgba(82,120,90,.34)','rgba(5,8,15,.62)'));
+  aLine('rgba(127,183,126,.55)',2);
+  /* 잎 세 겹 — 뒤에서 앞으로 */
+  const rings=[
+    {n:6, len:R*1.06, wid:R*0.34, tilt:0.62+open, a:0.50, col:'#8E7BD8'},
+    {n:6, len:R*0.90, wid:R*0.28, tilt:0.36+open*0.7, a:0.78, col:'#C9A0C4'},
+    {n:5, len:R*0.72, wid:R*0.21, tilt:0.14+open*0.4, a:1.00, col:'#F0E4EE'},
+  ];
+  const gone=k<0.3?1:0;                            // 체력이 적으면 바깥 잎이 진다
+  rings.forEach((r,ri)=>{
+    if(ri===0&&gone) return;
+    for(let i=0;i<r.n;i++){
+      const t=(i-(r.n-1)/2)/Math.max(1,r.n-1);
+      const ang=-Math.PI/2 + t*(Math.PI*0.92) * (1+r.tilt*0.5);
+      aPetal(cx,cy,ang,r.len,r.wid);
+      aFill(aGrad(cx,cy-r.len,r.len,'rgba(243,237,223,.34)','rgba(5,8,15,.66)'),r.a);
+      aLine(r.col,2.4,r.a);
+      /* 잎맥 셋 */
+      ctx.globalAlpha=r.a*0.45; ctx.strokeStyle=r.col; ctx.lineWidth=1;
+      for(let v=-1;v<=1;v++){
+        const va=ang+v*0.10;
+        aP(); ctx.moveTo(cx,cy);
+        ctx.lineTo(cx+Math.cos(va)*r.len*0.82, cy+Math.sin(va)*r.len*0.82);
+        ctx.stroke();
+      }
+      ctx.globalAlpha=1;
+    }
+  });
+  /* 꽃술 아홉 */
+  const sc=B.phase2?C['--vermilion']:C['--gold'];
+  for(let i=0;i<9;i++){
+    const a=-Math.PI/2+(i-4)*0.17, L=R*(0.30+0.06*Math.sin(B.t*3+i));
+    aP(); ctx.moveTo(cx,cy); ctx.lineTo(cx+Math.cos(a)*L,cy+Math.sin(a)*L);
+    aLine(sc,1.7,.9);
+    aP(); ctx.arc(cx+Math.cos(a)*L,cy+Math.sin(a)*L,3,0,7); aFill(sc,.95);
+  }
+};
+
+/* ── 서포 김만중 · 구운몽 구름 ── */
+ART['김만중']=(B,k,col)=>{
+  const cx=B.x+B.w/2, cy=B.y+B.h*0.5, R=Math.min(B.w,B.h*1.6)*0.44;
+  if(B.cloudT===undefined){ B.cloudT=0; B.cloudSplit=0; }
+  const puff=(x,y,r,a,c)=>{
+    aP(); ctx.arc(x,y,r,0,7);
+    aFill(aGrad(x,y-r,r*2,'rgba(243,237,223,.40)','rgba(30,20,60,.72)'),a);
+    aLine(c,2.2,a*0.9);
+  };
+  const body=(x,y,sc,a)=>{
+    /* 원 다섯을 겹쳐 뭉게구름 */
+    puff(x-R*0.52*sc, y+R*0.10*sc, R*0.40*sc, a, '#C9BCF0');
+    puff(x+R*0.52*sc, y+R*0.10*sc, R*0.40*sc, a, '#C9BCF0');
+    puff(x-R*0.22*sc, y-R*0.24*sc, R*0.44*sc, a, '#DCD2F7');
+    puff(x+R*0.26*sc, y-R*0.20*sc, R*0.40*sc, a, '#DCD2F7');
+    puff(x,            y,            R*0.58*sc, a, '#F0EAFF');
+    /* 아래를 평평하게 깎는 그늘 */
+    ctx.globalAlpha=a*0.5; ctx.fillStyle='rgba(12,10,28,.75)';
+    ctx.fillRect(x-R*1.1*sc, y+R*0.42*sc, R*2.2*sc, R*0.5*sc);
+    ctx.globalAlpha=1;
+    /* 안쪽 결 */
+    ctx.globalAlpha=a*0.30; ctx.strokeStyle='#F3EDDF'; ctx.lineWidth=1.4;
+    for(let i=0;i<3;i++){
+      aP(); ctx.ellipse(x+(i-1)*R*0.22*sc, y-R*0.06*sc, R*0.26*sc, R*0.13*sc,0,0,7); ctx.stroke();
+    }
+    ctx.globalAlpha=1;
+  };
+  const sp=B.cloudSplit||0;
+  if(sp<=0.01){ body(cx,cy,1,1); }
+  else{
+    /* 셋으로 갈라진다 — 사이에 흐린 안개 띠 */
+    const d=R*1.05*sp;
+    const pts=[[cx,cy-d*0.62],[cx-d,cy+d*0.45],[cx+d,cy+d*0.45]];
+    ctx.globalAlpha=0.22*(1-sp*0.5); ctx.strokeStyle='#DCD2F7'; ctx.lineWidth=R*0.30;
+    for(let i=0;i<3;i++){
+      aP(); ctx.moveTo(pts[i][0],pts[i][1]); ctx.lineTo(pts[(i+1)%3][0],pts[(i+1)%3][1]); ctx.stroke();
+    }
+    ctx.globalAlpha=1;
+    for(const q of pts) body(q[0],q[1],0.52,1);
+  }
+};
+
+/* ── 자전 정지용 · 유리창 ── */
+ART['정지용']=(B,k,col)=>{
+  const L=B.x+B.w*0.06, T=B.y+B.h*0.05, W=B.w*0.88, H=B.h*0.90;
+  const opn=(k<0.15?0.46:k<0.40?0.30:k<0.70?0.13:0.02)+0.012*Math.sin(B.t*1.2);
+  const pane=(px,py,pw,ph,dir)=>{
+    ctx.save();
+    ctx.translate(px+(dir<0?0:pw), py);
+    ctx.transform(1,0,-opn*dir*0.5,1,0,0);
+    ctx.scale(1-opn*0.30,1);
+    const x0=dir<0?0:-pw;
+    /* 유리 */
+    aP(); ctx.rect(x0,0,pw,ph);
+    aFill(aGrad(x0,0,ph,'rgba(120,190,180,.20)','rgba(6,14,20,.66)'));
+    /* 서린 김 */
+    ctx.save(); aP(); ctx.rect(x0,0,pw,ph); ctx.clip();
+    const g2=ctx.createRadialGradient(x0+pw*0.5,ph*0.55,4,x0+pw*0.5,ph*0.55,pw*0.8);
+    g2.addColorStop(0,`rgba(230,245,240,${0.30*k})`); g2.addColorStop(1,'rgba(230,245,240,0)');
+    ctx.fillStyle=g2; ctx.fillRect(x0,0,pw,ph);
+    /* 문지른 자국 */
+    ctx.globalAlpha=.35; ctx.strokeStyle='#DFF3EE'; ctx.lineWidth=5; ctx.lineCap='round';
+    aP(); ctx.moveTo(x0+pw*0.24,ph*0.34); ctx.quadraticCurveTo(x0+pw*0.5,ph*0.46,x0+pw*0.74,ph*0.30); ctx.stroke();
+    /* 비스듬한 반사 */
+    ctx.globalAlpha=.16; ctx.strokeStyle='#fff'; ctx.lineWidth=9;
+    aP(); ctx.moveTo(x0+pw*0.10,ph*0.92); ctx.lineTo(x0+pw*0.62,0); ctx.stroke();
+    aP(); ctx.moveTo(x0+pw*0.44,ph*0.98); ctx.lineTo(x0+pw*0.84,ph*0.22); ctx.stroke();
+    ctx.globalAlpha=1; ctx.restore();
+    /* 격자 살 */
+    ctx.strokeStyle='#8B6F४7'.replace('४7','47'); ctx.lineWidth=4;
+    ctx.strokeStyle='#8B6F47';
+    aP();
+    ctx.moveTo(x0+pw*0.5,0); ctx.lineTo(x0+pw*0.5,ph);
+    ctx.moveTo(x0,ph*0.34);  ctx.lineTo(x0+pw,ph*0.34);
+    ctx.moveTo(x0,ph*0.67);  ctx.lineTo(x0+pw,ph*0.67);
+    ctx.stroke();
+    /* 물방울 */
+    ctx.globalAlpha=.5; ctx.fillStyle='#CFEFEA';
+    for(let i=0;i<5;i++){
+      const dx=x0+pw*(0.18+0.16*i), dy=(( (B.t*14+i*37)%(ph*0.9) ))+ph*0.05;
+      aP(); ctx.ellipse(dx,dy,2.6,4.4,0,0,7); ctx.fill();
+    }
+    ctx.globalAlpha=1;
+    /* 틀 */
+    ctx.strokeStyle=col; ctx.lineWidth=5;
+    ctx.strokeRect(x0,0,pw,ph);
+    ctx.restore();
+  };
+  /* 창밖 — 열릴수록 밤빛과 별 */
+  if(opn>0.10){
+    ctx.save(); aP(); ctx.rect(L,T,W,H); ctx.clip();
+    ctx.fillStyle='rgba(8,14,34,.92)'; ctx.fillRect(L,T,W,H);
+    ctx.fillStyle='rgba(243,237,223,.8)';
+    for(let i=0;i<7;i++){
+      const sx=L+((i*97)%W), sy=T+((i*53)%H), r=1.2+ (i%3)*0.7;
+      ctx.globalAlpha=(0.35+0.35*Math.sin(B.t*2+i))*Math.min(1,(opn-0.10)*4);
+      aP(); ctx.arc(sx,sy,r,0,7); ctx.fill();
+    }
+    ctx.globalAlpha=1; ctx.restore();
+  }
+  pane(L, T, W/2, H, -1);
+  pane(L+W/2, T, W/2, H, 1);
+  /* 금 */
+  if(k<0.15){
+    ctx.globalAlpha=.85; ctx.strokeStyle='#DFF3EE'; ctx.lineWidth=1.6;
+    aP();
+    ctx.moveTo(L+W*0.30,T+H*0.12); ctx.lineTo(L+W*0.44,T+H*0.46);
+    ctx.lineTo(L+W*0.26,T+H*0.68); ctx.moveTo(L+W*0.44,T+H*0.46);
+    ctx.lineTo(L+W*0.70,T+H*0.58);
+    ctx.stroke(); ctx.globalAlpha=1;
+  }
+};
+
+/* ── 구보 박태원 · 둥근 안경 ── */
+ART['박태원']=(B,k,col)=>{
+  const cy=B.y+B.h*0.52, R=Math.min(B.w*0.24,B.h*0.40);
+  const lx=B.x+B.w*0.30, rx2=B.x+B.w*0.70;
+  const lens=(x,cracked)=>{
+    ctx.save();
+    aP(); ctx.arc(x,cy,R,0,7); ctx.clip();
+    /* 알 속에 비친 거리 — 천천히 흐른다 */
+    ctx.fillStyle='rgba(10,26,30,.85)'; ctx.fillRect(x-R,cy-R,R*2,R*2);
+    const off=(B.t*16)%(R*2);
+    ctx.strokeStyle='rgba(95,191,176,.55)'; ctx.lineWidth=2;
+    for(let i=-2;i<4;i++){
+      const bx2=x-R+i*R*0.7+off%(R*0.7);
+      aP();
+      ctx.moveTo(bx2,cy+R*0.5);
+      ctx.lineTo(bx2,cy-R*0.1-((i*37)%5)*R*0.08);
+      ctx.lineTo(bx2+R*0.4,cy-R*0.1-((i*37)%5)*R*0.08);
+      ctx.lineTo(bx2+R*0.4,cy+R*0.5);
+      ctx.stroke();
+    }
+    ctx.strokeStyle='rgba(95,191,176,.35)'; ctx.lineWidth=1.4;
+    for(let i=0;i<2;i++){
+      const px=x-R+((B.t*22+i*R)%(R*2));
+      aP(); ctx.moveTo(px,cy+R*0.55); ctx.lineTo(px,cy-R*0.55); ctx.stroke();
+    }
+    /* 유리 반사 */
+    ctx.globalAlpha=.20; ctx.strokeStyle='#fff'; ctx.lineWidth=R*0.30;
+    aP(); ctx.arc(x,cy,R*0.66,-2.5,-1.2); ctx.stroke(); ctx.globalAlpha=1;
+    ctx.restore();
+    /* 테 */
+    aP(); ctx.arc(x,cy,R,0,7); aLine(col,4.5);
+    aP(); ctx.arc(x,cy,R-5,0,7); aLine('rgba(243,237,223,.35)',1.4);
+    /* 금 */
+    if(cracked){
+      ctx.save(); aP(); ctx.arc(x,cy,R,0,7); ctx.clip();
+      ctx.strokeStyle='rgba(243,237,223,.9)'; ctx.lineWidth=1.6;
+      aP();
+      ctx.moveTo(x-R*0.7,cy-R*0.5); ctx.lineTo(x-R*0.05,cy+R*0.06);
+      ctx.lineTo(x+R*0.6,cy-R*0.35);
+      ctx.moveTo(x-R*0.05,cy+R*0.06); ctx.lineTo(x-R*0.2,cy+R*0.8);
+      ctx.moveTo(x-R*0.05,cy+R*0.06); ctx.lineTo(x+R*0.55,cy+R*0.6);
+      ctx.stroke();
+      if(k<0.30){
+        ctx.lineWidth=1; ctx.globalAlpha=.7;
+        aP();
+        ctx.moveTo(x-R*0.4,cy-R*0.2); ctx.lineTo(x-R*0.75,cy+R*0.35);
+        ctx.moveTo(x+R*0.25,cy-R*0.1); ctx.lineTo(x+R*0.4,cy-R*0.75);
+        ctx.stroke(); ctx.globalAlpha=1;
+      }
+      ctx.restore();
+    }
+  };
+  /* 코걸이 · 다리 */
+  ctx.strokeStyle=col; ctx.lineWidth=4; ctx.lineCap='round';
+  aP(); ctx.moveTo(lx+R-2,cy-R*0.18);
+  ctx.quadraticCurveTo(B.x+B.w/2,cy-R*0.52, rx2-R+2,cy-R*0.18); ctx.stroke();
+  aP(); ctx.moveTo(lx-R,cy-R*0.10); ctx.lineTo(B.x+B.w*0.06,cy-R*0.34);
+  ctx.quadraticCurveTo(B.x-B.w*0.01,cy-R*0.30,B.x+B.w*0.01,cy-R*0.06); ctx.stroke();
+  aP(); ctx.moveTo(rx2+R,cy-R*0.10); ctx.lineTo(B.x+B.w*0.94,cy-R*0.34);
+  ctx.quadraticCurveTo(B.x+B.w*1.01,cy-R*0.30,B.x+B.w*0.99,cy-R*0.06); ctx.stroke();
+  /* 나사 넷 */
+  ctx.fillStyle=col;
+  for(const [sx,sy] of [[lx+R-3,cy-R*0.2],[rx2-R+3,cy-R*0.2],[lx-R+2,cy-R*0.1],[rx2+R-2,cy-R*0.1]]){
+    aP(); ctx.arc(sx,sy,2.6,0,7); ctx.fill();
+  }
+  const crack=k<0.60;
+  lens(lx,crack);
+  if(k<0.10){                       // 오른쪽 알이 깨져 떨어졌다
+    aP(); ctx.arc(rx2,cy,R,0,7); aFill('rgba(4,6,12,.9)');
+    aP(); ctx.arc(rx2,cy,R,0,7); aLine(col,4.5);
+  } else lens(rx2,crack&&k<0.30);
+};
+
+/* ── 고산 윤선도 · 다섯 벗 ── */
+ART['윤선도']=(B,k,col)=>{
+  const cx=B.x+B.w/2, cy=B.y+B.h*0.5, R=Math.min(B.w,B.h*1.5)*0.36;
+  const rot=B.t*0.34;
+  const alive=[k>0.20, k>0.40, k>0.60, k>0.80, true];   // 체력이 줄면 하나씩 떠난다
+  const pos=i=>{ const a=-Math.PI/2+i*Math.PI*2/5+rot;
+                 return [cx+Math.cos(a)*R, cy+Math.sin(a)*R*0.86]; };
+  /* 서로 잇는 실 */
+  ctx.globalAlpha=.28; ctx.strokeStyle=col; ctx.lineWidth=1.4;
+  aP();
+  for(let i=0;i<5;i++){ if(!alive[i])continue;
+    for(let j=i+1;j<5;j++){ if(!alive[j])continue;
+      const a1=pos(i),a2=pos(j); ctx.moveTo(a1[0],a1[1]); ctx.lineTo(a2[0],a2[1]); } }
+  ctx.stroke(); ctx.globalAlpha=1;
+  const r=R*0.40;
+  const face=(i)=>{
+    const [x,y]=pos(i);
+    if(i===0){                                   // 물 — 물결 세 겹
+      aP(); ctx.ellipse(x,y,r,r*0.72,0,0,7);
+      aFill(aGrad(x,y-r,r*2,'rgba(120,190,255,.30)','rgba(5,20,40,.72)')); aLine('#7FC4E8',2.2);
+      ctx.strokeStyle='#AEE0F5'; ctx.lineWidth=1.6; ctx.globalAlpha=.8;
+      for(let w=0;w<3;w++){ aP();
+        ctx.moveTo(x-r*0.62,y-r*0.22+w*r*0.30);
+        ctx.quadraticCurveTo(x-r*0.2,y-r*0.42+w*r*0.30,x,y-r*0.22+w*r*0.30);
+        ctx.quadraticCurveTo(x+r*0.2,y-r*0.02+w*r*0.30,x+r*0.62,y-r*0.22+w*r*0.30);
+        ctx.stroke(); }
+      ctx.globalAlpha=1;
+    }
+    if(i===1){                                   // 돌 — 모난 오각에 금 둘
+      aP();
+      for(let v=0;v<5;v++){ const a=-Math.PI/2+v*Math.PI*2/5+0.4;
+        const px=x+Math.cos(a)*r*(v%2?0.86:1), py=y+Math.sin(a)*r*(v%2?0.86:1);
+        v?ctx.lineTo(px,py):ctx.moveTo(px,py); }
+      ctx.closePath();
+      aFill(aGrad(x,y-r,r*2,'rgba(200,190,170,.34)','rgba(20,18,14,.76)')); aLine('#B8AC92',2.4);
+      ctx.strokeStyle='#8B8270'; ctx.lineWidth=1.4;
+      aP(); ctx.moveTo(x-r*0.4,y-r*0.5); ctx.lineTo(x-r*0.05,y+r*0.2);
+      ctx.moveTo(x+r*0.5,y-r*0.2); ctx.lineTo(x+r*0.1,y+r*0.55); ctx.stroke();
+    }
+    if(i===2){                                   // 솔 — 세모 세 겹
+      ctx.strokeStyle='#4E8F5C'; ctx.lineWidth=2.2;
+      for(let t=0;t<3;t++){ const ty=y-r*0.72+t*r*0.52, tw=r*(0.42+t*0.24);
+        aP(); ctx.moveTo(x,ty-r*0.34); ctx.lineTo(x+tw,ty+r*0.24); ctx.lineTo(x-tw,ty+r*0.24); ctx.closePath();
+        aFill(aGrad(x,ty-r*0.34,r,'rgba(110,190,120,.34)','rgba(6,26,14,.74)')); ctx.stroke(); }
+      ctx.strokeStyle='#7A5A38'; ctx.lineWidth=3;
+      aP(); ctx.moveTo(x,y+r*0.5); ctx.lineTo(x,y+r*0.86); ctx.stroke();
+    }
+    if(i===3){                                   // 대 — 마디 넷에 잎 셋
+      aP(); ctx.rect(x-r*0.22,y-r*0.92,r*0.44,r*1.84);
+      aFill(aGrad(x,y-r,r*2,'rgba(150,210,140,.34)','rgba(10,30,14,.74)')); aLine('#7FB77E',2.2);
+      ctx.strokeStyle='#5E9460'; ctx.lineWidth=2;
+      for(let m=1;m<4;m++){ const my=y-r*0.92+m*r*0.46;
+        aP(); ctx.moveTo(x-r*0.22,my); ctx.lineTo(x+r*0.22,my); ctx.stroke(); }
+      ctx.strokeStyle='#9ACB92'; ctx.lineWidth=2;
+      for(let lf=0;lf<3;lf++){ const ly=y-r*0.6+lf*r*0.5, dir=lf%2?1:-1;
+        aP(); ctx.moveTo(x+r*0.2*dir,ly);
+        ctx.quadraticCurveTo(x+r*0.8*dir,ly-r*0.2,x+r*1.0*dir,ly+r*0.16); ctx.stroke(); }
+    }
+    if(i===4){                                   // 달 — 반달에 크레이터 둘
+      aP(); ctx.arc(x,y,r*0.92,Math.PI*0.42,Math.PI*1.58);
+      ctx.quadraticCurveTo(x+r*0.34,y,x+Math.cos(Math.PI*0.42)*r*0.92,y+Math.sin(Math.PI*0.42)*r*0.92);
+      ctx.closePath();
+      aFill(aGrad(x,y-r,r*2,'rgba(243,237,223,.44)','rgba(40,38,30,.76)')); aLine('#F0E8D2',2.4);
+      ctx.fillStyle='rgba(90,86,72,.5)';
+      aP(); ctx.arc(x-r*0.28,y-r*0.24,r*0.20,0,7); ctx.fill();
+      aP(); ctx.arc(x-r*0.10,y+r*0.34,r*0.12,0,7); ctx.fill();
+    }
+  };
+  for(let i=0;i<5;i++) if(alive[i]) face(i);
+};
+
+/* ── 월명사 · 만다라 ── */
+ART['월명사']=(B,k,col)=>{
+  const cx=B.x+B.w/2, cy=B.y+B.h*0.5, R=Math.min(B.w,B.h*1.5)*0.44;
+  const br=1+0.03*Math.sin(B.t*0.9);
+  const sp=B.phase2?1.7:1;
+  /* 바깥 — 연꽃잎 열여섯 */
+  if(k>0.65){
+    ctx.save(); ctx.translate(cx,cy); ctx.rotate(B.t*0.16*sp);
+    for(let i=0;i<16;i++){
+      const a=i*Math.PI*2/16;
+      aPetal(0,0,a,R*1.00*br,R*0.17);
+      aFill(aGrad(0,-R,R*2,'rgba(229,178,79,.30)','rgba(40,26,6,.70)'),.9);
+      aLine('#E5B24F',1.8,.9);
+    }
+    ctx.restore();
+  }
+  /* 셋째 — 삼각 톱니 스물넷 */
+  if(k>0.35){
+    ctx.save(); ctx.translate(cx,cy); ctx.rotate(-B.t*0.26*sp);
+    ctx.strokeStyle='#F0D79A'; ctx.lineWidth=1.8; ctx.globalAlpha=.92;
+    for(let i=0;i<24;i++){
+      const a=i*Math.PI*2/24, r0=R*0.60*br, r1=R*0.78*br, wdt=0.055;
+      aP();
+      ctx.moveTo(Math.cos(a-wdt)*r0,Math.sin(a-wdt)*r0);
+      ctx.lineTo(Math.cos(a)*r1,Math.sin(a)*r1);
+      ctx.lineTo(Math.cos(a+wdt)*r0,Math.sin(a+wdt)*r0);
+      ctx.closePath();
+      aFill('rgba(240,215,154,.22)'); ctx.stroke();
+    }
+    ctx.globalAlpha=1; ctx.restore();
+  }
+  /* 둘째 — 작은 원 여덟 */
+  ctx.save(); ctx.translate(cx,cy); ctx.rotate(B.t*0.40*sp);
+  for(let i=0;i<8;i++){
+    const a=i*Math.PI*2/8, x=Math.cos(a)*R*0.44*br, y=Math.sin(a)*R*0.44*br;
+    aP(); ctx.arc(x,y,R*0.115,0,7);
+    aFill(aGrad(x,y-R*0.12,R*0.24,'rgba(243,237,223,.42)','rgba(30,24,10,.72)')); aLine('#F3EDDF',1.6);
+    aP(); ctx.arc(x,y,R*0.038,0,7); aFill('#E5B24F',.95);
+  }
+  ctx.restore();
+  /* 안쪽 — 육각 별 */
+  ctx.save(); ctx.translate(cx,cy); ctx.rotate(-B.t*0.20*sp);
+  for(const off of [0,Math.PI/3]){
+    aP();
+    for(let i=0;i<3;i++){ const a=off+i*Math.PI*2/3-Math.PI/2;
+      const px=Math.cos(a)*R*0.34*br, py=Math.sin(a)*R*0.34*br;
+      i?ctx.lineTo(px,py):ctx.moveTo(px,py); }
+    ctx.closePath();
+    aFill('rgba(243,237,223,.16)'); aLine(k<0.10?'#FFFFFF':'#FBF3E2',2.2,k<0.10?1:.85);
+  }
+  ctx.restore();
+  /* 한가운데 씨앗 */
+  const gl=k<0.10?(0.6+0.4*Math.sin(B.t*6)):0.5;
+  aP(); ctx.arc(cx,cy,R*0.15*br,0,7);
+  aFill(aGrad(cx,cy-R*0.15,R*0.3,'rgba(255,255,255,.7)','rgba(229,178,79,.4)'),gl+0.3);
+  aLine('#FFFFFF',2,gl);
+  aP(); ctx.arc(cx,cy,R*0.055,0,7); aFill('#FFFFFF',gl);
+};
+
+/* ── 조세희 · 쇠공 ── */
+ART['조세희']=(B,k,col)=>{
+  const cx=B.x+B.w/2, cy=B.y+B.h*0.46, R=Math.min(B.w,B.h*1.5)*0.34;
+  if(B.ballT===undefined){ B.ballT=0; }
+  const orb=(x,y,r,main)=>{
+    aP(); ctx.arc(x,y,r,0,7);
+    aFill(aGrad(x,y-r,r*2,'rgba(200,214,206,.44)','rgba(8,16,14,.86)')); aLine('#8AD96F',main?4:2.4);
+    if(!main) return;
+    /* 세로 이음매 둘 */
+    ctx.strokeStyle='rgba(138,217,111,.75)'; ctx.lineWidth=2.2;
+    aP(); ctx.ellipse(x,y,r*0.30,r,0,0,7); ctx.stroke();
+    aP(); ctx.moveTo(x-r,y); ctx.lineTo(x+r,y); ctx.stroke();
+    /* 리벳 여덟 */
+    ctx.fillStyle='#CDEBC0';
+    for(let i=0;i<8;i++){ const a=i*Math.PI/4+0.2;
+      aP(); ctx.arc(x+Math.cos(a)*r*0.80,y+Math.sin(a)*r*0.80,r*0.075,0,7); ctx.fill(); }
+    /* 긁힌 자국 */
+    ctx.strokeStyle='rgba(243,237,223,.30)'; ctx.lineWidth=1.4;
+    for(let i=0;i<6;i++){ const a=i*1.7+0.5, rr=r*(0.30+0.12*(i%3));
+      aP(); ctx.moveTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr);
+      ctx.lineTo(x+Math.cos(a+0.4)*rr*1.5,y+Math.sin(a+0.4)*rr*1.5); ctx.stroke(); }
+    /* 반사광 */
+    ctx.globalAlpha=.45; ctx.fillStyle='#FFFFFF';
+    aP(); ctx.ellipse(x-r*0.36,y-r*0.40,r*0.20,r*0.12,-0.6,0,7); ctx.fill();
+    ctx.globalAlpha=1;
+  };
+  orb(cx,cy,R,true);
+  /* 작은 공 셋 — 하나는 쏘아 올려진다 */
+  const sr=R*0.30, base=[[-0.78,0.72],[0,0.96],[0.78,0.72]];
+  const flying=k<0.50;
+  const t=(B.ballT||0)%4;
+  base.forEach((p,i)=>{
+    let x=cx+p[0]*R, y=cy+p[1]*R;
+    if(flying&&i===1){
+      const u=Math.min(1,t/2.4);
+      const up=Math.sin(u*Math.PI)*R*2.4;
+      y-=up;
+      ctx.globalAlpha=.4; ctx.strokeStyle='#8AD96F'; ctx.lineWidth=1.2;
+      aP(); ctx.moveTo(cx,cy); ctx.lineTo(x,y); ctx.stroke(); ctx.globalAlpha=1;
+    }
+    orb(x,y,sr,false);
+    ctx.fillStyle='rgba(205,235,192,.8)';
+    aP(); ctx.arc(x-sr*0.3,y-sr*0.34,sr*0.16,0,7); ctx.fill();
+  });
+};
+
+/* ── 소월 김소월 · 진달래 ── */
+ART['김소월']=(B,k,col)=>{
+  const cx=B.x+B.w/2, cy=B.y+B.h*0.54, R=Math.min(B.w,B.h*1.5)*0.42;
+  const n=5, gone=Math.min(4,Math.floor((1-k)*5));
+  if(!B.fallen) B.fallen=[];
+  /* 꽃받침 */
+  aP(); ctx.ellipse(cx,cy+R*0.44,R*0.30,R*0.16,0,0,7);
+  aFill('rgba(70,110,70,.6)'); aLine('#5E9460',1.8);
+  /* 꽃잎 다섯 */
+  for(let i=0;i<n;i++){
+    if(i<gone) continue;
+    const a=-Math.PI/2+(i-(n-1)/2)*0.62+Math.sin(B.t*1.1+i)*0.035;
+    aPetal(cx,cy,a,R*0.96,R*0.40);
+    aFill(aGrad(cx,cy-R,R*2,'rgba(255,190,215,.46)','rgba(60,10,40,.70)'));
+    aLine('#F0A8CC',2.6);
+    /* 잎맥 */
+    ctx.globalAlpha=.42; ctx.strokeStyle='#FFD3E6'; ctx.lineWidth=1.1;
+    for(let v=-1;v<=1;v++){ const va=a+v*0.13;
+      aP(); ctx.moveTo(cx,cy);
+      ctx.lineTo(cx+Math.cos(va)*R*0.78,cy+Math.sin(va)*R*0.78); ctx.stroke(); }
+    ctx.globalAlpha=1;
+    /* 안쪽 반점 */
+    ctx.fillStyle='rgba(200,60,120,.55)';
+    for(let d=0;d<3;d++){
+      const dr=R*(0.30+d*0.16), da=a+(d-1)*0.09;
+      aP(); ctx.arc(cx+Math.cos(da)*dr,cy+Math.sin(da)*dr,R*0.035,0,7); ctx.fill();
+    }
+  }
+  /* 꽃술 */
+  for(let i=0;i<7;i++){
+    const a=-Math.PI/2+(i-3)*0.20, L=R*(0.52+0.05*Math.sin(B.t*2.4+i));
+    aP(); ctx.moveTo(cx,cy); ctx.lineTo(cx+Math.cos(a)*L,cy+Math.sin(a)*L);
+    aLine('#FFE1EE',1.5,.85);
+    aP(); ctx.arc(cx+Math.cos(a)*L,cy+Math.sin(a)*L,2.6,0,7); aFill('#C8437E',.95);
+  }
+  /* 진 꽃잎이 발치에 깔린다 */
+  ctx.globalAlpha=.55;
+  for(let i=0;i<gone;i++){
+    const px=cx+(i-1.5)*R*0.46, py=cy+R*0.62+((i%2)*R*0.10);
+    aPetal(px,py,0.3+i*0.7,R*0.34,R*0.14);
+    aFill('rgba(240,168,204,.5)'); aLine('#F0A8CC',1.4);
+  }
+  ctx.globalAlpha=1;
+};
+
+/* ── 난설헌 허초희 · 난초 ── */
+ART['허초희']=(B,k,col)=>{
+  const cx=B.x+B.w/2, by=B.y+B.h*0.90, R=Math.min(B.w,B.h*1.5)*0.46;
+  const droop=k<0.50?0.34:0;                       // 힘이 빠지면 잎이 처진다
+  /* 흙 밑동 */
+  aP(); ctx.ellipse(cx,by,R*0.34,R*0.13,0,0,7);
+  aFill(aGrad(cx,by-R*0.13,R*0.26,'rgba(120,90,60,.5)','rgba(10,8,6,.8)')); aLine('#7A5A38',2);
+  /* 잎 여섯 — 좌우 셋씩 어긋나게 */
+  const leaf=(dir,i)=>{
+    const sw=Math.sin(B.t*0.9+i*1.1)*0.10;
+    const spread=(0.38+i*0.30)+sw+droop*0.5;
+    const len=R*(1.28-i*0.16);
+    const c1x=cx+dir*R*0.46*spread, c1y=by-len*0.72;
+    const c2x=cx+dir*R*1.12*spread, c2y=by-len*0.34+droop*R*0.4;
+    const tx =cx+dir*R*1.24*spread, ty =by-len*0.02+droop*R*0.62;
+    aP();
+    ctx.moveTo(cx,by);
+    ctx.bezierCurveTo(c1x,c1y,c2x,c2y,tx,ty);
+    ctx.bezierCurveTo(c2x-dir*R*0.16,c2y+R*0.10, c1x-dir*R*0.10,c1y+R*0.14, cx,by);
+    aFill(aGrad(cx,by-len,len,'rgba(200,111,168,.30)','rgba(20,8,18,.72)'));
+    aLine('#C86FA8',2.2);
+    /* 중앙맥 */
+    ctx.globalAlpha=.5; ctx.strokeStyle='#EFB8DA'; ctx.lineWidth=1.2;
+    aP(); ctx.moveTo(cx,by); ctx.bezierCurveTo(c1x,c1y,c2x,c2y,tx,ty); ctx.stroke();
+    ctx.globalAlpha=1;
+  };
+  for(let i=0;i<3;i++){ leaf(-1,i); leaf(1,i); }
+  /* 꽃대와 꽃 셋 — 체력이 적을 때 핀다 */
+  const sy=by-R*1.06;
+  ctx.strokeStyle='#9ACB92'; ctx.lineWidth=3;
+  aP(); ctx.moveTo(cx,by); ctx.quadraticCurveTo(cx+R*0.10,by-R*0.6,cx,sy); ctx.stroke();
+  if(k<0.20){
+    for(let f=0;f<3;f++){
+      const fx=cx+(f-1)*R*0.24, fy=sy-R*0.10+Math.abs(f-1)*R*0.14;
+      for(let pl=0;pl<5;pl++){
+        aPetal(fx,fy,-Math.PI/2+pl*Math.PI*2/5,R*0.19,R*0.075);
+        aFill('rgba(255,214,238,.55)'); aLine('#F5C9E4',1.4);
+      }
+      aP(); ctx.arc(fx,fy,R*0.045,0,7); aFill('#E5B24F');
+    }
+  }
+};
+
+/* ── 매월당 김시습 · 마른 등걸의 매화 ── */
+ART['김시습']=(B,k,col)=>{
+  const bx=B.x+B.w*0.5, by=B.y+B.h*0.92, R=Math.min(B.w,B.h*1.5)*0.46;
+  /* 뒤틀린 줄기 */
+  ctx.lineCap='round';
+  aP();
+  ctx.moveTo(bx-R*0.14,by);
+  ctx.bezierCurveTo(bx-R*0.36,by-R*0.5, bx+R*0.26,by-R*0.72, bx+R*0.06,by-R*1.20);
+  ctx.lineTo(bx+R*0.30,by-R*1.18);
+  ctx.bezierCurveTo(bx+R*0.50,by-R*0.68, bx+R*0.02,by-R*0.46, bx+R*0.24,by);
+  ctx.closePath();
+  aFill(aGrad(bx,by-R*1.2,R*1.2,'rgba(150,130,110,.36)','rgba(10,8,6,.84)'));
+  aLine('#6F5A46',2.6);
+  /* 세로 균열 */
+  ctx.strokeStyle='rgba(30,22,16,.8)'; ctx.lineWidth=1.4;
+  for(let i=0;i<4;i++){
+    const ox=bx-R*0.08+i*R*0.09;
+    aP(); ctx.moveTo(ox,by-R*0.10);
+    ctx.quadraticCurveTo(ox+R*0.05,by-R*0.6,ox-R*0.02,by-R*1.10); ctx.stroke();
+  }
+  /* 가지 넷 */
+  const tips=[];
+  const branch=(ang,len,w)=>{
+    const sx=bx+R*0.10, sy=by-R*1.06;
+    const ex=sx+Math.cos(ang)*len, ey=sy+Math.sin(ang)*len;
+    ctx.strokeStyle='#6F5A46'; ctx.lineWidth=w; ctx.lineCap='round';
+    aP(); ctx.moveTo(sx,sy);
+    ctx.quadraticCurveTo(sx+Math.cos(ang)*len*0.5-Math.sin(ang)*R*0.14,
+                         sy+Math.sin(ang)*len*0.5+Math.cos(ang)*R*0.14, ex,ey);
+    ctx.stroke();
+    tips.push([ex,ey]);
+  };
+  branch(-2.45,R*0.60,5); branch(-1.95,R*0.74,5);
+  branch(-1.15,R*0.68,5); branch(-0.62,R*0.52,4);
+  /* 매화 다섯 — 체력만큼 남는다 */
+  const open=Math.ceil(k*5);
+  const revive=(B.reviveGlow||0);
+  tips.forEach((t,i)=>{
+    const cnt=i<open?(i===0?2:1):0;
+    for(let c=0;c<cnt;c++){
+      const fx=t[0]+(c?R*0.12:0), fy=t[1]-(c?R*0.10:0);
+      const sc=1+revive*0.4;
+      for(let pl=0;pl<5;pl++){
+        aPetal(fx,fy,-Math.PI/2+pl*Math.PI*2/5,R*0.15*sc,R*0.062*sc);
+        aFill('rgba(255,226,238,.62)'); aLine('#F3C9DC',1.4);
+      }
+      ctx.fillStyle='#E5B24F';
+      for(let st=0;st<4;st++){ const a=st*1.6;
+        aP(); ctx.arc(fx+Math.cos(a)*R*0.05,fy+Math.sin(a)*R*0.05,R*0.017,0,7); ctx.fill(); }
+    }
+  });
+  /* 진 꽃잎 */
+  ctx.globalAlpha=.45;
+  for(let i=0;i<5-open;i++){
+    aPetal(bx-R*0.4+i*R*0.22, by-R*0.04, 0.4+i*0.9, R*0.13, R*0.055);
+    aFill('rgba(243,201,220,.5)');
+  }
+  ctx.globalAlpha=1;
+};
+
+/* ── 해환 윤동주 · 우물의 달 ── */
+ART['윤동주']=(B,k,col)=>{
+  const cx=B.x+B.w/2, cy=B.y+B.h*0.52, RX=B.w*0.42, RY=B.h*0.40;
+  /* 어두운 물 */
+  aP(); ctx.ellipse(cx,cy,RX,RY,0,0,7);
+  aFill(aGrad(cx,cy-RY,RY*2,'rgba(20,30,54,.92)','rgba(3,6,14,.97)'));
+  /* 동심원 — 바깥으로 퍼진다 */
+  ctx.save(); aP(); ctx.ellipse(cx,cy,RX,RY,0,0,7); ctx.clip();
+  const spd=k<0.5?1.9:1.1;
+  for(let i=0;i<5;i++){
+    const u=((B.t*spd*0.30+i*0.2)%1);
+    ctx.globalAlpha=(1-u)*0.45;
+    ctx.strokeStyle='#8FB6E8'; ctx.lineWidth=2;
+    aP(); ctx.ellipse(cx,cy,RX*u,RY*u,0,0,7); ctx.stroke();
+  }
+  ctx.globalAlpha=1;
+  /* 비친 달 — 물결에 일그러진다 */
+  const wob=Math.sin(B.t*2.2)*(k<0.2?0.34:0.12);
+  const mr=RX*0.30;
+  aP(); ctx.ellipse(cx,cy+RY*0.06,mr*(1+wob),mr*0.72*(1-wob*0.6),0,0,7);
+  aFill(aGrad(cx,cy-mr,mr*2,'rgba(255,246,214,.72)','rgba(180,150,70,.28)'));
+  aLine('#F5E9C0',2,.8);
+  ctx.strokeStyle='rgba(20,30,54,.55)'; ctx.lineWidth=2;
+  for(let w=0;w<3;w++){
+    aP();
+    ctx.moveTo(cx-mr*0.9,cy+RY*0.06-mr*0.24+w*mr*0.24);
+    ctx.quadraticCurveTo(cx,cy+RY*0.06-mr*0.40+w*mr*0.24,cx+mr*0.9,cy+RY*0.06-mr*0.24+w*mr*0.24);
+    ctx.stroke();
+  }
+  /* 비친 별 다섯 */
+  ctx.fillStyle='rgba(243,237,223,.65)';
+  for(let i=0;i<5;i++){
+    const a=i*1.9, sx=cx+Math.cos(a)*RX*0.62, sy=cy+Math.sin(a)*RY*0.58;
+    ctx.globalAlpha=.35+.35*Math.sin(B.t*2.6+i);
+    aP(); ctx.arc(sx,sy,2.2,0,7); ctx.fill();
+  }
+  ctx.globalAlpha=1; ctx.restore();
+  /* 우물 테두리 — 돌 여덟 */
+  for(let i=0;i<8;i++){
+    const a=i*Math.PI/4, sx=cx+Math.cos(a)*RX, sy=cy+Math.sin(a)*RY;
+    const w=RX*(0.20+0.05*((i*7)%3)), h=RY*(0.20+0.05*((i*5)%3));
+    ctx.save(); ctx.translate(sx,sy); ctx.rotate(a+Math.PI/2);
+    aP(); roundRect(-w/2,-h/2,w,h,5);
+    aFill(aGrad(0,-h/2,h,'rgba(200,190,170,.34)','rgba(20,18,14,.80)')); aLine('#B8AC92',2.2);
+    ctx.restore();
+  }
+  aP(); ctx.ellipse(cx,cy,RX,RY,0,0,7); aLine(col,2.4,.7);
+};
+
+/* ── 명월 황진이 · 반달 ── */
+ART['황진이']=(B,k,col)=>{
+  const cx=B.x+B.w*0.52, cy=B.y+B.h*0.5, R=Math.min(B.w,B.h*1.5)*0.44;
+  /* 달무리 세 겹 */
+  const halo=k<0.20?'#E2593F':'#CFF3EA';
+  for(let i=3;i>=1;i--){
+    aP(); ctx.arc(cx,cy,R*(1+i*0.16),0,7);
+    aLine(halo,3-i*0.6,(0.16-i*0.03)+0.06*Math.sin(B.t*1.4+i));
+  }
+  /* 반달 */
+  aP();
+  ctx.arc(cx,cy,R,Math.PI*0.44,Math.PI*1.56);
+  ctx.quadraticCurveTo(cx+R*0.30,cy,cx+Math.cos(Math.PI*0.44)*R,cy+Math.sin(Math.PI*0.44)*R);
+  ctx.closePath();
+  aFill(aGrad(cx,cy-R,R*2,'rgba(243,237,223,.50)','rgba(50,48,40,.80)'));
+  aLine('#F0E8D2',3);
+  /* 크레이터 다섯 */
+  const cr=[[-0.34,-0.30,0.20],[-0.12,0.22,0.13],[-0.48,0.16,0.09],[-0.08,-0.52,0.08],[-0.30,0.50,0.07]];
+  for(const c2 of cr){
+    const x=cx+c2[0]*R, y=cy+c2[1]*R, r=c2[2]*R;
+    aP(); ctx.arc(x,y,r,0,7); aFill('rgba(96,92,78,.45)');
+    aP(); ctx.arc(x+r*0.22,y+r*0.22,r*0.72,0,7); aFill('rgba(20,18,14,.28)');
+    aP(); ctx.arc(x,y,r,0,7); aLine('rgba(150,144,124,.5)',1.2);
+  }
+  /* 베인 자국 — 체력이 절반이면 벌어진다 */
+  const gap=k<0.50?R*0.10:0;
+  ctx.strokeStyle=k<0.50?'rgba(5,8,15,.9)':'rgba(120,114,96,.6)';
+  ctx.lineWidth=k<0.50?gap:2;
+  aP();
+  ctx.moveTo(cx+R*0.02,cy-R*0.94);
+  ctx.quadraticCurveTo(cx-R*0.16,cy,cx+R*0.02,cy+R*0.94);
+  ctx.stroke();
+  if(gap>0){
+    ctx.globalAlpha=.5; ctx.strokeStyle='#F0E8D2'; ctx.lineWidth=1.4;
+    aP();
+    ctx.moveTo(cx+R*0.02,cy-R*0.94);
+    ctx.quadraticCurveTo(cx-R*0.16,cy,cx+R*0.02,cy+R*0.94);
+    ctx.stroke(); ctx.globalAlpha=1;
+  }
+};
+
+/* ── 송강 정철 · 관동 산줄기 ── */
+ART['정철']=(B,k,col)=>{
+  const L=B.x, W=B.w, T=B.y+B.h*0.06, H=B.h*0.94;
+  const ridge=(depth,peaks,hgt,fillTop,fillBot,line,a)=>{
+    const base=T+H;
+    aP(); ctx.moveTo(L,base);
+    for(let i=0;i<=peaks;i++){
+      const px=L+W*i/peaks;
+      const up=(i%2? hgt*0.52 : hgt)*(0.72+0.28*Math.sin(i*2.3+depth));
+      ctx.lineTo(px-W/peaks*0.5, base-up*0.55);
+      ctx.lineTo(px, base-up);
+    }
+    ctx.lineTo(L+W,base); ctx.closePath();
+    aFill(aGrad(L,base-hgt,hgt,fillTop,fillBot),a); aLine(line,2.4,a);
+  };
+  ridge(2.1,4,H*0.96,'rgba(120,140,180,.26)','rgba(6,10,22,.72)','#5A6E96',.55);
+  ridge(1.2,5,H*0.78,'rgba(150,160,190,.30)','rgba(8,12,24,.80)','#7C8EB4',.78);
+  ridge(0.3,6,H*0.58,'rgba(210,200,180,.34)','rgba(10,12,20,.88)',col,1);
+  /* 앞 능선의 소나무 넷 */
+  ctx.strokeStyle='#3E6B4A'; ctx.lineWidth=2.4;
+  for(let i=0;i<4;i++){
+    const px=L+W*(0.16+i*0.23), py=T+H-H*0.30-((i%2)*H*0.09);
+    aP(); ctx.moveTo(px,py); ctx.lineTo(px,py-H*0.10); ctx.stroke();
+    for(let t=0;t<3;t++){
+      const ty=py-H*0.03-t*H*0.032, tw=H*(0.045-t*0.010);
+      aP(); ctx.moveTo(px,ty-H*0.026); ctx.lineTo(px+tw,ty); ctx.lineTo(px-tw,ty); ctx.closePath();
+      aFill('rgba(62,107,74,.7)'); ctx.stroke();
+    }
+  }
+  /* 안개 띠 둘 — 체력이 줄면 걷힌다 */
+  if(k>0.50){
+    ctx.globalAlpha=.30+.08*Math.sin(B.t*0.7);
+    for(let i=0;i<2;i++){
+      const my=T+H*(0.52+i*0.18)+Math.sin(B.t*0.5+i)*4;
+      const g2=ctx.createLinearGradient(L,my,L+W,my);
+      g2.addColorStop(0,'rgba(230,238,250,0)'); g2.addColorStop(.5,'rgba(230,238,250,.9)');
+      g2.addColorStop(1,'rgba(230,238,250,0)');
+      ctx.fillStyle=g2; ctx.fillRect(L,my,W,H*0.045);
+    }
+    ctx.globalAlpha=1;
+  }
+  /* 폭포 — 체력 20% 아래 */
+  if(k<0.20){
+    for(let i=0;i<3;i++){
+      const fx=L+W*(0.28+i*0.22);
+      ctx.globalAlpha=.55;
+      const g3=ctx.createLinearGradient(fx,T+H*0.30,fx,T+H);
+      g3.addColorStop(0,'rgba(255,255,255,.9)'); g3.addColorStop(1,'rgba(140,190,230,0)');
+      ctx.fillStyle=g3; ctx.fillRect(fx-W*0.018,T+H*0.30,W*0.036,H*0.70);
+      ctx.globalAlpha=.8; ctx.strokeStyle='#DFF0FF'; ctx.lineWidth=1.2;
+      for(let d=0;d<3;d++){
+        const dy=T+H*0.30+((B.t*220+d*70+i*40)%(H*0.70));
+        aP(); ctx.moveTo(fx-W*0.010,dy); ctx.lineTo(fx-W*0.010,dy+H*0.06); ctx.stroke();
+      }
+      ctx.globalAlpha=1;
+    }
+  }
+};
+
+/* ── 육사 이원록 · 매화 가지 ── */
+ART['이원록']=(B,k,col)=>{
+  const L=B.x+B.w*0.05, W=B.w*0.90, cy=B.y+B.h*0.62;
+  /* 흐린 지평선 — 광야 */
+  ctx.globalAlpha=.22; ctx.strokeStyle='#C8A87A'; ctx.lineWidth=1.6;
+  aP(); ctx.moveTo(B.x,cy+B.h*0.30); ctx.lineTo(B.x+B.w,cy+B.h*0.26); ctx.stroke();
+  ctx.globalAlpha=1;
+  /* 가로로 뻗은 마른 가지 */
+  ctx.lineCap='round';
+  aP();
+  ctx.moveTo(L,cy+B.h*0.10);
+  ctx.bezierCurveTo(L+W*0.32,cy-B.h*0.06, L+W*0.64,cy+B.h*0.08, L+W,cy-B.h*0.04);
+  aLine('#6F5A46',7);
+  aP();
+  ctx.moveTo(L,cy+B.h*0.10);
+  ctx.bezierCurveTo(L+W*0.32,cy-B.h*0.06, L+W*0.64,cy+B.h*0.08, L+W,cy-B.h*0.04);
+  aLine('rgba(180,160,130,.4)',2.4);
+  /* 옹이 셋 */
+  for(let i=0;i<3;i++){
+    const px=L+W*(0.22+i*0.28), py=cy+B.h*(0.02-i*0.02);
+    aP(); ctx.ellipse(px,py,7,5,0.3,0,7);
+    aFill('rgba(40,30,22,.8)'); aLine('#8A705A',1.6);
+  }
+  /* 잔가지 다섯과 꽃 */
+  const open=Math.ceil(k*5);
+  const sprout=k<=0.02;
+  for(let i=0;i<5;i++){
+    const px=L+W*(0.10+i*0.20), py=cy+B.h*(0.06-i*0.026);
+    const up=B.h*(0.16+((i*7)%3)*0.04);
+    ctx.strokeStyle='#6F5A46'; ctx.lineWidth=3.4;
+    aP(); ctx.moveTo(px,py);
+    ctx.quadraticCurveTo(px+(i%2?8:-8),py-up*0.6,px+(i%2?4:-4),py-up); ctx.stroke();
+    const fx=px+(i%2?4:-4), fy=py-up;
+    if(i<open){
+      for(let pl=0;pl<5;pl++){
+        aPetal(fx,fy,-Math.PI/2+pl*Math.PI*2/5,B.h*0.055,B.h*0.024);
+        aFill('rgba(255,200,222,.62)'); aLine('#E8A8C4',1.4);
+      }
+      aP(); ctx.arc(fx,fy,2.6,0,7); aFill('#E5B24F');
+    } else if(sprout){                    // 다 지고 나면 새 순
+      ctx.strokeStyle='#7FB77E'; ctx.lineWidth=2.2;
+      aP(); ctx.moveTo(fx,fy+4); ctx.quadraticCurveTo(fx+5,fy-4,fx+2,fy-11); ctx.stroke();
+      aP(); ctx.ellipse(fx+2,fy-12,3.4,5,0.4,0,7); aFill('rgba(127,183,126,.8)');
+    }
+  }
+  /* 말라붙은 잎 둘 */
+  ctx.globalAlpha=.7;
+  for(let i=0;i<2;i++){
+    const px=L+W*(0.34+i*0.34), py=cy+B.h*0.10;
+    const sw=Math.sin(B.t*1.6+i)*0.2;
+    aPetal(px,py,Math.PI/2+sw,B.h*0.10,B.h*0.032);
+    aFill('rgba(160,120,70,.55)'); aLine('#A07A46',1.4);
+  }
+  ctx.globalAlpha=1;
+};
+
+/* ── 김수영 · 눈덩이 ── */
+ART['김수영']=(B,k,col)=>{
+  const cx=B.x+B.w/2, cy=B.y+B.h*0.5, R=Math.min(B.w,B.h*1.6)*0.42;
+  /* 울퉁불퉁한 원 */
+  aP();
+  for(let i=0;i<=48;i++){
+    const a=i*Math.PI*2/48;
+    const rr=R*(1+0.055*Math.sin(a*3+1.2)+0.035*Math.sin(a*5-0.7)+0.02*Math.sin(a*8+2.1));
+    const px=cx+Math.cos(a)*rr, py=cy+Math.sin(a)*rr*0.88;
+    i?ctx.lineTo(px,py):ctx.moveTo(px,py);
+  }
+  ctx.closePath();
+  aFill(aGrad(cx,cy-R,R*2,'rgba(248,251,255,.72)','rgba(78,110,150,.55)'));
+  aLine('#DCE9F7',3);
+  /* 눈결 */
+  ctx.save(); ctx.clip();
+  ctx.strokeStyle='rgba(150,180,215,.45)'; ctx.lineWidth=1.4;
+  for(let i=0;i<11;i++){
+    const a=i*0.9, r0=R*(0.20+0.07*(i%4));
+    aP();
+    ctx.moveTo(cx+Math.cos(a)*r0, cy+Math.sin(a)*r0*0.88);
+    ctx.quadraticCurveTo(cx+Math.cos(a+0.3)*r0*1.4, cy+Math.sin(a+0.3)*r0*1.2,
+                         cx+Math.cos(a+0.6)*r0*1.5, cy+Math.sin(a+0.6)*r0*1.3);
+    ctx.stroke();
+  }
+  /* 발자국 — 체력이 줄수록 늘어난다 */
+  const steps=Math.min(8,Math.round((1-k)*8));
+  for(let i=0;i<steps;i++){
+    const px=cx-R*0.62+ (i%4)*R*0.42, py=cy-R*0.44+Math.floor(i/4)*R*0.48;
+    ctx.save(); ctx.translate(px,py); ctx.rotate(-0.4+i*0.12);
+    ctx.fillStyle='rgba(52,78,116,.55)';
+    aP(); ctx.ellipse(0,0,R*0.10,R*0.16,0,0,7); ctx.fill();
+    aP(); ctx.ellipse(R*0.04,-R*0.19,R*0.075,R*0.075,0,0,7); ctx.fill();
+    ctx.fillStyle='rgba(30,50,80,.35)';
+    aP(); ctx.ellipse(R*0.02,R*0.03,R*0.08,R*0.13,0,0,7); ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+  /* 흩날리는 눈 — 2페이즈 */
+  if(B.phase2||k<0.20){
+    ctx.fillStyle='rgba(255,255,255,.8)';
+    for(let i=0;i<14;i++){
+      const a=i*0.9+B.t*0.4, rr=R*(1.1+0.5*((i*13)%5)/5);
+      const sx=cx+Math.cos(a)*rr, sy=cy+Math.sin(a)*rr*0.8+((B.t*30+i*17)%(R*0.6));
+      ctx.globalAlpha=.3+.4*Math.sin(B.t*3+i);
+      aP(); ctx.arc(sx,sy,1.6+(i%3)*0.7,0,7); ctx.fill();
+    }
+    ctx.globalAlpha=1;
+  }
+};
+
+/* ── 백석 백기행 · 헌 방의 창호 ── */
+ART['백기행']=(B,k,col)=>{
+  const L=B.x+B.w*0.05, T=B.y+B.h*0.05, W=B.w*0.90, H=B.h*0.90;
+  const cw=W/5, ch=H/4;
+  /* 낡은 나무 틀 */
+  aP(); ctx.rect(L,T,W,H);
+  aFill(aGrad(L,T,H,'rgba(120,92,58,.55)','rgba(30,20,10,.85)')); aLine('#8B6F47',6);
+  /* 칸마다 한지 — 호롱불이 안에서 어른거린다 */
+  const fx=L+W*0.42+Math.sin(B.t*1.3)*W*0.05, fy=T+H*0.62;
+  const torn=[k<0.50?13:-1, k<0.20?6:-1];
+  for(let r=0;r<4;r++)for(let c=0;c<5;c++){
+    const idx=r*5+c, x=L+c*cw, y=T+r*ch;
+    if(torn.includes(idx)){                       // 찢어진 칸
+      aP(); ctx.rect(x+3,y+3,cw-6,ch-6); aFill('rgba(3,6,14,.9)');
+      ctx.strokeStyle='rgba(220,200,160,.7)'; ctx.lineWidth=1.6;
+      aP();
+      ctx.moveTo(x+5,y+ch*0.3); ctx.lineTo(x+cw*0.45,y+ch*0.55);
+      ctx.lineTo(x+cw*0.28,y+ch-6); ctx.lineTo(x+cw-5,y+ch*0.72);
+      ctx.stroke();
+      /* 눈발이 든다 */
+      ctx.fillStyle='rgba(255,255,255,.75)';
+      for(let s2=0;s2<4;s2++){
+        const sx=x+8+((s2*29)%(cw-16));
+        const sy=y+((B.t*36+s2*23)%(ch-8))+4;
+        aP(); ctx.arc(sx,sy,1.5,0,7); ctx.fill();
+      }
+      continue;
+    }
+    const d=Math.hypot((x+cw/2)-fx,(y+ch/2)-fy);
+    const lit=Math.max(0,1-d/(W*0.62));
+    const tone=0.10+0.06*((idx*7)%4)/4;
+    aP(); ctx.rect(x+3,y+3,cw-6,ch-6);
+    aFill(`rgba(${232+lit*20|0},${208+lit*30|0},${160+lit*40|0},${tone+lit*0.42})`);
+  }
+  /* 살 */
+  ctx.strokeStyle='#6B5233'; ctx.lineWidth=4;
+  aP();
+  for(let c=1;c<5;c++){ ctx.moveTo(L+c*cw,T); ctx.lineTo(L+c*cw,T+H); }
+  for(let r=1;r<4;r++){ ctx.moveTo(L,T+r*ch); ctx.lineTo(L+W,T+r*ch); }
+  ctx.stroke();
+  /* 호롱불 */
+  ctx.globalAlpha=.5+.2*Math.sin(B.t*4);
+  const g4=ctx.createRadialGradient(fx,fy,2,fx,fy,W*0.30);
+  g4.addColorStop(0,'rgba(255,214,140,.9)'); g4.addColorStop(1,'rgba(255,214,140,0)');
+  ctx.fillStyle=g4; aP(); ctx.arc(fx,fy,W*0.30,0,7); ctx.fill();
+  ctx.globalAlpha=1;
+  aP(); ctx.rect(L,T,W,H); aLine(col,3,.8);
+};
+
+/* 문인 이름으로 그림을 찾는다 */
+function bossArt(B){ return ART[B.def.name]||null; }
 function bossShape(B){ return BOSSSHAPE[(BOSSES.indexOf(B.def)+1)%BOSSSHAPE.length]; }
 function shapePath(kind,x,y,w,h,pad){
   const L=x-pad, T=y-pad, W=w+pad*2, H=h+pad*2;
@@ -6060,6 +6979,18 @@ function shapePath(kind,x,y,w,h,pad){
   }
   roundRect(L,T,W,H,12);
 }
+/* 고유한 몸을 가진 문인의 체력 막대 — 몸 아래에 둔다 */
+function drawBossBar(B,col){
+  const bw=B.w-30, bx=B.x+15, by=B.y+B.h+88*(B.twin?0.42:1);
+  ctx.fillStyle='rgba(5,8,15,.6)'; roundRect(bx,by,bw,14,7); ctx.fill();
+  ctx.fillStyle=B.vuln>0?C['--gold']:col;
+  roundRect(bx,by,bw*Math.max(0,B.hp/B.maxHp),14,7); ctx.fill();
+  ctx.font=`600 ${Math.round(15*(B.twin?0.8:1))}px 'IBM Plex Sans KR',sans-serif`;
+  ctx.fillStyle=B.open>0?'#fff':(B.rage>0?C['--vermilion']:(B.vuln>0?C['--gold']:'rgba(243,237,223,.6)'));
+  ctx.textBaseline='top';
+  ctx.fillText(B.open>0?'허점':(B.rage>0?'분노':(B.vuln>0?'방벽 열림':'방벽')),B.x+B.w/2,by+18);
+  ctx.textBaseline='middle';
+}
 function drawBoss(){
   const B=S.boss,col=B.rage>0?C['--vermilion']:B.def.color;
   const guarded=B.vuln<=0;
@@ -6088,6 +7019,25 @@ function drawBoss(){
     ctx.strokeStyle=C['--gold'];ctx.lineWidth=6;
     shapePath(SH,B.x,B.y,B.w,B.h,9);ctx.stroke();
     ctx.globalAlpha=1;
+  }
+  const art=bossArt(B);
+  if(art){                          // 고유한 몸이 있으면 그것을 그린다
+    ctx.save();
+    ctx.shadowColor=col; ctx.shadowBlur=B.phase2?26:14;
+    art(B, Math.max(0,Math.min(1,B.hp/B.maxHp)), col);
+    ctx.shadowBlur=0; ctx.restore();
+    ctx.globalAlpha=1;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    const ts2=B.twin?0.42:1;
+    ctx.font=`400 ${Math.round(24*ts2)}px 'Gowun Batang',serif`;
+    ctx.fillStyle=col; ctx.globalAlpha=.92;
+    ctx.fillText(B.def.ho,B.x+B.w/2,B.y+B.h+30*ts2);
+    ctx.font=`700 ${Math.round(46*ts2)}px 'Gowun Batang',serif`;
+    ctx.fillStyle=B.hit>0?'#fff':C['--paper'];
+    ctx.fillText(B.def.name,B.x+B.w/2,B.y+B.h+72*ts2);
+    ctx.globalAlpha=1;
+    drawBossBar(B,col);
+    ctx.restore(); return;
   }
   // 몸통 — 위가 밝고 아래가 어두운 결
   const bg=ctx.createLinearGradient(B.x,B.y,B.x,B.y+B.h);
@@ -6663,7 +7613,7 @@ function loop(now){
   try{update(dt);draw();}catch(err){console.error('게임 루프 오류:',err);}
   requestAnimationFrame(loop);
 }
-const BUILD='c15-4';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c16-5';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();ensureToday();newRun();S.screen='title';refreshTitle();
