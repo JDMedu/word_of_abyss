@@ -569,6 +569,7 @@ const CONFIG = {
   driftTurn:2.4,         // 방향을 바꾸기까지 걸리는 시간(초)
   brickBulletSpeed:360,  // 석판이 뱉는 탄의 속도
   homeEvery:3.6,         // 유도 석판 주기
+  seekLife:5.0,          // 좇는 탄이 이만큼 지나면 스러진다
   homeTurn:2.2,          // 유도탄이 도는 빠르기
   laserEvery:4.2,        // 빛 석판 주기
   laserDamage:13,        // 빛 석판에 맞았을 때
@@ -909,7 +910,7 @@ const BOSSES = [
    trait:'선계 — 화면 밖으로 사라진다',
    tome:{id:'hoeori',icon:'✧',name:'규원가',text:'튕길 때 붙는 속도 3배. 대신 체공 -40%',
          set:t=>{t.accelMul=3;t.lifeMul=.6;}}},
-  {ho:'매월당', name:'김시습', color:'#6F8AD9', move:'corner',
+  {ho:'매월당', name:'김시습', color:'#6F8AD9', move:'corner', hpMul:1.3,
    lines:{meet:'산 자와 죽은 자가 담을 사이에 두고 만나는 일이 있소. 지금이 그렇구려.',
      talk:['다섯 살에 임금 앞에서 글을 지었소. 그것이 화근이었지.','책을 불사르고 산으로 갔소. 그 산이 무너져 이 구덩이가 되었지.','담 너머로 시를 던지는 일은 젊어야 하는 것이오.'],
      win:'저승길은 피할 수가 없습니다. 다만 늦출 수는 있지요.', again:'또 살아 돌아왔구려. 나처럼.'},
@@ -2795,7 +2796,7 @@ function spawnBoss(){
   const n=Math.floor(S.stage/CONFIG.bossEvery),d=bossOf(S.stage);
   const step=n-1;                        // 몇 번째 보스인가 (5층=0 … 50층=9)
   const hp=Math.round((CONFIG.bossHpBase+step*CONFIG.bossHpPerBoss)*(1+CONFIG.abyssBossHp*META.abyss)
-           *(S.stage>=CONFIG.hardFrom?CONFIG.hardMul:1));
+           *(S.stage>=CONFIG.hardFrom?CONFIG.hardMul:1)*(def.hpMul||1));
   S.bossStep=step;
   S.bossDmg=Math.round(CONFIG.bulletDamage*(1+CONFIG.bossDmgPerBoss*step)*diffBoss()
                        *(1+CONFIG.abyssBossDmg*META.abyss*0.15));
@@ -3053,16 +3054,22 @@ function updateBoss(dt){
   /* ── 이동: 문인마다 다르다 ── */
   const amp=(VW-B.w)/2-MARGIN-10;
   const sp=B.phase2?1.5:1;
+  /* 앞뒤로도 제멋대로 흔들린다 */
+  if(B.wobY===undefined){ B.wobY=0; B.wobTo=0; B.wobT=1.0+Math.random()*1.4; }
+  B.wobT-=dt;
+  if(B.wobT<=0){ B.wobT=0.9+Math.random()*1.7; B.wobTo=(Math.random()-.35)*170*(B.phase2?1.35:1); }
+  B.wobY+=(B.wobTo-B.wobY)*Math.min(1,dt*1.6);
+  const yz=y=>Math.max(CEIL_Y+20, Math.min(DANGER_Y-460, y+B.wobY));
   switch(B.def.move){
     case 'sine':                       // 좌우로 유유히 훑는다
       B.x=VW/2-B.w/2+Math.sin(B.t*0.62*sp)*amp;
-      B.y=250+Math.sin(B.t*0.45)*26; break;
+      B.y=yz(250+Math.sin(B.t*0.45)*26); break;
     case 'center':                     // 가운데를 지키며 맴돈다
       B.x=VW/2-B.w/2+Math.sin(B.t*1.5*sp)*46;
-      B.y=250+Math.cos(B.t*1.2)*34; break;
+      B.y=yz(250+Math.cos(B.t*1.2)*34); break;
     case 'corner':                     // 양 끝을 왕복한다
       B.x=VW/2-B.w/2+(Math.abs((B.t*0.35*sp)%2-1)*2-1)*amp;
-      B.y=250; break;
+      B.y=yz(250); break;
     case 'teleport':                   // 사라졌다 나타난다
       B.tpT-=dt;
       if(B.tpT<=0){
@@ -3070,13 +3077,13 @@ function updateBoss(dt){
         for(let i=0;i<24;i++)S.sparks.push({x:B.x+B.w/2,y:B.y+B.h/2,
           vx:(Math.random()-.5)*700,vy:(Math.random()-.5)*700,t:.5,c:'gold'});
         B.x=MARGIN+20+Math.random()*(VW-MARGIN*2-40-B.w);
-        B.y=230+Math.random()*120;
+        B.y=230+Math.random()*120; B.wobY=0; B.wobTo=0;
       }
       break;
     case 'stalk':                      // 플레이어를 천천히 따라온다
       B.homeX+=(S.px-(B.homeX))*Math.min(1,dt*(B.phase2?.9:.5));
       B.x=Math.max(MARGIN+8,Math.min(VW-MARGIN-8-B.w,B.homeX-B.w/2));
-      B.y=250+Math.sin(B.t*0.5)*20; break;
+      B.y=yz(250+Math.sin(B.t*0.5)*20); break;
   }
 
   /* ── 뜻을 묻는 때 ── */
@@ -3665,6 +3672,10 @@ function updateBullets(dt){
         continue;
       }
     }
+    if(b.seek!==undefined){                        // 좇는 탄은 오래 못 쫓는다
+      b.seek-=dt;
+      if(b.seek<=0){ burst(b.x,b.y,5,'stone'); S.bullets.splice(i,1); continue; }
+    }
     if(b.k==='seek'){                              // 유도탄 — 쫓아온다
       const cur=Math.atan2(b.vy,b.vx), tgt=Math.atan2(S.py-b.y,S.px-b.x);
       let df=tgt-cur;
@@ -3991,6 +4002,10 @@ function drawOmenCard(){
   return {grade:g, def:g.cards[Math.floor(Math.random()*g.cards.length)]};
 }
 function offerOmen(){
+  say('관상가','내 그대의 관상을 좀 보겠소. 다섯 장 중 하나를 짚어 보시오.',
+      '#B9975B', ()=>omenCards());
+}
+function omenCards(){
   S.screen='omen'; dropTouches();
   const picks=[]; const used=new Set();
   let guard=0;
@@ -4008,24 +4023,29 @@ function offerOmen(){
   picks.forEach((c,idx)=>{
     const d=document.createElement('div');
     d.className='omen';
-    d.innerHTML='<div class="back">?</div>';
+    d.innerHTML=`<div class="back">${idx+1}</div>`;
     d.onclick=()=>{
       if(done)return; done=true;
-      /* 고른 것과 못 고른 것을 모두 뒤집는다 */
-      [...row.children].forEach((el2,j)=>{
-        const q=picks[j];
-        el2.className='omen t'+q.grade.tier+(j===idx?' mine':' dim');
+      const flip=(el2,q,mine)=>{
+        el2.className='omen t'+q.grade.tier+(mine?' mine':' dim');
         el2.innerHTML=`<div class="oi">${q.def.icon}</div>`
           +`<div class="on">${q.def.name}</div>`
           +`<div class="ot">${q.grade.grade}</div>`;
         el2.onclick=null;
-      });
+      };
+      /* 고른 것을 먼저 뒤집는다 */
+      [...row.children].forEach(el2=>el2.onclick=null);
+      flip(row.children[idx],picks[idx],true);
+      /* 나머지는 잠시 뒤에 하나씩 */
+      picks.forEach((q,j)=>{ if(j===idx)return;
+        setTimeout(()=>{ try{ flip(row.children[j],q,false); }catch(e){} }, 700+Math.abs(j-idx)*260); });
       takeOmen(picks[idx]);
       el('omenNote').innerHTML=`<b style="color:${picks[idx].grade.tier>=3?'var(--gold)'
         :(picks[idx].grade.tier===0?'var(--vermilion)':'var(--stone)')}">`
         +`${picks[idx].grade.grade} · ${picks[idx].def.name}</b><br>${picks[idx].def.text}`
         +(picks[idx].grade.tier!==1&&!picks[idx].def.once?`<br><span style="color:var(--stone-deep)">앞으로 ${picks[idx].grade.last}층 동안</span>`:'');
-      el('omenGo').style.display='';
+      setTimeout(()=>{ try{ el('omenGo').style.display=''; }catch(e){} },
+                 700+CONFIG.omenN*260);
       el('omenGo').onclick=()=>{ S.screen='play'; show(null); nextStage(); };
       el('vOmen').onclick=el('omenGo').onclick;
       vibe(picks[idx].grade.tier>=3?'right':(picks[idx].grade.tier===0?'wrong':'open'));
@@ -4053,9 +4073,8 @@ function takeOmen(pick){
 
 /* 천상 백옥경 — 문답 둘을 잇달아 낸다 */
 function offerJade(){
-  S.screen='jade'; dropTouches();
-  S.jadeOk=0; S.jadeNo=0;
-  askJade();
+  say('천상 백옥경','하늘에서 그대를 눈여겨보고 있소. 두 번 물을 터이니 모두 맞히시오.',
+      '#E5B24F', ()=>{ S.screen='jade'; dropTouches(); S.jadeOk=0; S.jadeNo=0; askJade(); });
 }
 function askJade(){
   const i=S.jadeOk+S.jadeNo;
@@ -4539,6 +4558,17 @@ function sayBoss(d, kind, after){
   show('vTalk');
 }
 el('vTalk').onclick=()=>{ const f=talkAfter; talkAfter=null; if(f)f(); };
+/* 문인이 아닌 이도 말한다 — 관상가, 하늘 */
+function say(who,text,col,after){
+  talkAfter=after;
+  el('talkWho').textContent=who;
+  el('talkWho').style.background=col;
+  el('talkBox').style.borderColor=col;
+  el('vTalk').style.background=
+    `radial-gradient(circle at 50% 55%, ${col}33, rgba(5,8,15,.97) 62%)`;
+  el('talkText').textContent=text;
+  S.screen='talk'; dropTouches(); show('vTalk');
+}
 
 /* 인물의 기억을 띄운다 */
 let memAfter=null;
@@ -5027,7 +5057,7 @@ function update(dt){
         if(b.shootT<=0){
           b.shootT=CONFIG.shootEvery/diff();
           S.bullets.push({x:b.x+b.w/2,y:b.y+b.h,vx:0,vy:CONFIG.brickBulletSpeed*diffSpd(),
-                          r:10,hold:0,dmg:CONFIG.bulletDamage*diff(),k:'rand'});
+                          r:10,hold:0,dmg:CONFIG.bulletDamage*diff(),k:'brick'});
         }
       }
       if(b.kind==='drift'){                       // 뜬 석판 — 좌우로 미끄러진다
@@ -5053,7 +5083,7 @@ function update(dt){
           const a=Math.atan2(S.py-(b.y+b.h), S.px-(b.x+b.w/2));
           S.bullets.push({x:b.x+b.w/2,y:b.y+b.h,
             vx:Math.cos(a)*185*diffSpd(),vy:Math.sin(a)*185*diffSpd(),r:10,hold:0,
-            dmg:CONFIG.bulletDamage*diff(),k:'seek'});
+            seek:CONFIG.seekLife, dmg:CONFIG.bulletDamage*diff(),k:'seek'});
         }
       }
       if(b.kind==='laser'){                       // 빛 석판 — 선이 먼저 보인다
@@ -5834,7 +5864,8 @@ function drawSweeps(){
   }
   ctx.globalAlpha=1;ctx.restore();
 }
-const BCOL={aim:'#E2593F', rand:'#EDE4D2', fix:'#6FA8E0'};
+const BCOL={aim:'#E2593F', rand:'#EDE4D2', fix:'#6FA8E0',
+            brick:'#E2593F', seek:'#C98BE0'};   // 석판이 뱉는 탄 · 좇는 탄
 function drawBullets(){
   ctx.save();
   for(const b of S.bullets){
@@ -6251,7 +6282,7 @@ function loop(now){
   try{update(dt);draw();}catch(err){console.error('게임 루프 오류:',err);}
   requestAnimationFrame(loop);
 }
-const BUILD='c11-6';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c12-1';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();ensureToday();newRun();S.screen='title';refreshTitle();
