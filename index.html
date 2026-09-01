@@ -1791,7 +1791,7 @@ const BOSS_QUIZ_Y=540;          // 보스 퀴즈 후보가 놓이는 높이
 const PAD_L={x:172,y:1412,r:94,k:40};
 const PAD_R={x:VW-172,y:1412,r:94,k:40};
 const BTN_F={x:VW-172,y:1188,r:62};
-const BTN_P={x:VW-46,y:VH-1512,r:30};   // 우상단 일시정지
+const BTN_P={x:VW-58,y:CEIL_Y-86,r:34};   // 우상단 일시정지
 
 const cv=document.getElementById('cv'),ctx=cv.getContext('2d'),frame=document.getElementById('frame');
 let scale=1,dpr=1;
@@ -2213,6 +2213,7 @@ function spawnAlert(){
   for(const b of S.balls) burst(b.x,b.y,3,'stone');
   S.balls=[]; S.queue=[]; S.cool=CONFIG.shotCooldown*S.rateMul;
   for(const b of S.bricks) b.passed=true;    // 이미 내려간 것들은 경보 줄에 안 걸린다
+  S.aimX=0; S.aimY=-1;                       // 경보는 곧게 쏘는 것이니 조준을 정면으로
   const n=alertChoices(S.stage);
   const N=cols(), span=Math.max(2,Math.floor(N/n));
   const ans=pickWord(new Set(), CONFIG.weakQuizRate); noteAsked(ans.w);
@@ -2384,6 +2385,7 @@ function spawnBallAt(ang,slot,px,py,mid,chg){
   let sp=CONFIG.ballSpeed*S.speedMul*(d.spd?d.spd[lv]:1);
   if(mid) sp*=CONFIG.fanMidSpd;                  // 춘향 — 한가운데 화살
   S.balls.push({
+    fired:true,                              // 손으로 쏜 구슬 — 경보를 깰 수 있다
     x:px+Math.cos(ang)*30, y:py+Math.sin(ang)*30,
     vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, sp0:sp, boost:1,
     r:CONFIG.ballRadius*S.sizeMul,          // 구슬 크기는 변하지 않는다
@@ -2592,8 +2594,8 @@ function applyEffects(b,ball){
   }
 }
 function hitBrick(b,ball){
-  if(b.quiz&&ball.baby){                     // 새끼 구슬은 경보 후보를 못 깬다
-    b.hit=.08; return;
+  if(b.quiz&&!ball.fired){                   // 경보는 손으로 쏜 구슬로만 깬다
+    b.hit=.08; return;                       // 새끼·분열·씨앗 따위는 스쳐도 그만
   }
   if(b.kind==='shield'&&ball.vy<0){          // 방패 — 아래에서 올라오는 것은 막는다
     b.hit=.12; burst(ball.x,ball.y,3,'stone');
@@ -2623,7 +2625,7 @@ function hitBrick(b,ball){
     const share=Math.round(over*CONFIG.spillPct/CONFIG.spillN);
     if(share>0){
       const cx=b.x+b.w/2, cy=b.y+b.h/2;
-      const near=S.bricks.filter(x=>x!==b&&x.hp>0
+      const near=S.bricks.filter(x=>x!==b&&x.hp>0&&!x.quiz   // 경보는 겨눠서 맞혀야 한다
         &&Math.hypot(x.x+x.w/2-cx,x.y+x.h/2-cy)<CONFIG.spillRange)
         .sort((p,q)=>Math.hypot(p.x-b.x,p.y-b.y)-Math.hypot(q.x-b.x,q.y-b.y))
         .slice(0,CONFIG.spillN);
@@ -3863,7 +3865,7 @@ function statusTick(dt){
         breakBrick(b); if(S.screen!=='play')return; continue;
       }
     }
-    if(S.aura>0){                                   // 향 — 몸 가까이 온 석판
+    if(S.aura>0&&!b.quiz){                          // 향 — 몸 가까이 온 석판
       const cx=b.x+b.w/2, cy=b.y+b.h/2;
       if(Math.hypot(cx-S.px,cy-S.py)<170){
         b.hp-=S.aura*dt; b.hit=Math.max(b.hit,.06);
@@ -7821,12 +7823,12 @@ function drawHud(){
   // 장착한 구슬 / 문방
   // 일시정지
   ctx.save();
-  ctx.globalAlpha=.55;
-  ctx.fillStyle='rgba(5,8,15,.5)';ctx.strokeStyle='rgba(222,211,184,.5)';ctx.lineWidth=2.5;
-  ctx.beginPath();ctx.arc(BTN_P.x,BTN_P.y,BTN_P.r,0,7);ctx.fill();ctx.stroke();
-  ctx.fillStyle='rgba(222,211,184,.85)';
-  ctx.fillRect(BTN_P.x-9,BTN_P.y-11,6,22);
-  ctx.fillRect(BTN_P.x+3,BTN_P.y-11,6,22);
+  ctx.fillStyle='rgba(5,8,15,.82)';ctx.strokeStyle=C['--stone'];ctx.lineWidth=3;
+  ctx.shadowColor='rgba(0,0,0,.6)';ctx.shadowBlur=10;
+  ctx.beginPath();ctx.arc(BTN_P.x,BTN_P.y,BTN_P.r,0,7);ctx.fill();ctx.shadowBlur=0;ctx.stroke();
+  ctx.fillStyle=C['--stone'];
+  roundRect(BTN_P.x-11,BTN_P.y-13,7,26,2);ctx.fill();
+  roundRect(BTN_P.x+4,BTN_P.y-13,7,26,2);ctx.fill();
   ctx.restore();
 
   ctx.textAlign='left';ctx.textBaseline='middle';
@@ -7864,7 +7866,7 @@ function loop(now){
   try{update(dt);draw();}catch(err){console.error('게임 루프 오류:',err);}
   requestAnimationFrame(loop);
 }
-const BUILD='c18-0';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c18-4';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();ensureToday();newRun();S.screen='title';refreshTitle();
