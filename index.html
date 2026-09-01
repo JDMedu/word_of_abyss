@@ -722,7 +722,8 @@ const CONFIG = {
   bleedPerStack:1.0,    // 1겹당 초당 피해
   poisonPerStack:0.9,   // 중독 1겹당 초당 피해
   poisonTime:4.0,       // 중독 유지 시간
-  mineLife:9.0,         // 바닥에 깔린 지뢰가 남아 있는 시간
+  mineLife:2.6,         // 깔린 뒤 이만큼 지나면 스스로 터진다
+  mineEvery:3.0,        // 지뢰는 이 간격으로만 깔린다
   mineR:96,             // 지뢰 폭발 반경
   mineMax:14,           // 동시에 깔 수 있는 지뢰 수
   rayCool:10.0,         // 빛줄기 재사용
@@ -2446,10 +2447,12 @@ function applyEffects(b,ball){
     b.poiN=Math.min(Math.round(d.poison[lv]*(S.statusMul||1))+(S.capBonus||0), (b.poiN||0)+1);
     b.poiT=holdT(CONFIG.poisonTime); b.poiSpread=d.spread2?2:1;
   }
-  if(d.mine){                                    // 지뢰 — 바닥에 깐다
+  if(d.mine && (S.mineCd||0)<=0){               // 지뢰 — 맞은 자리에 깔리고 이내 터진다
+    S.mineCd=CONFIG.mineEvery;
     if(S.mines.length>=CONFIG.mineMax) S.mines.shift();
     S.mines.push({x:Math.max(WALL_L+30,Math.min(WALL_R-30,ball.x)),
-                  y:DANGER_Y-26, r:CONFIG.mineR, t:CONFIG.mineLife,
+                  y:Math.max(CEIL_Y+30,Math.min(DANGER_Y-40,ball.y)),
+                  r:CONFIG.mineR, t:CONFIG.mineLife,
                   dmg:Math.max(1,Math.round(dmgOf(ball)*d.mine[lv])),
                   chain:!!d.chainMine});
   }
@@ -2796,7 +2799,7 @@ function spawnBoss(){
   const n=Math.floor(S.stage/CONFIG.bossEvery),d=bossOf(S.stage);
   const step=n-1;                        // 몇 번째 보스인가 (5층=0 … 50층=9)
   const hp=Math.round((CONFIG.bossHpBase+step*CONFIG.bossHpPerBoss)*(1+CONFIG.abyssBossHp*META.abyss)
-           *(S.stage>=CONFIG.hardFrom?CONFIG.hardMul:1)*(def.hpMul||1));
+           *(S.stage>=CONFIG.hardFrom?CONFIG.hardMul:1)*(d.hpMul||1));
   S.bossStep=step;
   S.bossDmg=Math.round(CONFIG.bulletDamage*(1+CONFIG.bossDmgPerBoss*step)*diffBoss()
                        *(1+CONFIG.abyssBossDmg*META.abyss*0.15));
@@ -3607,7 +3610,8 @@ function statusTick(dt){
       }
     }
   }
-  for(let i=S.mines.length-1;i>=0;i--){             // 바닥에 깐 먹지뢰
+  S.mineCd=Math.max(0,(S.mineCd||0)-dt);           // 지뢰는 이따금만 깔린다
+  for(let i=S.mines.length-1;i>=0;i--){             // 깔아 둔 먹지뢰
     const m=S.mines[i]; m.t-=dt;
     let boom=(m.t<=0);
     if(!boom) for(const b of S.bricks){
@@ -6282,7 +6286,7 @@ function loop(now){
   try{update(dt);draw();}catch(err){console.error('게임 루프 오류:',err);}
   requestAnimationFrame(loop);
 }
-const BUILD='c12-1';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c12-2';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();ensureToday();newRun();S.screen='title';refreshTitle();
