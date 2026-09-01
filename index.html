@@ -4142,25 +4142,29 @@ function drawCards(n){
 function estDps(){
   if(!S.ballSlots.length) return 0;
   let sum=0;
+  /* 융합·진화 구슬은 배열이 짧다. 넘겨 읽으면 값이 없어진다 */
+  const at=(arr,lv)=>{ if(!arr||!arr.length) return 0;
+    const v=arr[Math.min(arr.length-1,Math.max(0,lv))]; return (typeof v==='number'&&isFinite(v))?v:0; };
   for(const b of S.ballSlots){
-    const d=b.def, lv=Math.min(6,b.lv);
-    const base=S.ballDamage+(d.dmg?d.dmg[lv]:0);
+    const d=b.def, lv=Math.max(0,b.lv);
+    const base=S.ballDamage+at(d.dmg,lv);
     let v=Math.max(1,base*(S.dmgMul||1)*(S.growMul||1));
-    let hits=1+(d.pierce?d.pierce[lv]:0)+(S.pierceBonus||0);      // 꿰뚫는 만큼 더 맞는다
-    if(d.split)  hits+=d.split[lv]*(S.spawnMul||1)*0.5;
-    if(d.boomN)  hits+=d.boomN[lv]*0.4;
-    if(d.splash) hits+=(d.splashN?d.splashN[lv]:1)*d.splash[lv];
-    if(d.bolt)   hits+=d.bolt[lv];
-    if(d.flank)  hits+=d.flank[lv]*0.6;
-    if(d.mine)   v*=1+d.mine[lv]*0.5;
-    if(d.poison) v+=d.poison[lv]*CONFIG.poisonPerStack*(S.dotMul||1)*CONFIG.poisonTime*0.5;
-    if(d.bleed)  v+=d.bleed[lv]*CONFIG.bleedPerStack*(S.dotMul||1)*2;
+    let hits=1+at(d.pierce,lv)+(S.pierceBonus||0);               // 꿰뚫는 만큼 더 맞는다
+    if(d.split)  hits+=at(d.split,lv)*(S.spawnMul||1)*0.5;
+    if(d.boomN)  hits+=at(d.boomN,lv)*0.4;
+    if(d.splash) hits+=(d.splashN?at(d.splashN,lv):1)*at(d.splash,lv);
+    if(d.bolt)   hits+=at(d.bolt,lv);
+    if(d.flank)  hits+=at(d.flank,lv)*0.6;
+    if(d.mine)   v*=1+at(d.mine,lv)*0.5;
+    if(d.poison) v+=at(d.poison,lv)*CONFIG.poisonPerStack*(S.dotMul||1)*CONFIG.poisonTime*0.5;
+    if(d.bleed)  v+=at(d.bleed,lv)*CONFIG.bleedPerStack*(S.dotMul||1)*2;
     if(S.ax&&S.ax['월']>1.05) hits*=1+CONFIG.spillPct*0.35;        // 넘침
     sum+=v*hits;
   }
   const avg=sum/S.ballSlots.length;
   const cd=Math.max(0.05,CONFIG.shotCooldown*(S.rateMul||1));
-  return Math.round(S.shotBalls*avg/cd);
+  const out=Math.round(S.shotBalls*avg/cd);
+  return isFinite(out)?out:0;                 // 값이 없으면 0으로 — NaN을 내보내지 않는다
 }
 /* 이 카드를 먹으면 얼마가 되는가 — 진짜로 먹어보고 되돌린다 */
 function estDpsWith(c){
@@ -4192,15 +4196,21 @@ function sellInk(slot){
   return (CONFIG.tierInk[slot.def.tier||1]||5)*slot.lv*CONFIG.sellMul;
 }
 function takeCard(c){
+  /* 주사위 — 구슬·문방 한 장에만 걸린다 */
+  const die=(c.kind==='ball'||c.kind==='gear') ? (S.dice||1) : 1;
+  if(die!==1){ S.dice=null; S.diceUsed=die; }
+  const step=die>1?2:(die<1?0:1);              // 두 배면 두 눈금, 헛것이면 없던 일
   if(c.kind==='ball'){
     const own=S.ballSlots.find(x=>x.def.id===c.def.id);
-    if(own) own.lv++;
+    if(own) own.lv=Math.min(maxBallLv(), own.lv+step);
+    else if(step===0){ /* 헛것 — 손에 잡히지 않는다 */ }
     else if(S.ballSlots.length<maxBallSlots())
-      S.ballSlots.push({def:c.def,lv:lvOf('picky')?2:1});
+      S.ballSlots.push({def:c.def,lv:Math.max(1,(lvOf('picky')?2:1)+step-1)});
     else { offerSwap(c); return false; }          // 자리가 없다 → 무엇을 팔지 고른다
   }else if(c.kind==='gear'){
     const own=S.gearSlots.find(x=>x.def.id===c.def.id);
-    if(own) own.lv++; else S.gearSlots.push({def:c.def,lv:1});
+    if(own) own.lv=Math.min(maxGearLv(), own.lv+step);
+    else if(step>0) S.gearSlots.push({def:c.def,lv:step});
   }else if(c.kind==='consum'){
     if(c.def.id==='tonic'){ healPct(CONFIG.tonicHeal); }
     if(c.def.id==='folding'){
@@ -4305,13 +4315,9 @@ function offerOmen(){
 }
 function omenCards(){
   S.screen='omen'; dropTouches();
-  const picks=[]; const used=new Set();
-  let guard=0;
-  while(picks.length<CONFIG.omenN && guard++<80){
-    const c=drawOmenCard();
-    if(used.has(c.def.id)) continue;          // 같은 장이 둘 나오지 않게
-    used.add(c.def.id); picks.push(c);
-  }
+  /* 다섯 등급이 하나씩 깔린다. 어느 자리에 무엇이 놓일지, 그 안에서 무엇이 나올지가 운이다 */
+  const picks=OMEN.map(g=>({grade:g, def:g.cards[Math.floor(Math.random()*g.cards.length)]}))
+                  .sort(()=>Math.random()-.5);
   el('omenEyebrow').textContent='관상가가 그대의 관상을 본다';
   el('omenHead').innerHTML='다섯 장 중 <em>하나를 고른다</em>';
   el('omenNote').textContent='무엇이 나올지는 뒤집어야 안다';
@@ -4441,7 +4447,6 @@ function offerCards(n){
   if(mergePool().length){ S.cardHold=n; offerFuse(); return; }   // 합칠 게 있으면 먼저 묻는다
   S.screen='card';
   const first=!tipSeen('card');
-  if(S.dice){ n=Math.max(2,Math.round(n*S.dice)); S.dice=null; }   // 주사위
   const pick=drawCards(first?2:Math.max(2,n));   // 처음엔 구슬 하나 문방 하나만
   if(first){ showTip('card'); }
   else if(S.ballSlots.length>=maxBallSlots() && !tipSeen('full')) showTip('full');
@@ -4453,8 +4458,9 @@ function offerCards(n){
   const now=estDps();
   const row=el('cardRow');row.innerHTML='';
   for(const c of pick){
-    const after=estDpsWith(c);
-    const dpct=(after!==null&&now>0)?Math.round((after/now-1)*100):null;
+    let after=estDpsWith(c);
+    if(after!==null&&!isFinite(after)) after=null;
+    const dpct=(after!==null&&now>0&&isFinite(after/now))?Math.round((after/now-1)*100):null;
     const t=c.def.tier||1;
     const d=document.createElement('div');d.className='card t'+t;
     if(c.own) d.classList.add('up');
@@ -4472,7 +4478,17 @@ function offerCards(n){
           +`${dpct>0?'+':''}${dpct}%</span></div>`:''}
       </div>
       ${c.own?'<div class="upmark">▲<span>강화</span></div>':''}`;
-    d.onclick=()=>{ if(takeCard(c)!==false) afterCard(); };
+    d.onclick=()=>{
+      if(takeCard(c)===false) return;
+      if(S.diceUsed){                          // 주사위가 걸린 한 장
+        const up=S.diceUsed>1; S.diceUsed=null;
+        showResult(up?'주사위가 맞아떨어졌다':'주사위가 어긋났다', up?'⚅':'⚀',
+          c.def.name, up?'두 눈금이 한꺼번에 올랐다':'손에 잡히지 않고 흩어졌다',
+          up, afterCard);
+        return;
+      }
+      afterCard();
+    };
     row.appendChild(d);
   }
   show('vCard');
@@ -4513,10 +4529,10 @@ function afterCard(){
     S.diceShow=false;
     const up=S.dice>1;
     showResult('주사위를 굴렸다', up?'⚅':'⚀',
-      up?'두 배':'절반',
-      up ? '다음에 고를 카드가 <b style="color:var(--gold)">두 배</b>로 깔린다'
-         : '다음에 고를 카드가 <b style="color:var(--vermilion)">절반</b>으로 준다'
-           +'<br><span style="color:var(--stone-deep)">그래도 두 장은 나온다</span>',
+      up?'두 배':'헛것',
+      up ? '다음에 고르는 구슬·문방이 <b style="color:var(--gold)">두 눈금</b> 오른다'
+         : '다음에 고르는 구슬·문방이 <b style="color:var(--vermilion)">아무 일 없이</b> 흩어진다'
+           +'<br><span style="color:var(--stone-deep)">소모품에는 걸리지 않는다</span>',
       up, afterCard);
     return;
   }
@@ -4796,7 +4812,17 @@ function offerTome(n){
         <div class="cdesc">${c.def.text(c.lv)}</div>
         <div class="stars">${'★'.repeat(tr)} ${tag}</div>
       </div>`;
-    d.onclick=()=>{ if(takeCard(c)!==false) afterCard(); };
+    d.onclick=()=>{
+      if(takeCard(c)===false) return;
+      if(S.diceUsed){                          // 주사위가 걸린 한 장
+        const up=S.diceUsed>1; S.diceUsed=null;
+        showResult(up?'주사위가 맞아떨어졌다':'주사위가 어긋났다', up?'⚅':'⚀',
+          c.def.name, up?'두 눈금이 한꺼번에 올랐다':'손에 잡히지 않고 흩어졌다',
+          up, afterCard);
+        return;
+      }
+      afterCard();
+    };
     list.appendChild(d);
   }
   const skip=document.createElement('div');
@@ -7866,7 +7892,7 @@ function loop(now){
   try{update(dt);draw();}catch(err){console.error('게임 루프 오류:',err);}
   requestAnimationFrame(loop);
 }
-const BUILD='c18-4';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c19-1';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();ensureToday();newRun();S.screen='title';refreshTitle();
