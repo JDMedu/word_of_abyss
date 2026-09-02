@@ -49,6 +49,12 @@ canvas{display:block;width:100%;height:100%}
   color:var(--jade);text-shadow:0 0 34px rgba(82,191,160,.6);line-height:1;margin-bottom:.35em;
   animation:fusePulse 2.4s ease-in-out infinite}
 #fuseMark span{color:var(--gold);text-shadow:0 0 34px rgba(229,178,79,.6)}
+#abyssPick{display:flex;gap:.35em;justify-content:center;align-items:center;flex-wrap:wrap}
+#abyssPick .al{font-size:.72em;letter-spacing:.14em;color:var(--stone-deep);margin-right:.3em}
+#abyssPick button{font:inherit;font-size:.8em;min-width:2.2em;padding:.35em .5em;cursor:pointer;
+  background:transparent;color:var(--stone-deep);border:1px solid rgba(158,143,110,.35);border-radius:6px}
+#abyssPick button.on{color:var(--gold);border-color:var(--gold);background:rgba(229,178,79,.12)}
+#abyssPick button:disabled{opacity:.25;cursor:default}
 @keyframes fusePulse{0%,100%{transform:scale(1);opacity:.92}50%{transform:scale(1.06);opacity:1}}
 .fuse{display:block;padding:1.1em 1em;cursor:pointer;border-radius:12px;
   background:linear-gradient(160deg,rgba(82,191,160,.16),rgba(229,178,79,.10));
@@ -88,6 +94,9 @@ canvas{display:block;width:100%;height:100%}
   background:rgba(222,211,184,.05);border:1px solid rgba(222,211,184,.16)}
 .chr.own{cursor:pointer;border-color:rgba(222,211,184,.34)}
 .chr.on{background:rgba(229,178,79,.14);border-color:var(--gold);border-width:2px}
+.chr.p2{margin-left:1.6em;margin-top:-.4em;border-style:dashed;cursor:default}
+.chr.p2 .cm{font-size:.8em}
+.chr.p2.own{cursor:default}
 .chr.buy{cursor:pointer;background:rgba(229,178,79,.09);border-color:rgba(229,178,79,.4)}
 .chr.lock{opacity:.4}
 .chr .cm{width:2.6em;height:2.6em;border-radius:50%;flex:none;display:flex;
@@ -349,6 +358,9 @@ canvas{display:block;width:100%;height:100%}
            color:rgba(158,143,110,.55)"></div>
     </div>
     <div id="titleRec"></div>
+    <div id="abyssPick" style="display:none;margin:.6em 0 .2em"></div>
+    <div id="abyssNote" style="display:none;font-size:.72em;line-height:1.7;
+         color:var(--stone-deep);margin-bottom:.7em;max-width:30em"></div>
     <div class="row">
       <button class="btn gold" id="btnResumeRun" style="display:none"></button>
       <button class="btn gold" id="btnStart">내려간다</button>
@@ -588,10 +600,9 @@ const CONFIG = {
   landslideHold:6.0,     // 사태가 이어지는 시간(초)
 
   /* 어휘 회차 */
-  lessonBlock:[3,2],     // 5층 한 덩이를 3층 + 2층으로 나눠 회차를 바꾼다
-  lessonsPerRun:10,      // 한 판에 도는 회차 수 — 10회차 × 2.5층 = 25층에 한 바퀴
-  newLessons:7,          // 그중 새 회차
-  revLessons:3,          // 그중 복습 회차
+  /* 5층 한 덩이 = 두 회차. 앞 두 층 · 뒤 두 층 · 다섯째 층(보스)은 둘을 합쳐 묻는다
+     50층 = 10덩이 × 2 = 20회차. 한 판에 같은 회차가 두 번 나오지 않는다 */
+  lessonsPerRun:20,      // 한 판에 도는 회차 수
 
   alertGap:8,                // 경보 줄과 뒤따르는 석판 사이의 틈(px)
   alertEvery:10, alertChoicesByChapter:[4,5,5,6,6], alertBrickHp:3,
@@ -622,7 +633,7 @@ const CONFIG = {
   bossSpdPerBoss:0.050,   // 탄 속도 +5%
   bossCycPerBoss:0.026,   // 공격 주기 -2.6%
   bossRagePerBoss:0.6,    // 격노가 이만큼씩 길어진다(초)
-  abyssBossDmg:1.20,     // 심연의 구덩이 — 보스 공격력이 이만큼 오른다
+  abyssPitDmg:1.20,      // 심연의 구덩이(갈림길) — 보스 공격력이 이만큼 오른다
   bossShieldCut:0.70,    // 평소 보스가 받는 피해 감소
   bossVulnMul:2.2,       // 뜻을 맞힌 뒤 받는 피해 배수
   bossVulnSec:9.0,       // 방벽이 열려 있는 시간(초)
@@ -665,7 +676,10 @@ const CONFIG = {
   inkGain:1.30,              // 들어오는 먹을 통째로 이만큼 곱한다
 
   /* 심연(회차)마다 붙는 값 */
-  abyssDescent:0.40, abyssBossHp:0.50, abyssInk:0.30,
+  abyssStep:0.10,        // 심연 한 단마다 하강·보스 체력·보스 공격이 오른다
+  abyssInkStep:0.30,     // 심연 한 단마다 먹이 오른다
+  abyssMaxRung:7,        // 계약은 일곱 단까지. 그 위는 숫자만 오른다
+  p2Cost:100,            // 인물 두 번째 재주 값
 
   /* 구슬 · 문방 슬롯 */
   ballSlotBase:3,        // 구슬 슬롯. 주머니로 6칸까지
@@ -1455,46 +1469,72 @@ const UPGRADES = [
 /* ══════════════════════════════════════════════════════════
    ⑤-5 인물 — 교과서 속 사람들. 저마다 다른 재주를 쓴다
    ══════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════
+   먹의 계약 — 심연 한 단마다 규칙이 하나씩 더 붙는다. 누적된다
+   ══════════════════════════════════════════════════════════ */
+const PACTS = [
+  {n:1, name:'굳은 손',   text:'경보를 틀리면 기력이 깎인다'},
+  {n:2, name:'얕은 서랍', text:'고를 카드가 한 장 줄어든다'},
+  {n:3, name:'무거운 석판',text:'석판이 25% 단단해진다'},
+  {n:4, name:'잦은 물음', text:'경보가 더 자주 온다'},
+  {n:5, name:'잊힌 이름', text:'경보의 뜻풀이가 1.5초 뒤 사라진다'},
+  {n:6, name:'거센 물살', text:'석판이 25% 빨리 내려온다'},
+  {n:7, name:'닫힌 방벽', text:'방벽이 열려 있는 시간이 절반'},
+];
+const depth   = ()=>(S&&S.depth)||0;              // 이번 판의 심연 깊이
+const pactOn  = k=>depth()>=k;                    // 그 계약이 걸려 있는가
+const abyssHard = ()=>1+CONFIG.abyssStep*depth();     // 하강·보스에 곱한다
+const abyssInkMul=()=>1+CONFIG.abyssInkStep*depth();  // 먹에 곱한다
+const p2On    = id=>!!(META.p2&&META.p2[id]) && META.char===id;   // 두 번째 재주
+const p2Open  = id=>{const i=CHARS.findIndex(c=>c.id===id); return i>=0 && (META.abyss||0)>i;};
+
 const CHARS = [
   {id:'none', name:'이름 없는 자', work:'구덩이로 내려온 채자인',
    skill:'재주 없음', desc:'남다른 것이 없다. 오로지 구슬로만 싸운다',
-   floor:0, cost:0, color:'#52BFA0'},
+   floor:0, cost:0, color:'#52BFA0',
+   p2:'먹 터짐', p2desc:'구슬이 저마다 다른 석판을 좇아가 달라붙는다<br>0.5초 뒤 터지며 <b>좌우 석판</b>에 위력의 100%를 준다'},
   {id:'kwon', name:'권씨', work:'아홉 켤레의 구두로 남은 사내',
    skill:'맴돌이',
    desc:'작은 석판 <b>셋</b>이 곁을 돌며 닿는 석판을 친다<br>구두를 아홉 켤레 지고 다니듯, 늘 곁에 둔다',
-   floor:0, cost:100, color:'#9E8F6E'},
+   floor:0, cost:100, color:'#9E8F6E',
+   p2:'아홉 켤레', p2desc:'맴돌이가 <b>아홉</b>으로 늘어난다<br>기력을 잃을 때마다 하나씩 떨어져 나가고, 층을 넘기면 되돌아온다'},
   {id:'gildong', name:'홍길동', work:'홍길동전',
    skill:'분신',
    desc:'10초마다 그림자가 2초간 선다<br>화면 반대쪽에서 똑같은 구슬이 함께 나간다',
-   floor:10, cost:150, color:'#52BFA0'},
+   floor:10, cost:150, color:'#52BFA0',
+   p2:'활빈당', p2desc:'그림자가 설 때 <b>다섯</b>이 함께 선다<br>저마다 구슬을 쏜다. 그 구슬은 위력의 60%'},
   {id:'chunhyang', name:'춘향', work:'춘향전',
    skill:'부채살 · 수절',
    desc:'구슬이 <b>45° 부채꼴</b>로 퍼진다. 한가운데 것만 1.7배 빠르다<br>'
        +'맞으면 4초간 구슬이 두 배로 나간다 (20초에 한 번)',
-   floor:20, cost:220, color:'#E2593F'},
+   floor:20, cost:220, color:'#E2593F',
+   p2:'옥중가', p2desc:'기력이 <b>절반 아래</b>로 떨어지면 부채가 90°로 벌어지고 구슬이 둘 더 나간다'},
   {id:'jeomsun', name:'점순이', work:'동백꽃',
    skill:'짧은 구슬 · 동백꽃',
    desc:'구슬이 <b>다섯 칸만</b> 날고 스러진다. 그 대신 <b>위력 두 배</b><br>'
        +'10초마다 석판이 모두 2초간 멈춘다',
-   floor:30, cost:300, color:'#E5B24F'},
+   floor:30, cost:300, color:'#E5B24F',
+   p2:'동백꽃 아래', p2desc:'멈춤이 끝나는 순간, 멈춰 있던 <b>석판 전부</b>가 위력의 100%로 한 번에 맞는다'},
   {id:'kimcheomji', name:'김첨지', work:'운수 좋은 날',
    skill:'차징샷 · 인력거',
    desc:'발사를 <b>누르고 있으면</b> 힘이 실린다. 1초마다 한 배씩, 다섯 배까지<br>'
        +'손을 떼면 나간다. 실린 만큼 구슬이 금빛으로 물든다<br>'
        +'7초마다 판 가운데에 벽이 3초간 선다',
-   floor:40, cost:380, color:'#6FA8E0'},
+   floor:40, cost:380, color:'#6FA8E0',
+   p2:'설렁탕', p2desc:'가득 실은 구슬이 석판을 깨면 <b>기력 +10</b><br>한 층에 세 번까지'},
   {id:'yuchungryeol', name:'유충렬', work:'유충렬전',
    skill:'장성검',
    desc:'10초마다 겨눈 쪽으로 빛줄기를 내지른다<br>줄기에 닿는 석판이 모두 한꺼번에 상한다',
-   floor:50, cost:480, color:'#8E7BD8'},
+   floor:50, cost:480, color:'#8E7BD8',
+   p2:'천사마', p2desc:'장성검이 <b>세 갈래</b>로 갈라진다<br>지나간 자리에 3초간 불길이 남아 석판을 태운다'},
 ];
 const charDef=id=>CHARS.find(c=>c.id===id)||CHARS[0];
 
 /* ---------- 저장 (기기 안에만 남는다) ---------- */
 const SAVE_KEY='vocab-pit-save-v1';
 let META={ink:0, up:{}, best:0, bestInk:0, abyss:0, runs:0, totalWords:0, lastBall:null, weak:{}, cleared:{}, met:{}, chars:{none:1}, char:'none', tip:{},
-  mem:{}, deep:{}, shopVisits:0,
-  seen:{}, today:null, day:0, plan:null, runsToday:0, admin:null};
+  mem:{}, deep:{}, shopVisits:0, p2:{}, depth:0,
+  ord:{}, ordN:0, plan:null, admin:null};
 let saveOK=true;
 function loadMeta(){
   try{
@@ -1538,6 +1578,8 @@ function saveRun(){
       forks:S.forks, gim:S.gim?S.gim.id:null, gimLeft:S.gimLeft||0,
       tomes:(S.tomes||[]).map(t=>t.id),
       bossPick:S.bossPick, isAbyss:S.isAbyss,
+      plan:(META.plan||[]).map(q=>q.b+'|'+q.l),      // 회차 차례도 함께 둔다
+      depth:S.depth||0,
       abyssBoss:S.abyssBoss?S.abyssBoss.name:null,
       balls:S.ballSlots.map(x=>[x.def.id,x.lv]),
       gears:S.gearSlots.map(x=>[x.def.id,x.lv]),
@@ -1559,7 +1601,7 @@ function settleSavedRun(){
   t+=d.bonusInk||0;
   const learned=(d.learned||[]).length;
   if(lvOf('rub')) t+=Math.floor(learned/10)*lvOf('rub');           // 탁본
-  const gained=Math.round(t*(1+CONFIG.abyssInk*(META.abyss||0)));
+  const gained=Math.round(t*abyssInkMul());
   META.ink=(META.ink||0)+gained;
   META.runs=(META.runs||0)+1;
   META.totalWords=(META.totalWords||0)+(d.totalWords||0);
@@ -1583,89 +1625,74 @@ function adminLessons(){
   if(a.to&&t>a.to)return null;
   return a.list;
 }
-/* 오늘의 회차를 정한다 — 신규 2 + 복습 1 */
-function rollLessons(){
-  const t=today();
-  META.seen=META.seen||{};                       // 회차별 마지막으로 본 날
-  const all=VOCAB.lessons.map(q=>({b:q.b,l:q.l}));
-  const age=q=>{const d=META.seen[lessonKey(q)];return d?t-d:99999;};
-  const sorted=[...all].sort((x,y)=>age(y)-age(x));
-  const need=CONFIG.lessonsPerRun;
-  const has=q=>pick.some(x=>lessonKey(x)===lessonKey(q));
-  const fresh=sorted.slice(0,12).sort(()=>Math.random()-.5).slice(0,CONFIG.newLessons);
-  const pick=[...fresh];
-  const rev=all.filter(q=>{const a=age(q);return a>=2&&a<=7;}).sort(()=>Math.random()-.5);
-  for(const q of rev){ if(pick.length>=CONFIG.newLessons+CONFIG.revLessons)break;
-                       if(!has(q)) pick.push(q); }
-  let guard=0;
-  while(pick.length<need && guard++<200){          // 모자라면 오래된 것부터 채운다
-    const q=sorted[Math.floor(Math.random()*Math.min(24,sorted.length))];
-    if(!has(q)) pick.push(q);
-  }
-  pick.length=Math.min(pick.length,need);
-  META.day=t; META.today=pick; META.runsToday=0; META.usedToday={};
-  saveMeta();
-  return pick;
-}
-function ensureToday(){
-  if(!META.today||META.day!==today()||META.today.length!==CONFIG.lessonsPerRun) rollLessons();
-  return META.today;
-}
-/* 이번 판에 쓸 회차 차례를 정한다 */
+/* ── 회차 차례 ──
+   오래 안 본 회차부터 스무 개를 가져온다. 실제로 내려간 층의 회차만 '봤다'로 치므로
+   도중에 멈추면 못 본 회차는 다음 판에 그대로 다시 나온다.
+   하루 두 판이면 교재 마흔 회차가 정확히 한 바퀴 돈다 */
+const lessonOrd = q=>(META.ord&&META.ord[lessonKey(q)])||0;   // 클수록 최근에 봤다
 function planLessons(){
+  META.ord=META.ord||{}; META.ordN=META.ordN||0;
+  const need=CONFIG.lessonsPerRun, half=Math.floor(need/2);
+  const all=VOCAB.lessons.map(q=>({b:q.b,l:q.l}));
+  /* 오래 안 본 것이 앞에 온다. 아직 한 번도 안 본 것(0)이 맨 앞 */
+  const byOld=[...all].sort((x,y)=>(lessonOrd(x)-lessonOrd(y))||(Math.random()-.5));
   const admin=adminLessons();
-  ensureToday();
-  META.runsToday=(META.runsToday||0)+1;
-  const n=META.runsToday;
-
-  // 2판마다 오늘의 세 회차를 통째로 새것으로 갈아준다
-  if(!admin && n>1 && n%2===1){
-    const used=new Set(META.today.map(lessonKey));
-    const cand=VOCAB.lessons.filter(q=>!used.has(lessonKey(q)))
-                            .sort(()=>Math.random()-.5);
-    const fresh=[];
-    for(const q of cand){ if(fresh.length>=META.today.length)break; fresh.push({b:q.b,l:q.l}); }
-    if(fresh.length===META.today.length) META.today=fresh;
+  let front,back;
+  if(admin&&admin.length){
+    /* 지정이 있으면 앞 절반(1~25층)을 지정 회차로 채운다. 모자라면 돌려 쓴다 */
+    front=[]; for(let i=0;i<half;i++){ const q=admin[i%admin.length]; front.push({b:q.b,l:q.l}); }
+    const used=new Set(front.map(lessonKey));
+    back=byOld.filter(q=>!used.has(lessonKey(q))).slice(0,need-half);
+  }else{
+    const pool=byOld.slice(0,need).sort(()=>Math.random()-.5);   // 스무 개를 뽑아 자리만 섞는다
+    front=pool.slice(0,half); back=pool.slice(half);
   }
-  const auto=[...META.today].sort(()=>Math.random()-.5);   // 판마다 순서를 섞는다
-  let plan;
-  if(admin){
-    const fix=[...admin].sort(()=>Math.random()-.5);
-    // 1~2판은 지정 회차를 1~10층에, 3판부터는 1~5층만
-    plan = (n<3) ? [fix[0],fix[1%fix.length],...auto] : [fix[0],...auto];
-  }else plan=auto;
-
-  // 같은 회차가 두 번 들어가면 5층마다 바뀌어도 제자리로 돌아온다
-  const seenK=new Set();
-  plan=plan.filter(q=>{const k=lessonKey(q); if(seenK.has(k))return false; seenK.add(k); return true;});
-  plan.length=Math.min(plan.length,CONFIG.lessonsPerRun);   // 5회차에서 한 바퀴가 돈다
-  if(!plan.length) plan=[VOCAB.lessons[0]];
-
-  META.plan=plan;
-  for(const q of plan){ META.seen[lessonKey(q)]=today(); }
-  saveMeta();
+  let plan=[...front,...back];
+  if(!plan.length) plan=[{b:VOCAB.lessons[0].b,l:VOCAB.lessons[0].l}];
+  const base=plan.length;                       // 회차가 모자라면 앞에서부터 돌려 채운다
+  while(plan.length<need) plan.push(plan[plan.length%base]);
+  plan.length=need;
+  META.plan=plan; saveMeta();
   return plan;
 }
-/* 층에 맞는 회차를 WORDS 에 올린다 */
-/* 5층 한 덩이 안에서 3층 → 2층으로 회차가 갈린다.
-   덩이의 끝이 늘 보스층이라, 보스가 묻는 낱말은 직전 두 층에서 본 것이 된다 */
-function lessonIndexAt(stage){
-  const B=CONFIG.lessonBlock, per=B.reduce((a,b)=>a+b,0);
-  const blk=Math.floor((stage-1)/per), within=(stage-1)%per;
-  let k=0, acc=0;
-  for(let i=0;i<B.length;i++){ acc+=B[i]; if(within<acc){ k=i; break; } }
-  return blk*B.length + k;
+/* 관리자 화면에 보여줄, 다음 판 앞쪽에 나올 회차 */
+function previewLessons(){
+  META.ord=META.ord||{};
+  return VOCAB.lessons.map(q=>({b:q.b,l:q.l}))
+    .sort((x,y)=>lessonOrd(x)-lessonOrd(y))
+    .slice(0,Math.floor(CONFIG.lessonsPerRun/2));
 }
+/* 이 층은 차례의 몇 번째 회차인가
+   1,2층 → 앞 회차 · 3,4층 → 뒤 회차 · 5층(보스) → 둘을 함께 */
+function lessonSlotsAt(stage){
+  const per=CONFIG.bossEvery;
+  const blk=Math.floor((stage-1)/per), w=(stage-1)%per;
+  const a=blk*2, b=blk*2+1;
+  if(w<2) return [a];
+  if(w<4) return [b];
+  return [a,b];
+}
+/* 층에 맞는 회차를 WORDS 에 올린다 */
 function loadLessonFor(stage){
-  const plan=META.plan&&META.plan.length?META.plan:planLessons();
-  const idx=lessonIndexAt(stage)%plan.length;
-  const q=plan[idx];
-  const same=S&&S.lesson&&lessonKey(S.lesson)===lessonKey(q);
-  if(S) S.lesson=q;
-  WORDS=wordsOf(q);
+  const plan=(META.plan&&META.plan.length)?META.plan:planLessons();
+  const qs=lessonSlotsAt(stage).map(i=>plan[i%plan.length]).filter(Boolean);
+  if(!qs.length) qs.push({b:VOCAB.lessons[0].b,l:VOCAB.lessons[0].l});
+  const key=qs.map(lessonKey).join('+');
+  const same=S&&S.lessonKey===key;
+  if(S){ S.lessons=qs; S.lesson=qs[0]; S.lessonKey=key; }
+  let ws=[]; for(const q of qs) ws=ws.concat(wordsOf(q));
+  WORDS=ws.length?ws:wordsOf(VOCAB.lessons[0]);
   recentAsked=[];
-  if(!WORDS.length) WORDS=wordsOf(VOCAB.lessons[0]);
   if(!same) refillBag();                        // 회차가 바뀌면 통을 새로 채운다
+  /* 실제로 내려온 회차만 본 것으로 친다 */
+  META.ord=META.ord||{}; META.ordN=META.ordN||0;
+  for(const q of qs) META.ord[lessonKey(q)]=++META.ordN;
+  saveMeta();
+}
+/* 화면에 띄울 회차 이름 — 보스층은 두 회차가 함께 뜬다 */
+function lessonLabel(){
+  const qs=(S&&S.lessons&&S.lessons.length)?S.lessons:(S&&S.lesson?[S.lesson]:[]);
+  return qs.map(q=>BOOKNAME[q.b]+' '+q.l+'회').join(' · ');
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -1862,6 +1889,8 @@ function newRun(){
     S.gearSlots.push({def:pool[Math.floor(Math.random()*pool.length)],lv:1});
   }
   S.isBoss=isBossStage(S.stage);
+  S.depth=Math.max(0,Math.min(META.depth||0, META.abyss||0));   // 이번 판에 고른 심연
+  S.souptimes=0;                                    // 김첨지 — 층당 설렁탕 횟수
   planLessons();
   loadLessonFor(S.stage);
   recalc();
@@ -1895,6 +1924,15 @@ function resumeRun(d){
   S.gearSlots=(d.gears||[]).map(([id,lv])=>({def:GEARDEF(id),lv})).filter(x=>x.def);
   if(!S.ballSlots.length) S.ballSlots=[{def:BALLDEF('stone'),lv:1}];
   S.isBoss=isBossStage(S.stage);
+  S.depth=Math.max(0,Math.min(d.depth||0, META.abyss||0));      // 두고 온 판의 심연 깊이
+  /* 두고 온 판의 회차 차례를 그대로 되살린다. 없으면 새로 짠 것을 쓴다 */
+  if(d.plan&&d.plan.length===CONFIG.lessonsPerRun){
+    META.plan=d.plan.map(k=>{const [b,l]=k.split('|');return {b,l:+l};});
+    saveMeta();
+  }
+  S.lessonKey=null;                    // 다시 올리도록 강제한다
+  loadLessonFor(S.stage);              // 1층이 아니라 이어할 층의 회차를 올린다
+  S.learnedWords=WORDS.filter(w=>S.learned.has(w.w));
   recalc();
   S.energy=Math.min(S.energy,S.energyMax);
 }
@@ -1934,7 +1972,7 @@ function kindsPerRow(f){
   }
   return T[T.length-1][1]*ez;
 }
-const abyssMul   =()=>1+CONFIG.abyssDescent*META.abyss;
+const abyssMul   =()=>abyssHard()*(pactOn(6)?1.25:1);   // 거센 물살
 const descentSpd =()=>(CONFIG.descentByChapter[chapterOf(S.stage)]
                         +((S.stage-1)%10)*CONFIG.descentPerFloor)*S.descentMul*abyssMul()
                         *(gimOn('overload')?CONFIG.overloadDescent:1)   // 과부하 — 세 배
@@ -2078,16 +2116,17 @@ function runInk(){
   for(let f=S.startStage;f<=S.stage;f++) t+=CONFIG.inkPerFloor*zoneMul(f)*CONFIG.inkGain;
   t+=S.bonusInk;
   if(S.tome&&S.tome.inkCut) t*=(1-S.tome.inkCut);
-  return Math.round(t*(1+CONFIG.abyssInk*META.abyss));
+  return Math.round(t*abyssInkMul());
 }
 
 function hurt(amount){
-  if(S.isAbyss&&S.boss) amount*=CONFIG.abyssBossDmg;
+  if(S.isAbyss&&S.boss) amount*=CONFIG.abyssPitDmg;
   if(amount<=0)return;
   if(S.invuln>0)return;
   if(S.tome&&S.tome.hurtMul) amount*=S.tome.hurtMul;
   if(fateHas('weight')) amount*=2;             // 저주 · 중압
   if(omenHas('scar'))   amount*=1.5;           // 그늘 · 생채기
+  if(p2On('kwon')&&S.orbs&&S.orbs.length>1){ S.orbs.pop(); burst(S.px,S.py,6,'gold'); }
   S.energy-=amount;S.invuln=CONFIG.invulnSec;S.shake=16;S.flash=.55;vibe('hurt');
   S.floorHurt=(S.floorHurt||0)+1;
   if(META.char==='chunhyang'&&(S.zealCd||0)<=0){
@@ -2119,6 +2158,7 @@ function roomForNewRow(){
   return minY===Infinity||minY>=SPAWN_Y+rowStep();
 }
 function makeBrick(c,span,word,hp,extra){
+  if(pactOn(3)) hp=Math.max(1,Math.round(hp*1.25));              // 계약 · 무거운 석판
   const CL=cell();
   let sy=SPAWN_Y;
   if(S.alert && !gimOn('rise')){                  // 경보가 걸려 있으면 그 위에서 난다
@@ -2271,6 +2311,7 @@ function resolveAlert(correct){
     S.hardLeft=CONFIG.hardRows;          // 다음 줄들이 굳는다
     for(const x of S.bricks){ if(x.quiz){x.quiz=false;x.isAnswer=false;} }
     S.alertMsg={text:`정답은 ‘${ans.w}’ — 손이 굳었다`,t:2.0,ok:false};
+    if(pactOn(1)) hurt(10);                      // 계약 · 굳은 손
     vibe('wrong'); wrongStun();
     hurt(CONFIG.alertWrongDamage);
     if(S.screen!=='play')return;
@@ -2332,19 +2373,28 @@ function tryFire(){
   S.cool=gimOn('overload')?CONFIG.overloadCool:CONFIG.shotCooldown*S.rateMul;
   S.btnGlow=1;
   const base=Math.atan2(S.aimY,S.aimX);
-  for(let i=0;i<S.shotBalls;i++){
+  const extra=jailOn()?2:0;                   // 옥중가 — 구슬 둘이 더 나간다
+  const N=S.shotBalls+extra;
+  for(let i=0;i<N;i++){
     let ang=base, mid=false;
     if(META.char==='chunhyang'){            // 춘향 — 45° 부채꼴, 한가운데가 빠르다
-      const k=S.shotBalls>1 ? (i/(S.shotBalls-1))-0.5 : 0;
-      ang=base+k*CONFIG.fanArc;
-      mid=Math.abs(k)<=0.5/Math.max(1,S.shotBalls-1);
+      const k=N>1 ? (i/(N-1))-0.5 : 0;
+      ang=base+k*CONFIG.fanArc*(jailOn()?2:1);   // 옥중가 — 몰리면 90°로 벌어진다
+      mid=Math.abs(k)<=0.5/Math.max(1,N-1);
     }
     S.queue.push({t:i*CONFIG.burstGap, ang, slot:S.cyc, mid, chg:S.chargeMul||1});
     S.cyc=(S.cyc+1)%S.ballSlots.length;     // 슬롯을 돌아가며 쏜다
   }
 }
 function spawnBall(ang,slot,mid,chg){
-  if(S.shadow>0) spawnBallAt(ang,slot,VW-S.px,S.py,mid,chg);
+  if(S.shadow>0){
+    if(p2On('gildong')){                              // 활빈당 — 다섯이 함께 선다
+      for(let k=0;k<5;k++){
+        const x=WALL_L+(WALL_R-WALL_L)*(k+0.5)/5;
+        spawnBallAt(ang,slot,x,S.py,mid,(chg||1)*0.6);
+      }
+    }else spawnBallAt(ang,slot,VW-S.px,S.py,mid,chg);
+  }
   spawnBallAt(ang,slot,S.px,S.py,mid,chg);
   const eq=S.ballSlots[slot%S.ballSlots.length];      // 광인 — 기력을 태우고 하나 더
   if(eq&&eq.def.mad){
@@ -2398,7 +2448,8 @@ function spawnBallAt(ang,slot,px,py,mid,chg){
     chg:chg||1,                                  // 김첨지 — 실린 힘. 색이 달라진다
     pierce:(d.pierce?d.pierce[lv]:0)+((S.tome&&S.tome.pierceAll)||0)+(S.pierceBonus||0),
     home:d.home?d.home[lv]:0,
-    bounces:0, wallB:0, floorLeft:CONFIG.floorBounceMax, skip:null, trail:[]});
+    bounces:0, wallB:0, floorLeft:CONFIG.floorBounceMax, skip:null, trail:[],
+    stick:p2On('none')?1:0, seekB:null, stuckT:0});
 }
 /* 지금 연속이 몇 배를 만드는가 */
 function comboMul(){
@@ -2497,7 +2548,7 @@ function checkClear(){
   if(S.destroyed>=clearNeed()){stageClear();return;}
   if(S.twins&&S.twins.length) return;              // 쌍혼 — 석판이 없다
   if(gimOn('silence')||gimOn('overload')) return;   // 물을 일이 없다
-  if(!S.alert&&!S.alertPending&&S.sinceAlert>=CONFIG.alertEvery) S.alertPending=true;
+  if(!S.alert&&!S.alertPending&&S.sinceAlert>=alertGap()) S.alertPending=true;
 }
 function nearbyBricks(b,n){
   const cx=b.x+b.w/2, cy=b.y+b.h/2;
@@ -2514,6 +2565,9 @@ function chip(b,amount,color){          // 다른 석판에 간접 피해
 }
 /* 타수형 효과 — 위력을 보지 않는다 */
 const hasStatus=b=>!!(b.bleedN>0||b.poiN>0||b.freeze>0||b.brandT>0);
+const alertGap =()=>Math.max(4,CONFIG.alertEvery-(pactOn(4)?3:0));   // 계약 · 잦은 물음
+/* 춘향 · 옥중가 — 기력이 절반 아래로 떨어졌는가 */
+const jailOn   =()=>p2On('chunhyang')&&S&&S.energyMax>0&&S.energy<S.energyMax*0.5;
 const holdT=t=>t*(S.statusMul||1)+(S.holdBonus||0);
 function applyEffects(b,ball){
   if(b.quiz)return;                     // 경보 후보에는 상태이상이 안 걸린다
@@ -2593,7 +2647,74 @@ function applyEffects(b,ball){
     }
   }
 }
+/* ── 먹 터짐 (이름 없는 자) ──
+   구슬이 저마다 다른 석판을 좇아가 달라붙고, 0.5초 뒤 터지며 좌우 석판을 친다.
+   달라붙어 있는 동안(false를 돌려줄 때)에는 여느 구슬처럼 움직이지 않는다 */
+function inkSeek(ball,dt){
+  if(ball.stuckT>0){                                   // 붙어 있다
+    ball.stuckT-=dt;
+    const t=ball.seekB;
+    if(t&&S.bricks.indexOf(t)>=0){ ball.x=t.x+t.w/2; ball.y=t.y+t.h/2; }
+    if(ball.stuckT<=0) inkBoom(ball);
+    return false;
+  }
+  /* 아직 겨눈 석판이 없거나 그새 깨졌으면 새로 고른다 — 다른 구슬이 찍은 것은 뺀다 */
+  if(!ball.seekB || S.bricks.indexOf(ball.seekB)<0){
+    const taken=new Set();
+    for(const o of S.balls) if(o!==ball&&o.seekB) taken.add(o.seekB);
+    let best=null,bd=Infinity;
+    for(const b of S.bricks){
+      if(b.quiz&&!ball.fired)continue;
+      const d=Math.hypot(b.x+b.w/2-ball.x,b.y+b.h/2-ball.y);
+      if(taken.has(b)){ if(d*3<bd){best=b;bd=d*3;} continue; }
+      if(d<bd){best=b;bd=d;}
+    }
+    ball.seekB=best;
+  }
+  const t=ball.seekB;
+  if(t){                                               // 유도처럼 방향을 튼다
+    const a=Math.atan2(t.y+t.h/2-ball.y, t.x+t.w/2-ball.x);
+    const cur=Math.atan2(ball.vy,ball.vx);
+    let df=a-cur; while(df>Math.PI)df-=Math.PI*2; while(df<-Math.PI)df+=Math.PI*2;
+    const na=cur+Math.max(-7*dt,Math.min(7*dt,df));
+    const sp=Math.hypot(ball.vx,ball.vy)||ball.sp0;
+    ball.vx=Math.cos(na)*sp; ball.vy=Math.sin(na)*sp;
+    if(overlaps(ball,t)){                              // 닿았다 — 달라붙는다
+      hitBrick(t,ball);
+      ball.skip=t;                                     // 같은 석판을 두 번 치지 않는다
+      if(S.screen!=='play')return false;
+      if(S.bricks.indexOf(t)<0){ ball.seekB=null; ball.skip=null; }
+      else { ball.stuckT=0.5; ball.vx=ball.vy=0; burst(ball.x,ball.y,4,'gold'); return false; }
+    }
+  }
+  return true;
+}
+/* 터진다 — 좌우 석판에 위력의 100%. 구슬은 자취를 남기고 사라진다 */
+function inkBoom(ball){
+  const t=ball.seekB, dmg=Math.max(1,Math.round(ball.base));
+  if(t&&S.bricks.indexOf(t)>=0){
+    const cy=t.y+t.h/2, reach=t.w*1.4;
+    for(let i=S.bricks.length-1;i>=0;i--){
+      const b=S.bricks[i];
+      if(!b||b===t||b.quiz)continue;
+      if(Math.abs((b.y+b.h/2)-cy)>t.h*0.7)continue;
+      const gap=Math.min(Math.abs(b.x-(t.x+t.w)),Math.abs(t.x-(b.x+b.w)));
+      if(gap<=reach){ chip(b,dmg,'gold'); if(S.screen!=='play')return; }
+    }
+  }
+  burst(ball.x,ball.y,16,'gold');
+  S.beams.push({x1:ball.x-70,y1:ball.y,x2:ball.x+70,y2:ball.y,t:.26,col:'#E5B24F'});
+  S.shake=Math.max(S.shake,7);
+  ball.life=-1;                                        // 사라진다
+}
 function hitBrick(b,ball){
+  /* 설렁탕 — 가득 실은 구슬이 석판을 깨면 기력이 돌아온다. 한 층에 세 번 */
+  if(p2On('kimcheomji') && ball && ball.chg>=5 && (S.soupN||0)<3 && b && !b.quiz && b.hp<=ball.base){
+    S.soupN=(S.soupN||0)+1;
+    S.energy=Math.min(S.energyMax,S.energy+10);
+    S.alertMsg={text:'설렁탕을 사왔는데',t:1.2,ok:true};
+    burst(b.x+b.w/2,b.y+b.h/2,10,'gold');
+  }
   if(b.quiz&&!ball.fired){                   // 경보는 손으로 쏜 구슬로만 깬다
     b.hit=.08; return;                       // 새끼·분열·씨앗 따위는 스쳐도 그만
   }
@@ -2745,6 +2866,7 @@ function homeIn(ball,dt){          // 나침반: 가까운 석판 쪽으로 조�
   ball.vx=Math.cos(a)*sp; ball.vy=Math.sin(a)*sp;
 }
 function moveBall(ball,dt){
+  if(ball.stick){ if(!inkSeek(ball,dt)) return; }      // 먹 터짐 — 좇아가 달라붙는다
   homeIn(ball,dt);
   const steps=Math.max(1,Math.ceil(Math.hypot(ball.vx,ball.vy)*dt/(ball.r*.7)));
   const h=dt/steps;
@@ -2879,11 +3001,11 @@ function bossOf(stage){
 function spawnBoss(){
   const n=Math.floor(S.stage/CONFIG.bossEvery),d=bossOf(S.stage);
   const step=n-1;                        // 몇 번째 보스인가 (5층=0 … 50층=9)
-  const hp=Math.round((CONFIG.bossHpBase+step*CONFIG.bossHpPerBoss)*(1+CONFIG.abyssBossHp*META.abyss)
+  const hp=Math.round((CONFIG.bossHpBase+step*CONFIG.bossHpPerBoss)*abyssHard()
            *(S.stage>=CONFIG.hardFrom?CONFIG.hardMul:1)*(d.hpMul||1));
   S.bossStep=step;
   S.bossDmg=Math.round(CONFIG.bulletDamage*(1+CONFIG.bossDmgPerBoss*step)*diffBoss()
-                       *(1+CONFIG.abyssBossDmg*META.abyss*0.15));
+                       *abyssHard());
   S.bossSpd=(1+CONFIG.bossSpdPerBoss*step)*(1+(diffBoss()-1)*CONFIG.diffSpeedShare);
   const bw=d.bw||320, bh=d.bh||190;
   S.boss={def:d,x:VW/2-bw/2,y:250,w:bw,h:bh,hp,maxHp:hp,hit:0,
@@ -2991,7 +3113,7 @@ function resolveBossQuiz(correct){
   const qd=B.maxHp*(full?CONFIG.bossVerseDamage:CONFIG.bossQuizDamage);
   B.hp-=qd;
   popNum(B.x+B.w/2,B.y+B.h/2,qd,true);
-  B.vuln=full?CONFIG.bossVerseVuln:CONFIG.bossVulnSec;
+  B.vuln=(full?CONFIG.bossVerseVuln:CONFIG.bossVulnSec)*(pactOn(7)?0.5:1);   // 계약 · 닫힌 방벽
   B.quizT=B.vuln+CONFIG.bossQuizEvery;
   S.winFlash=1; S.shake=26; vibe('open');
   S.alertMsg={text:`${ans.w} — 방벽이 열렸다`,t:2.0,ok:true};
@@ -3107,7 +3229,7 @@ function eachBoss(fn){
 /* 쌍혼 — 작은 혼 둘을 한자리에 세운다 */
 function spawnTwins(){
   const n=Math.ceil(S.stage/CONFIG.bossEvery), step=Math.max(0,n-2);
-  const hp=Math.round((CONFIG.bossHpBase+step*CONFIG.bossHpPerBoss)*CONFIG.twinHp
+  const hp=Math.round((CONFIG.bossHpBase+step*CONFIG.bossHpPerBoss)*CONFIG.twinHp*abyssHard()
            *(S.stage>=CONFIG.hardFrom?CONFIG.hardMul:1));
   S.bossStep=step;
   S.bossDmg=Math.round(CONFIG.bulletDamage*(1+CONFIG.bossDmgPerBoss*step)*diffBoss());
@@ -3244,7 +3366,8 @@ function charTick(dt){
   if(S.chargeId!=null) S.chargeT=Math.min(CONFIG.chargeMax,(S.chargeT||0)+dt);
 
   if(c.id==='kwon'){                       // 맴돌이 — 곁을 도는 작은 석판 셋
-    if(!S.orbs) S.orbs=[0,1,2].map(i=>({a:i*Math.PI*2/3,r:130,hitT:0,x:0,y:0}));
+    const want=p2On('kwon')?9:3;                     // 아홉 켤레
+    if(!S.orbs) S.orbs=Array.from({length:want},(_,i)=>({a:i*Math.PI*2/want,r:130,hitT:0,x:0,y:0}));
     for(const o of S.orbs){
       o.a+=dt*2.2; o.hitT=Math.max(0,o.hitT-dt);
       o.x=S.px+Math.cos(o.a)*o.r; o.y=S.py+Math.sin(o.a)*o.r*.7;
@@ -3274,9 +3397,24 @@ function charTick(dt){
       for(const b of S.bricks) if(!b.quiz) b.freeze=Math.max(b.freeze,2.0);
       S.alertMsg={text:'동백꽃이 피었다',t:1.2,ok:true};
       S.winFlash=.5;
+      if(p2On('jeomsun')) S.flowerHit=2.0;              // 동백꽃 아래 — 2초 뒤 한 방
+    }
+    if(S.flowerHit>0){                                  // 멈춤이 끝나는 순간
+      S.flowerHit-=dt;
+      if(S.flowerHit<=0){
+        S.flowerHit=0;
+        const dmg=Math.max(1,Math.round(S.ballDamage));
+        for(let i=S.bricks.length-1;i>=0;i--){
+          const b=S.bricks[i]; if(!b||b.quiz)continue;
+          chip(b,dmg,'gold'); if(S.screen!=='play')return;
+        }
+        S.shake=Math.max(S.shake,14); S.winFlash=.6;
+        S.alertMsg={text:'동백꽃 아래',t:1.0,ok:true};
+      }
     }
   }
   if(c.id==='kimcheomji'){                 // 인력거 — 벽
+    S.soupN=S.soupN||0;
     S.wallT=(S.wallT||0)-dt;
     if(S.wallT<=0){
       S.wallT=7;
@@ -3290,8 +3428,14 @@ function charTick(dt){
     S.swordT=(S.swordT||0)-dt;
     if(S.swordT<=0){
       S.swordT=10;
-      S.sword={ang:Math.atan2(S.aimY,S.aimX), t:.5};
-      const a=S.sword.ang;
+      const a0=Math.atan2(S.aimY,S.aimX);
+      const forks=p2On('yuchungryeol')?[a0-0.34,a0,a0+0.34]:[a0];   // 천사마 — 세 갈래
+      S.sword={ang:a0, t:.5, forks};
+      if(p2On('yuchungryeol')){                                    // 지나간 자리에 불길
+        S.fires=S.fires||[];
+        for(const f of forks) S.fires.push({x:S.px,y:S.py,ang:f,t:3.0,tick:0});
+      }
+      for(const a of forks)
       for(let i=S.bricks.length-1;i>=0;i--){
         const b=S.bricks[i]; if(!b)continue;
         const cx=b.x+b.w/2-S.px, cy=b.y+b.h/2-S.py;
@@ -3302,6 +3446,7 @@ function charTick(dt){
         if(Math.abs(df)<0.16&&d<1500){ chip(b,CONFIG.swordDamage,'gold'); if(S.screen!=='play')return; }
       }
       if(S.boss){
+        const a=a0;
         const cx=S.boss.x+S.boss.w/2-S.px, cy=S.boss.y+S.boss.h/2-S.py;
         let df=Math.atan2(cy,cx)-a;
         while(df>Math.PI)df-=Math.PI*2;
@@ -3311,6 +3456,25 @@ function charTick(dt){
       S.shake=Math.max(S.shake,10); vibe('right');
     }
     if(S.sword){ S.sword.t-=dt; if(S.sword.t<=0) S.sword=null; }
+    if(S.fires&&S.fires.length){                       // 천사마 — 남은 불길
+      for(let k=S.fires.length-1;k>=0;k--){
+        const f=S.fires[k]; f.t-=dt; f.tick-=dt;
+        if(f.t<=0){ S.fires.splice(k,1); continue; }
+        if(f.tick>0) continue;
+        f.tick=0.4;
+        for(let i=S.bricks.length-1;i>=0;i--){
+          const b=S.bricks[i]; if(!b||b.quiz)continue;
+          const cx=b.x+b.w/2-f.x, cy=b.y+b.h/2-f.y, d=Math.hypot(cx,cy);
+          let df=Math.atan2(cy,cx)-f.ang;
+          while(df>Math.PI)df-=Math.PI*2;
+          while(df<-Math.PI)df+=Math.PI*2;
+          if(Math.abs(df)<0.16&&d<1500){
+            chip(b,Math.max(1,Math.round(CONFIG.swordDamage*0.5)),'gold');
+            if(S.screen!=='play')return;
+          }
+        }
+      }
+    }
   }
 }
 
@@ -4444,6 +4608,7 @@ function giveFate(bless){
   show('vFate');
 }
 function offerCards(n){
+  if(pactOn(2)) n=Math.max(2,(n||4)-1);                          // 계약 · 얕은 서랍
   if(mergePool().length){ S.cardHold=n; offerFuse(); return; }   // 합칠 게 있으면 먼저 묻는다
   S.screen='card';
   const first=!tipSeen('card');
@@ -4871,6 +5036,7 @@ function nextStage(){
   }
   S.gimT=0; S.quizDone=0; S.echoes=[]; S.scaleUp=0;
   S.twins=null; S.ghost=null; S.floorHurt=0;
+  S.orbs=null; S.soupN=0; S.fires=[]; S.flowerHit=0;   // 층이 바뀌면 되돌아온다
   if(!(S.gim&&S.gim.id==='tide')) S.tideUp=0;
   loadLessonFor(S.stage);            // 층이 바뀌면 회차도 바뀐다
   saveRun();
@@ -5002,7 +5168,7 @@ function offerPath(){
   const ab=document.createElement('div');ab.className='path abyss';
   ab.innerHTML=`<div class="pn">심연의 구덩이</div>
     <div class="pd">누가 나올지 알 수 없다. 스무 혼 가운데 하나가 끌려 나온다.</div>
-    <div class="pw">공격이 ${Math.round((CONFIG.abyssBossDmg-1)*100)}% 더 아프다 · 그 혼의 천서를 얻는다</div>`;
+    <div class="pw">공격이 ${Math.round((CONFIG.abyssPitDmg-1)*100)}% 더 아프다 · 그 혼의 천서를 얻는다</div>`;
   ab.onclick=()=>{
     S.isAbyss=true;
     const slot=Math.floor(S.stage/CONFIG.bossEvery)-1;
@@ -5028,8 +5194,10 @@ function runEnd(won){
   META.ink+=gained; META.runs++; META.totalWords+=S.totalWords;
   if(newBest) META.best=S.stage;
   if(newInk) META.bestInk=gained;
+  let opened=0;
   if(won){
-    META.abyss++;                                    // 완주하면 다음 심연이 열린다
+    /* 고른 깊이를 끝까지 내려갔을 때만 다음 심연이 열린다 */
+    if((S.depth||0)>=(META.abyss||0)){ META.abyss=(META.abyss||0)+1; opened=META.abyss; }
     if(META.deep) delete META.deep[META.char];       // 50층을 끝내면 뒷세계가 닫힌다
   }
   clearRun();
@@ -5056,7 +5224,8 @@ function runEnd(won){
   }else{ btn.classList.remove('glow'); btn.textContent='묵귀에게'; }
   renderLoadout('endLoad');
   el('inkGain').innerHTML = won
-    ? `먹 <b>+${gained}</b><br><span style="font-size:.6em;color:var(--jade)">심연 ${META.abyss}회차가 열렸다</span>`
+    ? `먹 <b>+${gained}</b>`+(opened?`<br><span style="font-size:.6em;color:var(--jade)">심연 ${opened}이 열렸다`
+        +(CHARS[opened-1]?` · ${CHARS[opened-1].name}의 <b>${CHARS[opened-1].p2}</b>`:'')+`</span>`:'')
     : `먹 <b>+${gained}</b>`;
   show('vEnd');
 }
@@ -5066,7 +5235,7 @@ el('btnToShop').onclick=()=>openShop(true);
 let shopFromEnd=false;
 function openShop(fromEnd){
   shopFromEnd=!!fromEnd;
-  el('shopEyebrow').textContent = META.abyss>0 ? `대장간 · 심연 ${META.abyss}회차` : '대장간';
+  el('shopEyebrow').textContent = (META.abyss>0) ? `대장간 · 심연 ${META.abyss}까지 열림` : '대장간';
   META.shopVisits=(META.shopVisits||0)+1;
   const gl=ghostAt(META.shopVisits);
   renderShop();
@@ -5188,6 +5357,27 @@ function renderChars(){
               : (can ? ()=>{ META.ink-=c.cost; META.chars[c.id]=1; META.char=c.id;
                              saveMeta(); vibe('right'); renderChars(); } : null);
     if(act){ d.onclick=act; d.querySelector('.cp').onclick=e=>{ e.stopPropagation(); act(); }; }
+    /* 두 번째 재주 — 심연을 그만큼 깨야 열린다 */
+    if(c.p2 && own){
+      const has=!!(META.p2&&META.p2[c.id]), open=p2Open(c.id), rung=CHARS.findIndex(x=>x.id===c.id)+1;
+      const buy=!has&&open&&META.ink>=CONFIG.p2Cost;
+      const p=document.createElement('div');
+      p.className='chr p2'+(has?' own':(buy?' buy':' lock'));
+      p.innerHTML=`<div class="cm" style="background:${c.color};opacity:${has?1:.35}">二</div>
+        <div class="ci">
+          <div class="cn">${c.p2}</div>
+          <div class="cw">${c.name}의 두 번째 재주</div>
+          <div class="cs">${c.p2desc}</div>
+        </div>
+        <button class="cp ${has?'own':(buy?'':'no')}">${
+          has?'익혔다':(open?`${CONFIG.p2Cost} 먹으로<br>익히기`:`심연 ${rung}<br>완주 필요`)}</button>`;
+      if(buy){
+        const go=()=>{ META.ink-=CONFIG.p2Cost; META.p2=META.p2||{}; META.p2[c.id]=1;
+                       saveMeta(); vibe('right'); renderChars(); };
+        p.onclick=go; p.querySelector('.cp').onclick=e=>{ e.stopPropagation(); go(); };
+      }
+      list.appendChild(p);
+    }
     list.appendChild(d);
   }
 }
@@ -5212,9 +5402,9 @@ function renderAdmin(){
   const a=META.admin;
   const cur=a&&a.list&&a.list.length
     ? `지금 지정 — ${a.list.map(q=>BOOKNAME[q.b]+' '+q.l+'회').join(', ')}<br>${a.from||'제한 없음'} ~ ${a.to||'제한 없음'}`
-    : '지정 없음 · 오늘의 회차가 자동으로 배정됩니다';
-  const t=ensureToday();
-  el('admNow').innerHTML=cur+`<br><span style="color:var(--stone-deep)">오늘 자동 회차: ${t.map(q=>BOOKNAME[q.b]+' '+q.l+'회').join(', ')}</span>`;
+    : '지정 없음 · 오래 안 본 회차부터 스무 개가 자동으로 배정됩니다';
+  const t=previewLessons();
+  el('admNow').innerHTML=cur+`<br><span style="color:var(--stone-deep)">다음 판 앞쪽(1~25층)에 나올 회차: ${t.map(q=>BOOKNAME[q.b]+' '+q.l+'회').join(', ')}</span>`;
 }
 el('btnAdmin').onclick=()=>{
   el('admGate').style.display=''; el('admBody').style.display='none';
@@ -5301,11 +5491,37 @@ function refreshTitle(){
     `<div><b>${META.best}</b>최고 층</div>
      <div><b>${META.ink}</b>보유 먹</div>
      <div><b>${META.runs||0}</b>내려간 횟수</div>`;
+  renderAbyssPick();
+}
+/* 심연 깊이 고르기 — 아직 아무것도 못 깼으면 줄 자체가 안 보인다 */
+function renderAbyssPick(){
+  const open=META.abyss||0, box=el('abyssPick'), note=el('abyssNote');
+  if(!box||!note)return;
+  if(open<=0){ box.style.display='none'; note.style.display='none'; return; }
+  box.style.display=''; note.style.display='';
+  META.depth=Math.max(0,Math.min(META.depth||0,open));
+  const cur=META.depth;
+  const top=Math.min(open+1,Math.max(open,CONFIG.abyssMaxRung)+1);
+  let h='<span class="al">심연</span>';
+  for(let i=0;i<=open;i++) h+=`<button data-d="${i}" class="${i===cur?'on':''}">${i}</button>`;
+  if(open<top-1) h+=`<button disabled>${open+1}</button>`;
+  box.innerHTML=h;
+  box.querySelectorAll('button[data-d]').forEach(b=>{
+    b.onclick=()=>{ META.depth=+b.dataset.d; saveMeta(); vibe('open'); renderAbyssPick(); };
+  });
+  note.innerHTML = cur===0
+    ? '심연 0 · 계약 없음. 먹 ×1.0'
+    : PACTS.filter(x=>x.n<=cur).map(x=>`<b style="color:var(--gold)">${x.name}</b> — ${x.text}`).join('<br>')
+      + `<br><span style="color:var(--jade)">하강·보스 +${Math.round(CONFIG.abyssStep*cur*100)}% · `
+      + `먹 <b>×${(1+CONFIG.abyssInkStep*cur).toFixed(1)}</b></span>`;
 }
 el('btnStart').onclick=()=>{
   const got=settleSavedRun();
   newRun();show(null);announceZone(S.stage);
   if(got>0) S.alertMsg={text:`두고 온 판을 정산했다 · 먹 +${got}`,t:2.8,ok:true};
+  else if(S.depth>0) S.alertMsg={
+    text:`먹의 계약 ${S.depth} — ${PACTS.filter(x=>x.n<=S.depth).map(x=>x.name).join(' · ')} · 먹 ×${abyssInkMul().toFixed(1)}`,
+    t:3.4,ok:true};
 };
 el('btnRetry')?.addEventListener('click',()=>{settleSavedRun();newRun();show(null);});
 
@@ -5324,7 +5540,7 @@ function update(dt){
   for(let i=(S.drips||[]).length-1;i>=0;i--){ S.drips[i].t-=dt; if(S.drips[i].t<=0)S.drips.splice(i,1); }
   S.fireLock=Math.max(0,(S.fireLock||0)-dt);
   S.phaseFx=Math.max(0,S.phaseFx-dt*0.9);
-  if(S.alert)S.alert.t+=dt;
+  if(S.alert){ S.alert.t+=dt; S.alert.shown=(S.alert.shown||0)+dt; }
   if(S.alertMsg){S.alertMsg.t-=dt;if(S.alertMsg.t<=0)S.alertMsg=null;}
   if(S.growPop){S.growPop.t-=dt;if(S.growPop.t<=0)S.growPop=null;}
   if(S.kindMsg){S.kindMsg.t-=dt;if(S.kindMsg.t<=0)S.kindMsg=null;}
@@ -6071,9 +6287,9 @@ function drawAlertOverlay(){
     ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.font=`700 17px 'IBM Plex Sans KR',sans-serif`;ctx.fillStyle=C['--vermilion'];
     const verse=(S.alert.verses>1)?`  ${S.alert.verse}/${S.alert.verses}소절`:'';
-    ctx.fillText(`${S.alert.boss?'◆ 혼이 묻는다 ◆':'◆ 구덩이가 묻는다 ◆'}   ${S.lesson?BOOKNAME[S.lesson.b]+' '+S.lesson.l+'회':''}${verse}`,VW/2,BANNER.t+22);
+    ctx.fillText(`${S.alert.boss?'◆ 혼이 묻는다 ◆':'◆ 구덩이가 묻는다 ◆'}   ${lessonLabel()}${verse}`,VW/2,BANNER.t+22);
     ctx.font=`400 45px 'Gowun Batang',serif`;      // 1.5배
-    if(S.alert.bannerOn===false){
+    if(S.alert.bannerOn===false || (pactOn(5)&&!S.alert.boss&&(S.alert.shown||0)>1.5)){
       ctx.fillStyle='rgba(222,211,184,.22)';
       ctx.fillText('…',VW/2,BANNER.t+h*.66);
     }else{
@@ -7830,7 +8046,7 @@ function drawHud(){
   const RX=WALL_R-72;
   ctx.fillText(`${S.stage}층`,RX,ey-4);
   ctx.font=`600 18px 'IBM Plex Sans KR',sans-serif`;ctx.fillStyle='rgba(222,211,184,.55)';
-  ctx.fillText(zoneOf(S.stage).name+(S.lesson?` · ${BOOKNAME[S.lesson.b]} ${S.lesson.l}회`:''),RX,ey-26);
+  ctx.fillText(zoneOf(S.stage).name+(lessonLabel()?' · '+lessonLabel():''),RX,ey-26);
   if(S.gim){
     ctx.fillStyle=C['--gold'];
     ctx.fillText(`${S.gim.icon} ${S.gim.name}${S.gim2?` + ${S.gim2.icon} ${S.gim2.name}`:''}`
@@ -7882,7 +8098,7 @@ function drawHud(){
   ctx.font=`700 24px 'IBM Plex Sans KR',sans-serif`;
   ctx.fillStyle='rgba(222,211,184,.62)';
   const ch=charDef(META.char);
-  ctx.fillText(`${ch.name} · 먹 ${runInk()} · ×${zoneMul(S.stage)}${META.abyss?` · 심연 ${META.abyss}`:''}`,MARGIN+8,VH-22);
+  ctx.fillText(`${ch.name} · 먹 ${runInk()} · ×${zoneMul(S.stage)}${depth()?` · 심연 ${depth()}`:''}`,MARGIN+8,VH-22);
   ctx.restore();
 }
 
@@ -7892,10 +8108,10 @@ function loop(now){
   try{update(dt);draw();}catch(err){console.error('게임 루프 오류:',err);}
   requestAnimationFrame(loop);
 }
-const BUILD='c19-1';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c21-0';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
-loadMeta();cacheColors();resize();ensureToday();newRun();S.screen='title';refreshTitle();
+loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
 if(META.sawIntro) show('vTitle'); else showIntro();
 requestAnimationFrame(loop);
 </script>
