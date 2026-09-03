@@ -768,6 +768,9 @@ const CONFIG = {
   abyssGimRate:[0,.08,.08,.14,.14,.20,.20,.20],   // 심연 단별로 일반 층에 기믹이 걸릴 확률
   bodyBrickDamage:18,    // 몸돌이 바닥에 닿았을 때
   abyssTide:1.12,        // 계약 · 거센 물살 — 하강이 이만큼 더
+  rushWarn:4.0,          // 내닫는 석판 — 깜빡이는 동안(초)
+  rushSpeed:1.5,         // 내달릴 때의 배속
+  bodySplash:0.25,       // 몸돌이 깨질 때 둘레 석판에 가는 구슬 위력의 몫
   regenEvery:5.0,        // 눈 — 기력이 차오르는 주기(초)
   arrowSide:0.60,        // 신기전 — 좌우 석판에 가는 위력의 몫
 
@@ -1533,27 +1536,16 @@ const KINDS = [
   /* ── 여기서부터는 심연에서만 나온다 ── */
   {id:'post',  name:'말뚝',      runs:0, floor:1, abyss:true, col:'#6E6255', solid:true,
    note:'깨지지 않는다. 구슬이 벽처럼 튕긴다. 바닥에 닿으면 스러진다'},
-  {id:'root',  name:'뿌리 석판', runs:0, floor:1, abyss:true, col:'#4E8F6A',
-   note:'양옆을 창살로 가둔다. 갇힌 석판은 아예 깨지지 않는다'},
+  {id:'rush',  name:'내닫는 석판', runs:0, floor:1, abyss:true, col:'#E2593F',
+   note:'테두리가 붉게 깜빡인다. 그 안에 깨지 않으면 혼자 앞질러 내려간다'},
   {id:'cloud', name:'먹구름 석판',runs:0, floor:1, abyss:true, col:'#5B4E7A',
    note:'깨질 때 사방으로 여덟 발을 뱉는다'},
-  {id:'body',  name:'몸돌',      runs:0, floor:1, abyss:true, col:'#B4462F', solid:true,
-   note:'구슬로는 깨지지 않는다. 채자인을 움직여 몸으로 들이받아라. 부딪쳐도 다치지 않는다. 바닥까지 내려오면 아프다'},
+  {id:'body',  name:'몸돌',      runs:0, floor:1, abyss:true, col:'#52BFA0', solid:true,
+   note:'구슬로는 깨지지 않는다. 채자인을 움직여 몸으로 들이받아라. 부딪쳐도 다치지 않는다. 깨지면 둘레 석판까지 함께 상한다'},
 ];
 /* 깨지지 않는 석판 — 층을 넘기는 셈에서 뺀다 */
 const isSolid=b=>!!(b&&(b.kind==='post'||b.kind==='body'));
-/* 뿌리에 갇혀 있는가 — 같은 줄 바로 옆이면 갇힌다 */
-function caged(b){
-  if(!S||!S.hasRoot||!S.bricks||b.quiz||isSolid(b))return false;
-  const cy=b.y+b.h/2, reach=cell()*1.6;
-  for(const r of S.bricks){
-    if(r===b||r.kind!=='root')continue;
-    if(Math.abs((r.y+r.h/2)-cy)>r.h*0.7)continue;
-    const gap=Math.min(Math.abs(b.x-(r.x+r.w)), Math.abs(r.x-(b.x+b.w)));
-    if(gap<=reach)return true;
-  }
-  return false;
-}
+const caged=()=>false;                          // 창살은 걷었다
 const kindDef=id=>KINDS.find(k=>k.id===id);
 function openKinds(){
   const d=depth();
@@ -2377,7 +2369,7 @@ function spawnRow(){
         if(k.id==='home')  extra.homeT=CONFIG.homeEvery/diff();
         if(k.id==='laser') extra.laserT=CONFIG.laserEvery/diff();
         if(k.id==='post'||k.id==='body'){ hp=9999; extra.solid=true; }
-        if(k.id==='root')  hp=Math.round(hp*1.4);       // 뿌리는 조금 더 단단하다
+        if(k.id==='rush')  extra.rushT=CONFIG.rushWarn;  // 내닫기까지 남은 시간
         announceKind(k);
       }
     }
@@ -2641,6 +2633,21 @@ function dmgOf(ball){
   return Math.max(1, Math.round(v*(S.dmgMul||1)*(S.growMul||1)*walkMul()));
 }
 
+/* 몸돌이 깨진다 — 둘레 석판에 구슬 위력의 몫만큼 옮아간다 */
+function bodyBoom(cx,cy){
+  const dmg=Math.max(1,Math.round((S.ballDamage||10)*CONFIG.bodySplash));
+  const R=cell()*1.9;
+  for(let i=S.bricks.length-1;i>=0;i--){
+    const b=S.bricks[i]; if(!b)continue;
+    if(Math.hypot(b.x+b.w/2-cx, b.y+b.h/2-cy)>R+b.w/2)continue;
+    chip(b,dmg,'jade'); if(S.screen!=='play')return;
+  }
+  S.rings=S.rings||[];
+  S.rings.push({x:cx,y:cy,r:10,max:R,t:.42,dur:.42});   // 퍼지는 테
+  burst(cx,cy,26,'jade');
+  S.shake=Math.max(S.shake,14); vibe('right'); S.winFlash=.4;
+  META.bodyN=(META.bodyN||0)+1; saveMeta();
+}
 /* 구보씨 — 걸으면 오르고 멈추면 내린다 */
 function walkMul(){
   if(!(S&&S.tome&&S.tome.walkPower))return 1;
@@ -2708,7 +2715,7 @@ function nearbyBricks(b,n){
 function chip(b,amount,color){          // 다른 석판에 간접 피해
   if(!S.bricks.includes(b))return;
   if(b.quiz)return;                     // 경보 후보는 겨눠서 맞혀야 한다
-  if(isSolid(b)||caged(b))return;       // 말뚝·몸돌·창살에 갇힌 것에는 안 들어간다
+  if(isSolid(b))return;                 // 말뚝·몸돌에는 안 들어간다
   b.hp-=amount; b.hit=.14;
   burst(b.x+b.w/2,b.y+b.h/2,4,color||'stone');
   if(b.hp<=0)breakBrick(b);
@@ -3096,10 +3103,6 @@ function moveBall(ball,dt){
       if(!overlaps(ball,b))continue;
       if(isSolid(b)){                    // 말뚝·몸돌 — 벽처럼 튕겨 나간다
         reflect(ball,b); speedUp(ball); ball.skip=b; done=true; break;
-      }
-      if(caged(b)){                      // 뿌리에 갇혔다 — 아무것도 안 들어간다
-        reflect(ball,b); speedUp(ball); ball.skip=b;
-        burst(ball.x,ball.y,3,'jade'); done=true; break;
       }
       if(ball.pierce>0){                 // 송곳: 튕기지 않고 뚫는다
         ball.pierce--; ball.skip=b;
@@ -3696,8 +3699,10 @@ function showTip(k){
 function announceKind(k){
   if(!k)return;
   META.kinds=META.kinds||{};
-  if(META.kinds[k.id])return;
-  META.kinds[k.id]=1; saveMeta();
+  const seen=META.kinds[k.id]||0;
+  const cap=(k.id==='body')?3:1;               // 몸돌은 몸으로 치라고 세 번 일러 준다
+  if(seen>=cap)return;
+  META.kinds[k.id]=seen+1; saveMeta();
   S.kindMsg={name:k.name,note:k.note,col:k.col,t:k.id==='body'?6.0:3.4};
 }
 
@@ -5612,7 +5617,7 @@ function nextStage(){
   if(S.stage>=CONFIG.maxFloor){ runEnd(true); return; }
   S.stage++;S.destroyed=0;S.clearedThisStage=[];
   S.bricks=[];S.balls=[];S.bullets=[];S.sparks=[];S.beams=[];S.queue=[];S.sweeps=[];S.nums=[];S.mines=[];S.drips=[];
-  S.dark=null;S.fog=null;S.hook=null;S.pull=null;S.cross=null;S.blobs=[];
+  S.dark=null;S.fog=null;S.hook=null;S.pull=null;S.cross=null;S.blobs=[];S.rings=[];
   S.marks=[];S.pools=[];S.squeeze=null;S.beamsRot=null;S.seasonSpd=1;S.seasonCnt=1;S.boss=null;
   S.alert=null;S.alertPending=false;S.sinceAlert=0;S.alertMsg=null;
   S.cool=0;S.invuln=0;S.cyc=0;S.pendingCard=0;dropTouches();
@@ -6235,7 +6240,6 @@ function update(dt){
       }
     }
   }
-  S.hasRoot=S.bricks.some(b=>b.kind==='root');    // 창살 계산을 싸게 하려고 미리 본다
   S.invuln=Math.max(0,S.invuln-dt);
   S.cool=Math.max(0,S.cool-dt);
   S.winFlash=Math.max(0,S.winFlash-dt*1.4);
@@ -6329,11 +6333,20 @@ function update(dt){
         let m=(b.quiz||(wall!==null&&!b.passed))
               ? CONFIG.alertDescentMul*S.alertSlow : 1;
         if(b.kind==='gold') m*=CONFIG.goldSpeed;
+        if(b.kind==='rush'&&b.rushed) m*=CONFIG.rushSpeed;   // 내닫는 석판
         if(b.slide) m*=CONFIG.landslideMul;
         b.y+=v*m*(gimOn('rise')?-1:1);            // 역류 — 위로 솟는다
         if(wall!==null && !b.quiz && !b.passed){   // 경보 줄에 막혀 멈춘다
           const stop=wall-b.h-CONFIG.alertGap;
           if(b.y>stop) b.y=stop;
+        }
+      }
+      if(b.kind==='rush'&&!b.rushed){              // 내닫는 석판 — 깜빡이는 동안이 유예다
+        b.rushT-=dt;
+        if(b.rushT<=0){
+          b.rushed=true;
+          burst(b.x+b.w/2,b.y+b.h/2,10,'vermilion');
+          S.shake=Math.max(S.shake,6); vibe('hurt');
         }
       }
       if(b.kind==='shoot'){                       // 쏘는 석판
@@ -6421,10 +6434,10 @@ function update(dt){
       }
       if(b.kind==='body'){                           // 몸돌 — 몸으로 부딪쳐 깬다
         if(touched){
+          const cx=b.x+b.w/2, cy=b.y+b.h/2;
           S.bricks.splice(i,1);
-          burst(b.x+b.w/2,b.y+b.h/2,22,'gold');
-          S.shake=Math.max(S.shake,12); vibe('right');
-          S.winFlash=.35; tipDone('body');
+          bodyBoom(cx,cy);                           // 둘레 석판까지 함께 상한다
+          if(S.screen!=='play')return;
           continue;                                  // 부딪친 사람은 다치지 않는다
         }
         if(grounded){
@@ -6587,19 +6600,20 @@ function draw(){
   }
   drawEchoes();
   for(const b of S.bricks)drawBrick(b);
-  if(S.hasRoot) for(const b of S.bricks){          // 뿌리 — 갇힌 석판에 창살을 씌운다
-    if(!caged(b))continue;
-    ctx.save();
-    ctx.strokeStyle='rgba(120,220,170,.85)'; ctx.lineWidth=3; ctx.lineCap='round';
-    ctx.shadowColor='#4E8F6A'; ctx.shadowBlur=10;
-    const n=Math.max(3,Math.round(b.w/22));
-    ctx.beginPath();
-    for(let k=1;k<n;k++){ const x=b.x+b.w*k/n; ctx.moveTo(x,b.y+2); ctx.lineTo(x,b.y+b.h-2); }
-    ctx.moveTo(b.x+2,b.y+3); ctx.lineTo(b.x+b.w-2,b.y+3);
-    ctx.moveTo(b.x+2,b.y+b.h-3); ctx.lineTo(b.x+b.w-2,b.y+b.h-3);
-    ctx.stroke();
-    ctx.restore();
+  if(S.rings&&S.rings.length){                    // 몸돌이 퍼뜨린 테
+    for(let i=S.rings.length-1;i>=0;i--){
+      const g=S.rings[i]; g.t-=1/60;
+      if(g.t<=0){ S.rings.splice(i,1); continue; }
+      const k=1-g.t/g.dur;
+      ctx.save();
+      ctx.strokeStyle=`rgba(82,191,160,${(1-k)*0.85})`;
+      ctx.lineWidth=6*(1-k)+1.5;
+      ctx.shadowColor='#52BFA0'; ctx.shadowBlur=18*(1-k);
+      ctx.beginPath(); ctx.arc(g.x,g.y,g.r+(g.max-g.r)*k,0,Math.PI*2); ctx.stroke();
+      ctx.restore();
+    }
   }
+
   drawGrowPop();
   if(S.twins&&S.twins.length){                    // 쌍혼 — 둘 다 그린다
     const k=S.boss; for(const b of S.twins){ S.boss=b; drawBoss(); } S.boss=k;
@@ -6888,22 +6902,37 @@ function drawBrick(b){
         ctx.fillStyle=g;
         ctx.strokeStyle=b.hit>0?'#fff':'#BDEBF6';
         ctx.lineWidth=3; ctx.shadowColor=kd.col; ctx.shadowBlur=12+8*p;
-      }else if(kd.id==='post'){                  // 말뚝 — 무디고 차가운 돌
-        g.addColorStop(0,'rgba(140,128,110,.92)');
-        g.addColorStop(.5,'rgba(88,80,68,.96)');
-        g.addColorStop(1,'rgba(40,36,30,.98)');
-        ctx.fillStyle=g;
-        ctx.strokeStyle=b.hit>0?'#fff':'rgba(190,178,152,.9)';
-        ctx.lineWidth=3; ctx.shadowBlur=0;
-      }else if(kd.id==='body'){                  // 몸돌 — 손 닿는 높이면 붉게 뛴다
+      }else if(kd.id==='post'){                  // 말뚝 — 빛 한 점 없는 새까만 쇠
+        ctx.fillStyle='#000';
+        ctx.strokeStyle=b.hit>0?'rgba(120,120,120,.9)':'rgba(58,58,58,.95)';
+        ctx.lineWidth=2; ctx.shadowBlur=0;
+      }else if(kd.id==='body'){                  // 몸돌 — 옥빛. 손 닿는 높이면 밝게 뛴다
         const near=Math.abs((b.y+b.h/2)-(S.py-4))<heroR()*3.2;
         const q=.5+.5*Math.sin(performance.now()/1000*(near?7:2.4));
-        g.addColorStop(0,`rgba(226,89,63,${.42+.24*q})`);
-        g.addColorStop(.55,'rgba(140,42,28,.72)');
-        g.addColorStop(1,'rgba(50,14,10,.92)');
+        g.addColorStop(0,`rgba(150,240,214,${.44+.26*q})`);
+        g.addColorStop(.55,'rgba(60,150,124,.66)');
+        g.addColorStop(1,'rgba(12,54,44,.90)');
         ctx.fillStyle=g;
-        ctx.strokeStyle=b.hit>0?'#fff':(near?'#FF9A7A':'#E2593F');
-        ctx.lineWidth=near?5:3; ctx.shadowColor='#E2593F'; ctx.shadowBlur=near?18+12*q:6;
+        ctx.strokeStyle=b.hit>0?'#fff':(near?'#C6FFEC':'#52BFA0');
+        ctx.lineWidth=near?5:3; ctx.shadowColor='#52BFA0'; ctx.shadowBlur=near?20+12*q:7;
+      }else if(kd.id==='rush'){                  // 내닫는 석판 — 깜빡이다 굳는다
+        if(b.rushed){                            // 내달리기 시작했다
+          g.addColorStop(0,'rgba(255,214,120,.60)');
+          g.addColorStop(.5,'rgba(226,120,40,.44)');
+          g.addColorStop(1,'rgba(70,26,6,.86)');
+          ctx.fillStyle=g;
+          ctx.strokeStyle=b.hit>0?'#fff':'#FFC061';
+          ctx.lineWidth=4; ctx.shadowColor='#FF9A2E'; ctx.shadowBlur=16;
+        }else{                                   // 아직 유예 — 남은 시간만큼 빨라진다
+          const left=Math.max(0,(b.rushT||0)/CONFIG.rushWarn);
+          const q=.5+.5*Math.sin(performance.now()/1000*(4+10*(1-left)));
+          g.addColorStop(0,`rgba(226,89,63,${.20+.20*q})`);
+          g.addColorStop(.6,'rgba(120,30,20,.34)');
+          g.addColorStop(1,'rgba(5,8,15,.62)');
+          ctx.fillStyle=g;
+          ctx.strokeStyle=b.hit>0?'#fff':`rgba(255,${90+90*q|0},${70+50*q|0},1)`;
+          ctx.lineWidth=3+3*q; ctx.shadowColor='#E2593F'; ctx.shadowBlur=8+16*q;
+        }
       }else{
         g.addColorStop(0,kd.col+'55');
         g.addColorStop(.6,kd.col+'26');
@@ -6925,7 +6954,7 @@ function drawBrick(b){
   roundRect(b.x,b.y,b.w,b.h,5);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
   if(isSolid(b)){                                // 말뚝·몸돌 — 글자 대신 무늬
     ctx.save();
-    ctx.strokeStyle=b.kind==='body'?'rgba(255,200,180,.85)':'rgba(210,198,172,.55)';
+    ctx.strokeStyle=b.kind==='body'?'rgba(210,255,240,.9)':'rgba(70,70,70,.9)';
     ctx.lineWidth=2.5; ctx.lineCap='round';
     const cx=b.x+b.w/2, cy=b.y+b.h/2, r=Math.min(b.w,b.h)*0.26;
     if(b.kind==='body'){                         // 몸돌 — 부딪히라는 뜻의 두 화살
@@ -6933,9 +6962,10 @@ function drawBrick(b){
       ctx.moveTo(cx-r*1.5,cy-r); ctx.lineTo(cx,cy); ctx.lineTo(cx-r*1.5,cy+r);
       ctx.moveTo(cx+r*1.5,cy-r); ctx.lineTo(cx,cy); ctx.lineTo(cx+r*1.5,cy+r);
       ctx.stroke();
-    }else{                                       // 말뚝 — 가로 빗금
+    }else{                                       // 말뚝 — 굵은 대못 하나
+      ctx.lineWidth=Math.max(4,b.w*0.16);
       ctx.beginPath();
-      for(let k=-1;k<=1;k++){ ctx.moveTo(cx-r*1.3,cy+k*r*0.8); ctx.lineTo(cx+r*1.3,cy+k*r*0.8); }
+      ctx.moveTo(cx,cy-r*1.4); ctx.lineTo(cx,cy+r*1.4);
       ctx.stroke();
     }
     ctx.restore(); ctx.restore(); return;
@@ -8883,7 +8913,7 @@ function loop(now){
   try{update(dt);draw();}catch(err){console.error('게임 루프 오류:',err);}
   requestAnimationFrame(loop);
 }
-const BUILD='c24-4';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c25-0';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
