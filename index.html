@@ -1540,7 +1540,7 @@ const KINDS = [
   /* ── 여기서부터는 심연에서만 나온다 ── */
   {id:'post',  name:'말뚝',      runs:0, floor:1, abyss:true, col:'#6E6255', solid:true,
    note:'깨지지 않는다. 구슬이 벽처럼 튕긴다. 바닥에 닿으면 스러진다'},
-  {id:'rush',  name:'내닫는 석판', runs:0, floor:1, abyss:true, col:'#E2593F',
+  {id:'rush',  name:'내닫는 석판', runs:0, floor:1, abyss:true, col:'#FF6FC0',
    note:'테두리가 붉게 깜빡인다. 그 안에 깨지 않으면 혼자 앞질러 내려간다'},
   {id:'cloud', name:'먹구름 석판',runs:0, floor:1, abyss:true, col:'#5B4E7A',
    note:'깨질 때 사방으로 여덟 발을 뱉는다'},
@@ -3641,12 +3641,11 @@ function charTick(dt){
     S.wallT=(S.wallT||0)-dt;
     if(S.wallT<=0){
       S.wallT=7;
-      const CL=cell(), W=CL*2-8, H=52;              // 길이도 두께도 두 배
-      const y=Math.max(CEIL_Y+40, S.py-150);        // 사람 앞쪽
-      const gap=heroR()*2.4;
-      S.walls=[
-        {x:Math.max(WALL_L+4, S.px-gap-W), y, w:W, h:H, t:3.0},
-        {x:Math.min(WALL_R-4-W, S.px+gap),  y, w:W, h:H, t:3.0},
+      const CL=cell(), W=CL*2-8, H=26;              // 길이는 두 칸, 두께는 얇게
+      const y=Math.min(VH-80, dangerY()+24);        // 사람 아래 — 빠지는 구슬을 되받는다
+      S.walls=[                                     // 좌우 벽에 붙인다. 가운데는 활짝 비운다
+        {x:WALL_L+4,   y, w:W, h:H, t:3.0},
+        {x:WALL_R-4-W, y, w:W, h:H, t:3.0},
       ];
     }
     if(S.walls){
@@ -6375,7 +6374,7 @@ function update(dt){
         b.rushT-=dt;
         if(b.rushT<=0){
           b.rushed=true;
-          burst(b.x+b.w/2,b.y+b.h/2,10,'vermilion');
+          burst(b.x+b.w/2,b.y+b.h/2,12,'gold');
           S.shake=Math.max(S.shake,6); vibe('hurt');
         }
       }
@@ -6945,23 +6944,23 @@ function drawBrick(b){
         ctx.fillStyle=g;
         ctx.strokeStyle=b.hit>0?'#fff':(near?'#C6FFEC':'#52BFA0');
         ctx.lineWidth=near?5:3; ctx.shadowColor='#52BFA0'; ctx.shadowBlur=near?20+12*q:7;
-      }else if(kd.id==='rush'){                  // 내닫는 석판 — 깜빡이다 굳는다
-        if(b.rushed){                            // 내달리기 시작했다
-          g.addColorStop(0,'rgba(255,214,120,.60)');
-          g.addColorStop(.5,'rgba(226,120,40,.44)');
-          g.addColorStop(1,'rgba(70,26,6,.86)');
+      }else if(kd.id==='rush'){                  // 내닫는 석판 — 분홍으로 깜빡이다 굳는다
+        if(b.rushed){                            // 내달리기 시작했다 — 짙은 자홍
+          g.addColorStop(0,'rgba(255,140,214,.62)');
+          g.addColorStop(.5,'rgba(196,40,140,.50)');
+          g.addColorStop(1,'rgba(64,8,44,.88)');
           ctx.fillStyle=g;
-          ctx.strokeStyle=b.hit>0?'#fff':'#FFC061';
-          ctx.lineWidth=4; ctx.shadowColor='#FF9A2E'; ctx.shadowBlur=16;
+          ctx.strokeStyle=b.hit>0?'#fff':'#FFA8DC';
+          ctx.lineWidth=4; ctx.shadowColor='#FF4FB0'; ctx.shadowBlur=18;
         }else{                                   // 아직 유예 — 남은 시간만큼 빨라진다
           const left=Math.max(0,(b.rushT||0)/CONFIG.rushWarn);
           const q=.5+.5*Math.sin(performance.now()/1000*(4+10*(1-left)));
-          g.addColorStop(0,`rgba(226,89,63,${.20+.20*q})`);
-          g.addColorStop(.6,'rgba(120,30,20,.34)');
-          g.addColorStop(1,'rgba(5,8,15,.62)');
+          g.addColorStop(0,`rgba(255,111,192,${.20+.22*q})`);
+          g.addColorStop(.6,'rgba(140,26,96,.34)');
+          g.addColorStop(1,'rgba(10,4,14,.64)');
           ctx.fillStyle=g;
-          ctx.strokeStyle=b.hit>0?'#fff':`rgba(255,${90+90*q|0},${70+50*q|0},1)`;
-          ctx.lineWidth=3+3*q; ctx.shadowColor='#E2593F'; ctx.shadowBlur=8+16*q;
+          ctx.strokeStyle=b.hit>0?'#fff':`rgba(255,${120+80*q|0},${200+40*q|0},1)`;
+          ctx.lineWidth=3+3*q; ctx.shadowColor='#FF6FC0'; ctx.shadowBlur=10+18*q;
         }
       }else{
         g.addColorStop(0,kd.col+'55');
@@ -8950,7 +8949,7 @@ function loop(now){
   try{update(dt);draw();}catch(err){console.error('게임 루프 오류:',err);}
   requestAnimationFrame(loop);
 }
-const BUILD='c26-0';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c26-1';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
