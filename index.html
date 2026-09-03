@@ -2751,8 +2751,11 @@ function inkSeek(ball,dt){
     ball.seekB=best;
   }
   const t=ball.seekB;
+  /* 겨눌 석판이 없다 — 보스층이거나 층이 거의 비었다.
+     이때는 여느 구슬처럼 움직여 보스도 치고 벽에도 튕긴다 */
+  if(!t) return true;
   const sp=Math.hypot(ball.vx,ball.vy)||ball.sp0;
-  if(t){                                             // 유도처럼 방향을 튼다
+  {                                                  // 유도처럼 방향을 튼다
     const a=Math.atan2(t.y+t.h/2-ball.y, t.x+t.w/2-ball.x);
     const cur=Math.atan2(ball.vy,ball.vx);
     let df=a-cur; while(df>Math.PI)df-=Math.PI*2; while(df<-Math.PI)df+=Math.PI*2;
@@ -2763,24 +2766,45 @@ function inkSeek(ball,dt){
   const steps=Math.max(1,Math.ceil(sp*dt/(ball.r*.7))), h=dt/steps;
   for(let s=0;s<steps;s++){
     ball.x+=ball.vx*h; ball.y+=ball.vy*h;
-    if(t&&overlaps(ball,t)){                         // 닿았다 — 그 자리에서 터진다
+    if(overlaps(ball,t)){                            // 닿았다 — 그 자리에서 터진다
+      const a0=Math.atan2(ball.vy,ball.vx), sp0=Math.hypot(ball.vx,ball.vy);
       ball.vx=ball.vy=0;
       ball.dead=1; ball.life=-1;                     // 치기 전에 먼저 죽인다
       hitBrick(t,ball);                              // 석판을 딱 한 번 친다
       if(S.screen!=='play')return false;
-      inkBoom(ball,t);
+      inkBoom(ball,t,a0,sp0);
       return false;
     }
   }
-  /* 겨눌 석판이 없으면 곧게 날다 화면 밖에서 스러진다 */
-  if(ball.y-ball.r>VH+40 || ball.y+ball.r<-40
-     || ball.x+ball.r<WALL_L-60 || ball.x-ball.r>WALL_R+60) ball.life=-1;
+  if(ball.y-ball.r>VH+40) ball.life=-1;
   return false;
 }
 /* 터진다 — 좌우 석판에 위력의 100%. 구슬은 자취를 남기고 사라진다 */
-function inkBoom(ball,at){
+function inkBoom(ball,at,a0,sp0){
   ball.dead=1; ball.life=-1;                         // 먼저 죽인다 — 도중에 층이 깨져도 되살지 않게
   const t=at||ball.seekB, dmg=Math.max(1,Math.round(ball.base*CONFIG.arrowSide));
+  const ang=(a0===undefined)?Math.atan2(ball.vy,ball.vx):a0;
+  const spd=(sp0===undefined)?(ball.sp0||0):sp0;
+  /* 이 구슬이 본디 남기던 것은 그대로 남긴다 */
+  if(ball.def && ball.def.flank && !ball.flanked){    // 협공
+    ball.flanked=true;
+    const cnt=ball.def.flank[ball.lv], sp=spd*.85;
+    for(let k=0;k<cnt;k++){
+      const side=(k%2===0)?1:-1, tier=Math.floor(k/2);
+      spawnBaby(ball.x,ball.y,ang+side*(Math.PI/2)*(1-tier*0.22),sp);
+    }
+  }
+  if(ball.def && ball.def.fuse && !ball.popped){      // 폭죽·화포 — 새끼를 뿌린다
+    ball.popped=true;
+    const before=S.balls.length;
+    sow(ball.x,ball.y,ball.def.boomN[ball.lv],spd*.75);
+    if(ball.def.reBoom)
+      for(let k=before;k<S.balls.length;k++) S.balls[k].reBoomAt=0.45;
+  }
+  if(ball.def && ball.def.seed && !ball.seeded){      // 씨앗 — 벽에 못 튕기니 여기서 뿌린다
+    ball.seeded=true;
+    sow(ball.x,ball.y,ball.def.seed[ball.lv],spd*.8,undefined,ball.def.seedBaby);
+  }
   if(t&&S.bricks.indexOf(t)>=0){
     const cy=t.y+t.h/2, reach=t.w*1.4;
     for(let i=S.bricks.length-1;i>=0;i--){
@@ -8683,7 +8707,7 @@ function loop(now){
   try{update(dt);draw();}catch(err){console.error('게임 루프 오류:',err);}
   requestAnimationFrame(loop);
 }
-const BUILD='c23-7';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c23-8';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
