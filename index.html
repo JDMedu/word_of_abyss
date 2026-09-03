@@ -28,6 +28,42 @@ canvas{display:block;width:100%;height:100%}
 .eyebrow{font-size:.75em;letter-spacing:.38em;text-indent:.38em;color:var(--stone-deep);font-weight:500;margin-bottom:1.1em;text-align:center}
 .veil h2{font-family:var(--font-carve);font-weight:700;font-size:1.95em;margin-bottom:.7em;text-align:center}
 .veil h2 em{font-style:normal;color:var(--gold)}
+
+/* ── 바닥에서 들은 말 ── */
+#vTale{background:#04060b;padding:0;justify-content:center;cursor:pointer;overflow:hidden}
+#taleGlow{position:absolute;left:50%;top:44%;width:2px;height:2px;border-radius:50%;
+  background:#FFF3D0;pointer-events:none;
+  box-shadow:0 0 12px 4px rgba(255,240,200,.9),0 0 60px 22px rgba(229,178,79,.34);
+  transform:translate(-50%,-50%) scale(1);opacity:0}
+#taleGlow.lit{animation:taleBloom 2.6s ease-out forwards}
+#taleGlow.flood{animation:taleFlood 1.8s ease-in forwards}
+@keyframes taleBloom{
+  0%{transform:translate(-50%,-50%) scale(1);opacity:0}
+  18%{opacity:1}
+  100%{transform:translate(-50%,-50%) scale(160);opacity:.16}}
+@keyframes taleFlood{
+  0%{transform:translate(-50%,-50%) scale(160);opacity:.16}
+  100%{transform:translate(-50%,-50%) scale(900);opacity:1}}
+#taleWrap{position:relative;z-index:2;width:100%;max-width:34em;padding:0 8%;
+  max-height:78vh;overflow-y:auto;text-align:left}
+#taleHead{font-size:.72em;letter-spacing:.42em;text-indent:.42em;color:var(--gold);
+  opacity:.75;margin-bottom:2.2em;text-align:center}
+#taleBody{font-family:var(--font-carve);font-size:1.16em;line-height:1.95;
+  color:var(--paper);white-space:pre-wrap;text-align:left}
+#taleBody b{color:var(--gold);font-weight:700}
+#taleBody .q{color:var(--gold);font-weight:700}
+#taleBody .m{color:#F2DEA8}
+#taleBody .jm{font-family:'Gowun Batang','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',serif;
+  color:var(--gold);font-size:1.5em;font-weight:700;line-height:1}
+#taleBody .f{display:block;font-size:.82em;line-height:1.95;color:var(--stone-deep)}
+#taleGlyph{position:absolute;left:50%;top:50%;z-index:1;pointer-events:none;
+  transform:translate(-50%,-50%);font-family:'Gowun Batang','Apple SD Gothic Neo','Noto Sans KR',serif;
+  font-size:44vh;font-weight:700;color:rgba(229,178,79,.055);user-select:none}
+#taleFoot{position:absolute;bottom:5%;z-index:2;font-size:.72em;letter-spacing:.3em;
+  color:rgba(158,143,110,.5);animation:taleBlink 2.2s ease-in-out infinite}
+@keyframes taleBlink{0%,100%{opacity:.25}50%{opacity:.8}}
+.taleIn{animation:taleIn .8s ease-out}
+@keyframes taleIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 .row{display:flex;gap:.7em;flex-wrap:wrap;justify-content:center}
 #reviewList{display:flex;flex-direction:column;gap:.5em;width:100%;max-height:44vh;overflow-y:auto;margin-bottom:1.2em}
 .rvRow{padding:.62em .9em;background:rgba(222,211,184,.07);border-left:3px solid var(--jade);border-radius:0 6px 6px 0}
@@ -277,6 +313,28 @@ canvas{display:block;width:100%;height:100%}
   50%{box-shadow:0 0 22px rgba(229,178,79,.75);transform:scale(1.04)}}
 .up.hint{animation:btnGlow 1.4s ease-in-out infinite;border-color:var(--gold)!important}
 .btn.ghost{border-color:rgba(222,211,184,.4);color:rgba(222,211,184,.75)}
+.btn.abyss{border-color:rgba(120,110,100,.35);color:rgba(140,130,120,.55)}
+.btn.abyss.locked{cursor:pointer}
+.btn.abyss.on{border-color:#C2382A;color:#E2593F;
+  text-shadow:0 0 18px rgba(226,89,63,.55);animation:abyssPulse 2.2s ease-in-out infinite}
+.btn.abyss.on:active{background:#C2382A;color:#0B0E14}
+@keyframes abyssPulse{
+  0%,100%{box-shadow:0 0 0 rgba(194,56,42,0);border-color:rgba(194,56,42,.55)}
+  50%{box-shadow:0 0 26px rgba(194,56,42,.5),inset 0 0 14px rgba(194,56,42,.18);border-color:#E2593F}}
+#redFlash{position:absolute;inset:0;z-index:60;pointer-events:none;opacity:0;
+  background:radial-gradient(circle at 50% 50%,rgba(226,89,63,.55),rgba(120,14,8,.96) 70%)}
+#redFlash.go{animation:redWash 1.05s ease-out forwards}
+@keyframes redWash{
+  0%{opacity:0} 22%{opacity:1} 62%{opacity:1} 100%{opacity:0}}
+#vAbyss{background:linear-gradient(180deg,rgba(22,6,5,.96),rgba(8,4,6,.99))}
+#vAbyss h2 em{color:#E2593F}
+#abyssPick{display:flex;gap:.4em;justify-content:center;align-items:center;flex-wrap:wrap;margin-bottom:1.2em}
+#abyssPick button{font:inherit;font-size:.95em;min-width:2.4em;padding:.45em .6em;cursor:pointer;
+  background:transparent;color:rgba(222,211,184,.6);border:1px solid rgba(158,143,110,.3);border-radius:7px}
+#abyssPick button.on{color:#E2593F;border-color:#E2593F;background:rgba(226,89,63,.14);font-weight:700}
+#abyssPick button:disabled{opacity:.2;cursor:default}
+#abyssNote{font-size:.8em;line-height:1.95;color:var(--stone-deep);
+  max-width:26em;text-align:center;min-height:7em}
 #introText{font-family:var(--font-carve);font-size:1.35em;line-height:2;text-align:center;
   color:var(--paper);max-width:24em;min-height:7em;display:flex;align-items:center;justify-content:center}
 #introText b{color:var(--gold);font-weight:700}
@@ -358,12 +416,10 @@ canvas{display:block;width:100%;height:100%}
            color:rgba(158,143,110,.55)"></div>
     </div>
     <div id="titleRec"></div>
-    <div id="abyssPick" style="display:none;margin:.6em 0 .2em"></div>
-    <div id="abyssNote" style="display:none;font-size:.72em;line-height:1.7;
-         color:var(--stone-deep);margin-bottom:.7em;max-width:30em"></div>
     <div class="row">
       <button class="btn gold" id="btnResumeRun" style="display:none"></button>
       <button class="btn gold" id="btnStart">내려간다</button>
+      <button class="btn abyss locked" id="btnAbyss">심연으로 내려간다</button>
       <button class="btn ghost" id="btnShop">대장간</button>
       <button class="btn ghost" id="btnChar">인물</button>
       <button class="btn ghost" id="btnBook">기억</button>
@@ -435,6 +491,29 @@ canvas{display:block;width:100%;height:100%}
     <div class="eyebrow" id="cardEyebrow">한 장을 고른다</div>
     <div class="loadout" id="loadCard"></div>
     <div id="cardRow"></div>
+  </div>
+
+  <div class="veil" id="vAbyss">
+    <div class="eyebrow">먹의 계약</div>
+    <h2>어디까지 <em>내려가겠나</em></h2>
+    <div id="abyssPick"></div>
+    <div id="abyssNote"></div>
+    <div class="row">
+      <button class="btn abyss on" id="btnAbyssGo">심연으로 내려간다</button>
+      <button class="btn ghost" id="btnAbyssBack">돌아간다</button>
+    </div>
+  </div>
+
+  <div id="redFlash"></div>
+
+  <div class="veil" id="vTale">
+    <div id="taleGlow"></div>
+    <div id="taleGlyph"></div>
+    <div id="taleWrap">
+      <div id="taleHead"></div>
+      <div id="taleBody"></div>
+    </div>
+    <div id="taleFoot">눌러서 넘긴다</div>
   </div>
 
   <div class="veil" id="vEnd">
@@ -1533,7 +1612,7 @@ const charDef=id=>CHARS.find(c=>c.id===id)||CHARS[0];
 /* ---------- 저장 (기기 안에만 남는다) ---------- */
 const SAVE_KEY='vocab-pit-save-v1';
 let META={ink:0, up:{}, best:0, bestInk:0, abyss:0, runs:0, totalWords:0, lastBall:null, weak:{}, cleared:{}, met:{}, chars:{none:1}, char:'none', tip:{},
-  mem:{}, deep:{}, shopVisits:0, p2:{}, depth:0,
+  mem:{}, deep:{}, shopVisits:0, p2:{}, depth:0, tale:{},
   ord:{}, ordN:0, plan:null, admin:null};
 let saveOK=true;
 function loadMeta(){
@@ -4183,6 +4262,408 @@ function defeatBoss(){
 /* ---------- 화면 ---------- */
 const el=id=>document.getElementById(id);
 const show=id=>{document.querySelectorAll('.veil').forEach(v=>v.classList.remove('on'));if(id)el(id).classList.add('on');};
+
+/* ══════════════════════════════════════════════════════════
+   바닥에서 들은 말 — 심연을 완주할 때마다 한 대목씩 열린다
+   Q() 옛 글을 그대로 옮긴 줄 · M() 말 · J() 사라진 글자 · F() 사실 카드
+   ══════════════════════════════════════════════════════════ */
+const Q=t=>`<span class="q">${t}</span>`;
+const M=t=>`<span class="m">${t}</span>`;
+const J=t=>`<span class="jm">${t}</span>`;
+const F=t=>`<span class="f">${t}</span>`;
+const B=t=>`<b>${t}</b>`;
+
+const TALES = [
+{ id:0, head:'뼈대가 될 거짓말', glyph:'', cuts:[
+`세종이 만든 건 스물여덟이었다.
+지금 남은 건 스물넷이다.
+
+넷을 뺀 것은 후세가 아니다. ${B('세종 본인이다.')}`,
+
+`그 넷이 있으면 조선의 말만 적히는 게 아니었다.
+
+명의 말도 적혔다. 왜의 말도 적혔다. 아직 이름 없는 나라의 말도 적혔다.
+
+세상의 모든 소리가 그 안에 들어갔다.`,
+
+`명이 그걸 알았다면 조선은 없었다.
+
+그래서 세종은 넷을 구덩이에 묻었다.`,
+
+`묻는 것으로는 모자랐다.
+만드는 법을 아는 자가 남으면 언젠가 다시 나온다.
+
+만드는 과정을 통째로 지웠다.`,
+
+`실록에 한 줄만 남겼다.
+
+${Q('「이달에 임금이 친히 언문 스물여덟 자를 지었다.」')}
+
+그 앞은 없다. 어떻게 지었는지가 없다.`,
+
+`그리고 기다렸다.
+
+언젠가 그 넷을 건져 올릴 사람을.
+
+그를 ${B('채자인(採字人)')}이라 불렀다.`,
+
+`육백 년이 지났다.
+
+오늘, 누군가 바닥에 닿았다.`,
+
+F(`이 이야기는 지어낸 것이다.
+
+다만 그 한 줄은 참이다. 세종 25년 섣달, 실록에는 정말 그 한 줄뿐이다.
+
+넷도 참이다. ㆆ · ㆁ · ㅿ · ㆍ 는 실제로 사라졌다.
+
+나머지는 거짓말이다. 뼈대가 될 거짓말이다.`),
+]},
+
+{ id:1, head:'지운 자리', glyph:'ㆆ', cuts:[
+`바닥에서 글자 하나가 올라왔다.
+
+${J('ㆆ')}. 여린히읗이다.
+
+스물여덟 중 가장 먼저 사라진 글자다.`,
+
+`이 글자는 소리를 내지 않는다.
+소리를 끊는다.
+
+숨이 멎는 자리를 적는 글자다.`,
+
+`우리말에는 쓸 데가 거의 없었다.
+학자들은 그래서 사라졌다고 한다.
+
+아니다. 쓸 데가 없어서가 아니다. ${B('다른 데 썼기 때문이다.')}`,
+
+`세종은 지운 자리마다 이 글자를 남겼다.
+
+여기서 끊었다는 표시다.
+언젠가 이어 붙일 사람을 위한 표시다.`,
+
+`실록을 넘겨 보아라.
+
+이 글자가 붙은 줄은 뒤가 없다.
+문장이 거기서 끝난다. 다음 줄로 넘어가지 않는다.`,
+
+`넷 중 이것을 가장 먼저 묻었다.
+
+지웠다는 사실 자체를 지워야 했으니까.
+
+표시를 남긴 것도 세종이고, 그 표시를 묻은 것도 세종이다.`,
+
+F(`ㆆ이 넷 중 가장 먼저 사라진 것은 참이다. 15세기가 끝나기 전에 이미 쓰이지 않았다.
+
+소리를 끊는 글자라는 것도 참이다. 해례본은 이것을 목구멍에서 나는 소리라 했다.
+
+실록에 표시를 남겼다는 것은 거짓말이다.`),
+]},
+
+{ id:3, head:'두 달', glyph:'ㆁ', cuts:[
+`${J('ㆁ')}. 옛이응이다.
+
+목구멍 깊은 곳에서 울리는 소리를 적는다.
+
+지금 우리가 쓰는 ㅇ은 이것의 껍데기다.`,
+
+`신숙주가 요동을 오간 것은 세종 스물일곱 해 뒤의 일이다.
+
+그런데 그보다 앞서, 이미 알아챈 자가 있었다.
+
+${B('창제로부터 두 달 뒤였다.')}`,
+
+`세종이 스물여덟 자를 지었다고 실록에 적힌 것이 세종 25년 섣달이다.
+
+최만리가 상소를 올린 것은 이듬해 이월이다.
+
+${B('두 달이다.')}`,
+
+`두 달 만에 무엇을 보았기에 그렇게 급했는가.
+
+최만리는 집현전 부제학이다. 성급한 사람이 아니다.
+
+스물여덟 자를 보고 놀란 것이 아니다.`,
+
+`그가 본 것은 그 글자로 적힌 ${B('명나라 말')}이었다.
+
+조선 사람이 조선 글자로 명나라 말을 적어 놓았다.
+
+소리가 그대로 맞았다.`,
+
+`상소에 그 말은 못 적었다.
+적으면 명에 닿는다. 상소는 명나라 사신도 본다.
+
+그래서 이렇게만 썼다.
+
+${Q('「중국의 제도를 버리는 것은 부당하옵니다.」')}`,
+
+`세종은 알아들었다.
+
+최만리를 옥에 가두었다. 그리고 이튿날 풀어주었다.
+
+가둔 것은 벌이 아니었다. 입을 막을 시간이 하루 필요했을 뿐이다.`,
+
+F(`두 달도 참이고, 상소의 저 뜻도 참이다.
+
+최만리를 하루 가두었다가 이튿날 풀어준 것도 실록에 있다.
+
+그가 명나라 말을 보았다는 것은 거짓말이다.`),
+]},
+
+{ id:2, head:'열세 번', glyph:'ㅿ', cuts:[
+`${J('ㅿ')}. 반치음이다.
+
+ㅅ도 아니고 ㅇ도 아닌, 그 사이의 소리다.
+
+조선말도 중국말도 아닌 자리에 놓인 글자다.`,
+
+`신숙주는 요동을 열세 번 오갔다.
+
+명나라 학사 황찬이 그곳에 귀양 와 있었다.
+
+음운을 물으러 갔다고 한다.`,
+
+`한 번 물으면 될 것을 왜 열세 번인가.
+
+압록강을 열세 번 건넜다. 한 번에 한 달이 걸렸다.
+
+물으러 간 것이 아니다.`,
+
+`신숙주가 가져간 것은 질문이 아니었다.
+
+${B('시험지였다.')}
+
+넷으로 적은 중국말을 명나라 사람 앞에서 읽어 보이고, 알아듣는지 보았다.`,
+
+`열두 번은 어긋났다.
+
+열세 번째에 황찬이 얼굴을 들었다.
+
+${M('「그대 나라에 그런 글자가 있는가.」')}`,
+
+`신숙주는 없다고 답했다.
+
+돌아와 세종에게 아뢰었다.
+
+${M('「넷을 지우소서.」')}
+
+세종은 오래 아무 말도 하지 않았다.`,
+
+F(`신숙주가 요동을 열세 번 오간 것은 참이다. 황찬에게 음운을 물었다는 기록도 참이다.
+
+그가 시험지를 가져갔다는 것은 거짓말이다.`),
+]},
+
+{ id:4, head:'하늘', glyph:'ㆍ', cuts:[
+`${J('ㆍ')}. 아래아다.
+
+해례본은 이것을 하늘이라 했다. ㅡ는 땅, ㅣ는 사람이다.
+
+넷 중 마지막이다.`,
+
+`이것이 있어야 나머지 셋이 산다.
+
+하늘이 없으면 땅과 사람만 남는다.
+
+세종이 마지막까지 망설인 것이 이것이다.`,
+
+`그런데 넷을 뺐을 때, 아무 일도 일어나지 않았다.
+
+조선 사람은 아무도 불편하지 않았다.
+
+스물넷으로 조선말은 다 적혔다.`,
+
+`${B('아무도 넷이 없어진 것을 몰랐다.')}
+
+없어진 줄 모르니 찾지 않았다.
+찾지 않으니 잊혔다.`,
+
+`그것이 세종의 계산이었다.
+
+감추는 가장 좋은 방법은 없앤 티를 내지 않는 것이다.
+
+넷을 뺀 스물넷은 조선말에 꼭 맞았다. 일부러 그렇게 맞췄다.`,
+
+`육백 년이 지났다.
+
+넷이 다시 모였다.
+
+${B('스물여덟이다.')}`,
+
+F(`해례본이 ㆍ ㅡ ㅣ를 하늘·땅·사람이라 한 것은 참이다.
+
+넷이 사라진 뒤에도 조선말을 적는 데 아무 문제가 없었던 것도 참이다.
+
+세종이 일부러 맞췄다는 것은 거짓말이다.`),
+]},
+
+{ id:5, head:'앞의 두 장', glyph:'', cuts:[
+`해례본은 세상에 둘뿐이다.
+
+둘 다 앞의 두 장이 없다.
+
+뜯겨 나갔다.`,
+
+`연산군이 언문 쓰는 자를 잡아들이던 때다.
+
+가진 사람이 겁이 나서 찢었다고 한다.
+
+그런데 찢을 것이면 왜 두 장만 찢었나.`,
+
+`표지를 찢으면 그만이다. 이름만 없애면 된다.
+
+두 장을 찢은 것은 이름을 지우려던 것이 아니다.
+
+${B('그 두 장에 적힌 것을 지우려던 것이다.')}`,
+
+`앞의 두 장에는 넷의 쓰임이 있었다.
+
+어떻게 쓰는지, 무엇을 적을 수 있는지.
+
+찢은 사람은 그것을 알고 찢었다.`,
+
+`지금 그 자리에 있는 두 장은 후대 사람이 손으로 채운 것이다.
+
+원본을 보고 베낀 것이 아니다. 짐작으로 지어 넣었다.
+
+글자체가 다르다. 획이 다르다.`,
+
+`우리가 아는 훈민정음의 첫 장은
+
+${B('아무도 본 적 없는 장이다.')}`,
+
+F(`해례본 앞 두 장이 없는 것도, 후대에 손으로 채워 넣은 것도 참이다.
+
+연산군 때 찢었다는 이야기도 전해지는 그대로다.
+
+찢은 사람이 알고 찢었다는 것은 거짓말이다.`),
+]},
+
+{ id:6, head:'한 권 더', glyph:'', cuts:[
+`해례본은 두 권이라고 했다.
+
+아니다. 세종은 한 권을 더 만들었다.
+
+${B('넷의 쓰임이 온전히 남은 한 권이다.')}`,
+
+`두 권은 세상에 내놓았다. 앞의 두 장을 뺀 채로.
+
+한 권은 내놓지 않았다.
+
+그 한 권을 지킬 집을 정해 두었다.`,
+
+`그 집은 육백 년 동안 그것을 지켰다.
+
+무엇인지도 모르고 지킨 대가 있었다.
+알고 지킨 대도 있었다.`,
+
+`한 번은 세상에 나왔다.
+
+몇 장만 보이고 곧 사라졌다.
+
+가진 사람이 도로 감췄다.`,
+
+`한 번은 불이 났다.
+
+아랫단이 탔다. 그을린 채로 남았다.
+
+그래도 내놓지 않았다.`,
+
+`그것이 무엇인지 알기 때문이다.
+
+내놓는 순간 넷은 다시 세상으로 나온다.
+
+${B('그 사람은 세종과 같은 것을 두려워하고 있다.')}`,
+
+F(`해례본이 세상에 둘뿐인 것도, 그중 하나가 나타났다 사라진 것도 참이다.
+
+불이 나 아랫부분이 그을린 것도 알려진 그대로다.
+
+세 번째 한 권은 거짓말이다.`),
+]},
+
+{ id:7, head:'돌려준다', glyph:'28', cuts:[
+`넷이 다 모였다.
+
+빛이 사람 모양이 되었다.
+
+등이 굽었고, 눈이 흐렸다.`,
+
+`${M('「넷을 다 건졌구나.」')}
+
+${M('「육백 년이면 되었다.」')}`,
+
+`${M('「과인이 넷을 묻은 것은 조선을 지키려던 것이다.」')}
+
+${M('「지킬 조선은 이제 없다.」')}
+
+${M('「너희가 사는 나라는 조선이 아니다.」')}`,
+
+`${M('「그러면 넷은 이제 누구를 지키느냐.」')}
+
+${M('「지킬 것이 없으면 묻어 둘 까닭도 없다.」')}`,
+
+`${M('「가져가라.」')}
+
+${M('「이제 세상은 이 글자를 삼키지 못한다.」')}`,
+
+`빛이 꺼졌다.
+
+바닥에는 아무것도 없었다.
+
+넷은 이미 손 안에 있었다.`,
+
+F(`넷 중 하나는 이미 돌아와 있다.
+
+지금 네 손 안에 있다.
+
+하늘 · 땅 · 사람.`),
+
+F(`폰을 열어 자판을 보아라.
+
+ㆍ ㅡ ㅣ 세 글자로 모든 모음을 만드는 그 자판.
+
+왼쪽 위의 그 점이 아래아다.
+
+사라진 줄 알았던 글자를, 너는 매일 누르고 있었다.`),
+]},
+];
+TALES.sort((a,b)=>a.id-b.id);
+const taleFor = d=>TALES.find(t=>t.id===d)||null;
+
+/* 한 대목을 눌러 넘기며 읽는다 */
+let taleCuts=null, taleI=0, taleAfter=null, taleSeenBefore=false;
+function playTale(t, after){
+  taleCuts=t.cuts; taleI=0; taleAfter=after||null;
+  taleSeenBefore=!!(META.tale&&META.tale[t.id]);
+  el('taleHead').textContent=t.head;
+  el('taleGlyph').textContent=t.glyph||'';
+  const g=el('taleGlow'); g.className=''; void g.offsetWidth; g.className='lit';
+  el('taleFoot').textContent = taleSeenBefore ? '눌러서 넘긴다 · 길게 누르면 건너뛴다' : '눌러서 넘긴다';
+  show('vTale');
+  drawTaleCut();
+}
+function drawTaleCut(){
+  const b=el('taleBody');
+  b.innerHTML=taleCuts[taleI];
+  b.classList.remove('taleIn'); void b.offsetWidth; b.classList.add('taleIn');
+  if(taleI===taleCuts.length-1){
+    const g=el('taleGlow'); g.className=''; void g.offsetWidth; g.className='flood';
+    el('taleFoot').textContent='눌러서 마친다';
+  }
+}
+function nextTaleCut(){
+  taleI++;
+  if(taleI>=taleCuts.length){ endTale(); return; }
+  drawTaleCut();
+}
+function endTale(){
+  const f=taleAfter; taleCuts=null; taleAfter=null;
+  el('taleGlow').className='';
+  if(f) f();
+}
+
 function dropTouches(){S.touchL=null;S.touchR=null;}
 
 function stageClear(){
@@ -5227,9 +5708,32 @@ function runEnd(won){
     ? `먹 <b>+${gained}</b>`+(opened?`<br><span style="font-size:.6em;color:var(--jade)">심연 ${opened}이 열렸다`
         +(CHARS[opened-1]?` · ${CHARS[opened-1].name}의 <b>${CHARS[opened-1].p2}</b>`:'')+`</span>`:'')
     : `먹 <b>+${gained}</b>`;
+  /* 심연을 처음 끝까지 내려갔으면, 정산에 앞서 바닥에서 들은 말이 나온다 */
+  const d0=S.depth||0;
+  const t = (won && !(META.tale&&META.tale[d0])) ? taleFor(d0) : null;   // 처음 한 번만
+  if(t){
+    playTale(t, ()=>{
+      META.tale=META.tale||{}; META.tale[t.id]=1; saveMeta();
+      show('vEnd');
+    });
+    return;
+  }
   show('vEnd');
 }
 el('btnToShop').onclick=()=>openShop(true);
+
+/* 대목 넘기기 — 눌러서 한 컷씩. 이미 본 대목은 길게 눌러 건너뛴다 */
+(function(){
+  const v=el('vTale'); if(!v)return;
+  let holdT=null, skipped=false;
+  const down=()=>{ if(!taleCuts)return; skipped=false;
+    if(taleSeenBefore) holdT=setTimeout(()=>{ skipped=true; vibe('open'); endTale(); },600); };
+  const up=e=>{ if(holdT){clearTimeout(holdT);holdT=null;}
+    if(!taleCuts||skipped)return; e.preventDefault(); vibe('open'); nextTaleCut(); };
+  v.addEventListener('pointerdown',down);
+  v.addEventListener('pointerup',up);
+  v.addEventListener('pointercancel',()=>{ if(holdT){clearTimeout(holdT);holdT=null;} });
+})();
 
 /* ---------- 대장간 ---------- */
 let shopFromEnd=false;
@@ -5382,6 +5886,24 @@ function renderChars(){
   }
 }
 el('btnChar').onclick=()=>{ renderChars(); show('vChar'); };
+/* 시작 화면에서 이미 읽은 대목을 다시 읽는다 */
+function renderTaleList(box){
+  if(!box)return;
+  box.innerHTML='';
+  for(const t of TALES){
+    const seen=!!(META.tale&&META.tale[t.id]);
+    const d=document.createElement('div');
+    d.className='chr'+(seen?' own':' lock');
+    d.innerHTML=`<div class="cm" style="background:${seen?'#E5B24F':'#2A2A2A'};color:#0B0E14">${seen&&t.glyph?t.glyph:'言'}</div>
+      <div class="ci">
+        <div class="cn">${seen?t.head:'아직 듣지 못한 말'}</div>
+        <div class="cw">${seen?'바닥에서 들은 말':`심연 ${t.id} 완주`}</div>
+      </div>
+      <button class="cp ${seen?'own':'no'}">${seen?'다시 읽기':'잠김'}</button>`;
+    if(seen) d.onclick=()=>playTale(t, ()=>show('vBook'));
+    box.appendChild(d);
+  }
+}
 el('btnCharBack').onclick=()=>{ refreshTitle(); show('vTitle'); };
 
 /* ---------- 관리자 ---------- */
@@ -5442,6 +5964,20 @@ function renderBook(){
     b.onclick=()=>{ bookId=c.id; bookDeep=false; renderBook(); };
     tabs.appendChild(b);
   }
+  {                                        // 바닥에서 들은 말
+    const b=document.createElement('div');
+    b.className='tb'+(bookId==='__tale'?' on':'');
+    b.style.borderColor='rgba(229,178,79,.6)';
+    b.textContent='바닥';
+    b.onclick=()=>{ bookId='__tale'; bookDeep=false; renderBook(); };
+    tabs.appendChild(b);
+  }
+  if(bookId==='__tale'){
+    renderTaleList(el('bookList'));
+    const got=TALES.filter(t=>META.tale&&META.tale[t.id]).length;
+    el('bookEyebrow').textContent=`바닥에서 들은 말 · ${got} / ${TALES.length}`;
+    return;
+  }
   const m=MEM.mem[bookId]; if(!m)return;
   const hasBack=(m.back||[]).some(([f])=>META.mem&&META.mem[bookId+'_b_'+f]);
   if(hasBack||deepOpen(bookId)){
@@ -5491,38 +6027,68 @@ function refreshTitle(){
     `<div><b>${META.best}</b>최고 층</div>
      <div><b>${META.ink}</b>보유 먹</div>
      <div><b>${META.runs||0}</b>내려간 횟수</div>`;
-  renderAbyssPick();
+  const four=[1,2,3,4].every(i=>META.tale&&META.tale[i]);
+  if(four) el('titleRec').innerHTML+=`<div><b>28</b>되찾은 글자</div>`;
+  renderAbyssGate();
 }
-/* 심연 깊이 고르기 — 아직 아무것도 못 깼으면 줄 자체가 안 보인다 */
+/* 심연 문 — 한 번도 바닥에 닿지 못했으면 열리지 않는다 */
+function renderAbyssGate(){
+  const b=el('btnAbyss'); if(!b)return;
+  const open=(META.abyss||0)>0;
+  b.classList.toggle('on',open);
+  b.classList.toggle('locked',!open);
+}
+/* 붉은 물결이 화면을 한 번 훑고 지나간다 */
+function redWash(after){
+  const f=el('redFlash');
+  f.className=''; void f.offsetWidth; f.className='go';
+  setTimeout(()=>{ if(after)after(); }, 380);
+  setTimeout(()=>{ f.className=''; }, 1100);
+}
+/* 심연 깊이 고르기 */
 function renderAbyssPick(){
   const open=META.abyss||0, box=el('abyssPick'), note=el('abyssNote');
   if(!box||!note)return;
-  if(open<=0){ box.style.display='none'; note.style.display='none'; return; }
-  box.style.display=''; note.style.display='';
   META.depth=Math.max(0,Math.min(META.depth||0,open));
   const cur=META.depth;
-  const top=Math.min(open+1,Math.max(open,CONFIG.abyssMaxRung)+1);
-  let h='<span class="al">심연</span>';
+  let h='';
   for(let i=0;i<=open;i++) h+=`<button data-d="${i}" class="${i===cur?'on':''}">${i}</button>`;
-  if(open<top-1) h+=`<button disabled>${open+1}</button>`;
+  if(open<CONFIG.abyssMaxRung) h+=`<button disabled>${open+1}</button>`;
   box.innerHTML=h;
   box.querySelectorAll('button[data-d]').forEach(b=>{
     b.onclick=()=>{ META.depth=+b.dataset.d; saveMeta(); vibe('open'); renderAbyssPick(); };
   });
   note.innerHTML = cur===0
-    ? '심연 0 · 계약 없음. 먹 ×1.0'
-    : PACTS.filter(x=>x.n<=cur).map(x=>`<b style="color:var(--gold)">${x.name}</b> — ${x.text}`).join('<br>')
-      + `<br><span style="color:var(--jade)">하강·보스 +${Math.round(CONFIG.abyssStep*cur*100)}% · `
-      + `먹 <b>×${(1+CONFIG.abyssInkStep*cur).toFixed(1)}</b></span>`;
+    ? '<span style="color:var(--stone-deep)">계약 없음<br>여느 때와 같이 내려간다</span>'
+    : PACTS.filter(x=>x.n<=cur).map(x=>`<b style="color:#E2593F">${x.name}</b> — ${x.text}`).join('<br>')
+      + `<br><br><span style="color:var(--jade)">하강 · 보스 <b>+${Math.round(CONFIG.abyssStep*cur*100)}%</b>`
+      + ` · 먹 <b>×${(1+CONFIG.abyssInkStep*cur).toFixed(1)}</b></span>`;
 }
-el('btnStart').onclick=()=>{
+/* 판을 시작한다 — 고른 깊이로 */
+function beginRun(){
   const got=settleSavedRun();
-  newRun();show(null);announceZone(S.stage);
+  newRun(); show(null); announceZone(S.stage);
   if(got>0) S.alertMsg={text:`두고 온 판을 정산했다 · 먹 +${got}`,t:2.8,ok:true};
   else if(S.depth>0) S.alertMsg={
     text:`먹의 계약 ${S.depth} — ${PACTS.filter(x=>x.n<=S.depth).map(x=>x.name).join(' · ')} · 먹 ×${abyssInkMul().toFixed(1)}`,
     t:3.4,ok:true};
+}
+el('btnStart').onclick=()=>{ META.depth=0; saveMeta(); beginRun(); };   // 여느 길
+
+/* 심연 문 */
+el('btnAbyss').onclick=()=>{
+  if((META.abyss||0)<=0){                       // 아직 바닥에 닿지 못했다
+    vibe('wrong');
+    const b=el('btnAbyss'), t=b.textContent;
+    b.textContent='아직 때가 아니다';
+    setTimeout(()=>{ b.textContent=t; },1400);
+    return;
+  }
+  vibe('boss'); vibe('boss');
+  redWash(()=>{ renderAbyssPick(); show('vAbyss'); });
 };
+el('btnAbyssGo').onclick=()=>beginRun();
+el('btnAbyssBack').onclick=()=>{ show('vTitle'); refreshTitle(); };
 el('btnRetry')?.addEventListener('click',()=>{settleSavedRun();newRun();show(null);});
 
 /* ---------- 갱신 ---------- */
@@ -8108,7 +8674,7 @@ function loop(now){
   try{update(dt);draw();}catch(err){console.error('게임 루프 오류:',err);}
   requestAnimationFrame(loop);
 }
-const BUILD='c21-0';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c23-0';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
