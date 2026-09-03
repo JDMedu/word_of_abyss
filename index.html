@@ -630,8 +630,8 @@ const CONFIG = {
   fanArc:0.785,          // 춘향 — 부채꼴이 벌어지는 각(45°)
   fanMidSpd:1.7,         // 춘향 — 한가운데 화살이 이만큼 빠르다
   chargeMax:3.0,         // 김첨지 — 힘을 실을 수 있는 최대 시간(초)
-  chargeStep:0.4,        // 이만큼마다 한 눈금씩 오른다
-  chargePer:0.6,         // 한 눈금이 더해 주는 배수
+  chargeStep:0.3,        // 이만큼마다 한 눈금씩 오른다
+  chargePer:1.0,         // 한 눈금이 더해 주는 배수
   jeomsunCells:5,        // 점순이 — 구슬이 나는 거리(칸)
   jeomsunDmg:2.0,        // 점순이 — 그 대신 위력
   /* 새끼 구슬 — 위력이 1로 고정된다. '먹' 문방이 붙지 않고 '낙수'로만 오른다 */
@@ -1676,7 +1676,7 @@ function saveMeta(){
 /* ---------- 진동 ----------
    판이 바뀌는 순간에만 짧게. 석판 깨짐에는 넣지 않는다 */
 const VIBE = {
-  hurt:[40], alertOn:[30,60,30], right:[25,40,60], wrong:[60],
+  hurt:[40], alertOn:[30,60,30], right:[25,40,60], wrong:[60], charged:[18],
   open:[25,50,30,50,25], boss:[40,70,60,70,40], revive:[100],
 };
 let lastVibe=0;
@@ -2492,7 +2492,7 @@ function release(e){
   if(S.chargeId===e.pointerId){                  // 김첨지 — 손을 떼면 나간다
     S.chargeId=null;
     S.chargeMul=chargeMulOf(S.chargeT||0);
-    S.chargeT=0; S.gFire=false;
+    S.chargeT=0; S.chargeRung=false; S.gFire=false;
     if(S.screen==='play') tryFire();
   }
   if(S.touchL===e.pointerId)S.touchL=null;
@@ -3586,7 +3586,13 @@ const SEASONS=[
 function charTick(dt){
   const c=charDef(META.char);
   S.charT=(S.charT||0)+dt;
-  if(S.chargeId!=null) S.chargeT=Math.min(CONFIG.chargeMax,(S.chargeT||0)+dt);
+  if(S.chargeId!=null){
+    S.chargeT=Math.min(CONFIG.chargeMax,(S.chargeT||0)+dt);
+    if(!S.chargeRung && chargeMulOf(S.chargeT)>=chargeFull()-0.001){
+      S.chargeRung=true; vibe('charged');          // 가득 찼다 — 손끝에 한 번 울린다
+      burst(S.px,S.py-6,10,'gold'); S.winFlash=Math.max(S.winFlash||0,.22);
+    }
+  }else S.chargeRung=false;
 
   if(c.id==='kwon'){                       // 맴돌이 — 곁을 도는 작은 석판 셋
     const want=p2On('kwon')?9:3;                     // 아홉 켤레
@@ -8949,7 +8955,7 @@ function loop(now){
   try{update(dt);draw();}catch(err){console.error('게임 루프 오류:',err);}
   requestAnimationFrame(loop);
 }
-const BUILD='c26-1';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c26-2';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
