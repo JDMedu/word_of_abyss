@@ -752,7 +752,10 @@ const CONFIG = {
   sweepDamage:14,        // 빛줄기에 맞았을 때
   beamDamage:12,         // 회전 빔
   orbDamage:2,           // 권씨 맴돌이
-  swordDamage:6,         // 유충렬 장성검
+  swordEvery:8,          // 유충렬 장성검 — 몇 초마다 베는가
+  swordMul:10,           // 벤 자리의 석판에 구슬 위력의 몇 배
+  swordBossMul:10,       // 보스에게는 몇 배
+  swordFireMul:1.0,      // 천사마 불길 — 한 번 태울 때 구슬 위력의 몇 배
   poolDps:7,             // 먹물 웅덩이 (초당)
   laserPeriod:2.4,
 
@@ -3662,7 +3665,8 @@ function charTick(dt){
   if(c.id==='yuchungryeol'){               // 장성검
     S.swordT=(S.swordT||0)-dt;
     if(S.swordT<=0){
-      S.swordT=10;
+      S.swordT=CONFIG.swordEvery;
+      const swd=Math.max(1,Math.round((S.ballDamage||1)*CONFIG.swordMul));
       const a0=Math.atan2(S.aimY,S.aimX);
       const forks=p2On('yuchungryeol')?[a0-0.34,a0,a0+0.34]:[a0];   // 천사마 — 세 갈래
       S.sword={ang:a0, t:.5, forks};
@@ -3678,7 +3682,7 @@ function charTick(dt){
         let df=Math.atan2(cy,cx)-a;
         while(df>Math.PI)df-=Math.PI*2;
         while(df<-Math.PI)df+=Math.PI*2;
-        if(Math.abs(df)<0.16&&d<1500){ chip(b,CONFIG.swordDamage,'gold'); if(S.screen!=='play')return; }
+        if(Math.abs(df)<0.16&&d<1500){ chip(b,swd,'gold'); if(S.screen!=='play')return; }   // 경보 석판은 chip 이 알아서 뺀다
       }
       if(S.boss){
         const a=a0;
@@ -3686,7 +3690,7 @@ function charTick(dt){
         let df=Math.atan2(cy,cx)-a;
         while(df>Math.PI)df-=Math.PI*2;
         while(df<-Math.PI)df+=Math.PI*2;
-        if(Math.abs(df)<0.2){ S.boss.hp-=CONFIG.swordDamage*3; S.boss.hit=.14; }
+        if(Math.abs(df)<0.2){ S.boss.hp-=Math.max(1,Math.round((S.ballDamage||1)*CONFIG.swordBossMul)); S.boss.hit=.14; }
       }
       S.shake=Math.max(S.shake,10); vibe('right');
     }
@@ -3704,7 +3708,7 @@ function charTick(dt){
           while(df>Math.PI)df-=Math.PI*2;
           while(df<-Math.PI)df+=Math.PI*2;
           if(Math.abs(df)<0.16&&d<1500){
-            chip(b,Math.max(1,Math.round(CONFIG.swordDamage*0.5)),'gold');
+            chip(b,Math.max(1,Math.round((S.ballDamage||1)*CONFIG.swordFireMul)),'gold');
             if(S.screen!=='play')return;
           }
         }
@@ -8955,7 +8959,7 @@ function loop(now){
   try{update(dt);draw();}catch(err){console.error('게임 루프 오류:',err);}
   requestAnimationFrame(loop);
 }
-const BUILD='c26-2';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c27-0';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
