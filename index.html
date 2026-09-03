@@ -416,6 +416,10 @@ canvas{display:block;width:100%;height:100%}
       가라앉은 낱말을 건져 올려라.<br>
       <b>왼쪽</b> 이동 · <b>오른쪽</b> 조준 · <b>버튼</b> 발사<br>
       경보가 울리면 뜻에 맞는 낱말을 먼저 깨뜨려라.
+      <div style="margin-top:1.1em;font-size:.78em;line-height:1.6;color:var(--jade);opacity:.85">
+        브라우저에서 <b>홈 화면에 바로가기</b>를 만들어 두세요.<br>
+        <span style="color:var(--stone-deep)">그러지 않으면 한동안 안 들어올 때 기록이 지워질 수 있습니다.</span>
+      </div>
       <div id="buildTag" style="margin-top:1.4em;font-size:.7em;letter-spacing:.1em;
            color:rgba(158,143,110,.55)"></div>
     </div>
@@ -718,7 +722,7 @@ const CONFIG = {
   bossSpdPerBoss:0.050,   // 탄 속도 +5%
   bossCycPerBoss:0.026,   // 공격 주기 -2.6%
   bossRagePerBoss:0.6,    // 격노가 이만큼씩 길어진다(초)
-  abyssPitDmg:1.20,      // 심연의 구덩이(갈림길) — 보스 공격력이 이만큼 오른다
+  abyssPitDmg:1.30,      // 심연의 구덩이(갈림길) — 보스 공격력이 이만큼 오른다
   bossShieldCut:0.70,    // 평소 보스가 받는 피해 감소
   bossVulnMul:2.2,       // 뜻을 맞힌 뒤 받는 피해 배수
   bossVulnSec:9.0,       // 방벽이 열려 있는 시간(초)
@@ -1524,6 +1528,37 @@ const EVOS = [
    ══════════════════════════════════════════════════════════ */
 const TOMES = BOSSES.map(b=>b.tome);   // 문인마다 고유 천서
 
+/* ── 깊이 새김 ──
+   심연의 구덩이에서 끌려 나온 혼의 천서는 더 깊이 새겨져 있다.
+   좋은 쪽이 숫자면 그 값을 10% 세게, 켜짐/꺼짐이면 위력과 기력을 10% 얹는다.
+   dir:'up' 은 클수록 좋고, dir:'down' 은 작을수록 좋다 */
+const DEEP_BOON = {
+  pacheon:  {f:'dmgMul',     dir:'up'},     // 위력 ×2
+  yeokcheon:{f:'dmgMul',     dir:'up'},     // 위력 ×2
+  goyo:     {f:'descentMul', dir:'down'},   // 하강 −35%
+  hoeori:   {f:'accelMul',   dir:'up'},     // 가속 ×3
+  jilju:    {f:'moveMul',    dir:'up'},     // 이동 ×2
+  ingo:     {f:'hurtMul',    dir:'down'},   // 받는 피해 ×0.5
+  yeri:     {f:'dmgAdd',     dir:'up'},     // 위력 +5
+  eunggyeol:{f:'statusMul',  dir:'up'},     // 상태이상 ×2
+  geosang:  {f:'shotsMul',   dir:'up'},     // 구슬 ×2
+  pokpung:  {f:'regen',      dir:'up'},     // 기력이 차오름
+};
+const DEEP_MUL = 1.10;
+/* 천서를 몸에 새긴다. deep 이면 좋은 쪽을 한 번 더 밀어 준다 */
+function applyTome(t, box, deep){
+  t.set(box);
+  if(!deep) return;
+  const b=DEEP_BOON[t.id];
+  if(b && typeof box[b.f]==='number'){
+    box[b.f] = (b.dir==='down') ? box[b.f]/DEEP_MUL : box[b.f]*DEEP_MUL;
+  }else{                                    // 숫자로 밀 데가 없으면 위력과 기력으로
+    box.dmgMul   = (box.dmgMul   ||1)*DEEP_MUL;
+    box.energyMul= (box.energyMul||1)*DEEP_MUL;
+  }
+}
+const deepTome = id=>!!(S&&S.deepTomes&&S.deepTomes[id]);
+
 /* ══════════════════════════════════════════════════════════
    석판 종류
    ══════════════════════════════════════════════════════════ */
@@ -1712,7 +1747,7 @@ function saveRun(){
       totalWords:S.totalWords, learned:[...S.learned],
       fuseTok:S.fuseTok, tomePending:S.tomePending, wallCharge:S.wallCharge||0,
       forks:S.forks, gim:S.gim?S.gim.id:null, gimLeft:S.gimLeft||0,
-      tomes:(S.tomes||[]).map(t=>t.id),
+      tomes:(S.tomes||[]).map(t=>t.id), deepTomes:S.deepTomes||null,
       bossPick:S.bossPick, isAbyss:S.isAbyss,
       plan:(META.plan||[]).map(q=>q.b+'|'+q.l),      // 회차 차례도 함께 둔다
       depth:S.depth||0,
@@ -1993,7 +2028,7 @@ function newRun(){
       echoes:[], scaleUp:0, tideUp:0, twins:null, ghost:null,
       tutStarted:false, tutLeft:0, tutStep:0,
       px:VW/2, py:1150, aimX:0, aimY:-1,
-      bossPick:{}, abyssBoss:null, isAbyss:false, lesson:null,
+      bossPick:{}, abyssBoss:null, isAbyss:false, deepTomes:{}, lesson:null,
       bricks:[], balls:[], bullets:[], sparks:[], beams:[], queue:[], sweeps:[], nums:[],
       marks:[], pools:[], squeeze:null, beamsRot:null, seasonSpd:1, seasonCnt:1,
       boss:null, cool:0, laserT:CONFIG.laserPeriod,
@@ -2055,7 +2090,8 @@ function resumeRun(d){
   S.isAbyss=!!d.isAbyss;
   S.abyssBoss=d.abyssBoss?BOSSES.find(b=>b.name===d.abyssBoss):null;
   S.tomes=(d.tomes||[]).map(id=>TOMES.find(t=>t.id===id)).filter(Boolean);
-  if(S.tomes.length){ S.tome={}; for(const t of S.tomes) t.set(S.tome); S.tome.revive=0; }
+  S.deepTomes=d.deepTomes||{};
+  if(S.tomes.length){ S.tome={}; for(const t of S.tomes) applyTome(t,S.tome,!!S.deepTomes[t.id]); S.tome.revive=0; }
   S.ballSlots=(d.balls||[]).map(([id,lv])=>({def:BALLDEF(id),lv})).filter(x=>x.def);
   S.gearSlots=(d.gears||[]).map(([id,lv])=>({def:GEARDEF(id),lv})).filter(x=>x.def);
   if(!S.ballSlots.length) S.ballSlots=[{def:BALLDEF('stone'),lv:1}];
@@ -4986,12 +5022,31 @@ function estDps(){
     if(d.mine)   v*=1+at(d.mine,lv)*0.5;
     if(d.poison) v+=at(d.poison,lv)*CONFIG.poisonPerStack*(S.dotMul||1)*CONFIG.poisonTime*0.5;
     if(d.bleed)  v+=at(d.bleed,lv)*CONFIG.bleedPerStack*(S.dotMul||1)*2;
+    /* 아래는 어림잡기 어려운 것들 — 그래도 손해로 보이면 안 되니 값을 매긴다 */
+    if(d.pool)   v+=at(d.pool,lv)*2.2;                       // 먹웅덩이 — 고인 자리를 지나는 만큼
+    if(d.echo)   v+=at(d.echo,lv)*2.5;                       // 메아리 — 몇 번 튕기고 맞는가
+    if(d.turn)   hits+=at(d.turn,lv)*0.5;                    // 부메랑 — 되돌아와 한 번 더
+    if(d.stackPer) v+=at(d.stackPer,lv)*6;                   // 먹쌓임 — 쌓일수록
+    if(d.vampPower) v+=at(d.vampPower,lv)*4;
+    if(d.pen)    v+=at(d.pen,lv)*3;                          // 필묵 — 경보를 맞힐수록
+    if(d.scale)  v*=1+at(d.scale,lv)*0.35;                   // 몰릴수록 세지는 것
+    if(d.glass)  v*=at(d.glass,lv)||1;                       // 광인 — 실제 배수 그대로
     if(S.ax&&S.ax['월']>1.05) hits*=1+CONFIG.spillPct*0.35;        // 넘침
     sum+=v*hits;
   }
+  /* 낙인·서리는 제 위력이 아니라 판 전체를 돕는다 — 한 구슬이 아니라 빌드에 곱한다 */
+  let team=1;
+  /* 낙인은 상태이상이 걸려 있어야 값을 한다 — 그런 구슬이 함께 있는지 본다 */
+  const stat=S.ballSlots.some(x=>x.def.poison||x.def.bleed||x.def.freeze||x.def.pool||x.def.mine);
+  for(const b of S.ballSlots){
+    const d=b.def, lv=Math.max(0,b.lv);
+    if(d.brand)  team*=1+at(d.brand,lv)*(stat?1.6:0.3);   // 상태이상 걸린 석판이 받는 피해
+    if(d.freeze) team*=1+at(d.freeze,lv)*0.30;    // 얼려서 버는 시간
+    if(d.heal)   team*=1+at(d.heal,lv)*0.06;      // 기력도 오래 버티는 값이다
+  }
   const avg=sum/S.ballSlots.length;
   const cd=Math.max(0.05,CONFIG.shotCooldown*(S.rateMul||1));
-  const out=Math.round(S.shotBalls*avg/cd);
+  const out=Math.round(S.shotBalls*avg*team/cd);
   return isFinite(out)?out:0;                 // 값이 없으면 0으로 — NaN을 내보내지 않는다
 }
 /* 이 카드를 먹으면 얼마가 되는가 — 진짜로 먹어보고 되돌린다 */
@@ -5626,9 +5681,14 @@ function offerTome(n){
     d.innerHTML=`<div class="ti">${t.icon}</div><div style="flex:1">
       <div class="tn">${t.name}</div><div class="td">${t.text}</div>
       <div style="color:#B9A9F0;font-size:.7em;margin-top:.25em;letter-spacing:.1em">
-        ★★★★ 천서${own?' · 방금 잠재운 혼의 것':''}</div></div>`;
+        ★★★★ 천서${own?' · 방금 잠재운 혼의 것':''}</div>${
+        (own&&S.isAbyss)?`<div style="color:var(--gold);font-size:.72em;margin-top:.3em">
+          ⟨깊이 새김⟩ 구덩이에서 건졌다 — 좋은 쪽이 10% 세다</div>`:''}</div>`;
     d.onclick=()=>{
-      S.tome=S.tome||{}; t.set(S.tome);
+      const deep=!!(own && S.isAbyss);        // 구덩이에서 끌려 나온 혼의 것
+      S.tome=S.tome||{};
+      if(deep){ S.deepTomes=S.deepTomes||{}; S.deepTomes[t.id]=1; }
+      applyTome(t, S.tome, deep);
       (S.tomes=S.tomes||[]).push(t);
       if(S.tome.revive){ S.revives+=S.tome.revive; S.tome.revive=0; }
       recalc();
@@ -5836,14 +5896,17 @@ function offerPath(){
   const nm=b=>(b.ho?b.ho+' ':'')+b.name;
   const cave=document.createElement('div');cave.className='path cave';
   cave.innerHTML=`<div class="pn">문인의 동굴</div>
-    <div class="pd">${nm(pair[0])} 또는 ${nm(pair[1])}.<br>이미 한 번 지나온 길이다.</div>`;
+    <div class="pd">${nm(pair[0])} 또는 ${nm(pair[1])}.<br>이미 한 번 지나온 길이다.</div>
+    <div class="pw" style="color:var(--stone-deep)">여느 때와 같다 · 이 둘의 천서만 얻는다</div>`;
   cave.onclick=()=>{ S.isAbyss=false; S.abyssBoss=null; showBossIntro(); };
   list.appendChild(cave);
 
   const ab=document.createElement('div');ab.className='path abyss';
   ab.innerHTML=`<div class="pn">심연의 구덩이</div>
-    <div class="pd">누가 나올지 알 수 없다. 스무 혼 가운데 하나가 끌려 나온다.</div>
-    <div class="pw">공격이 ${Math.round((CONFIG.abyssPitDmg-1)*100)}% 더 아프다 · 그 혼의 천서를 얻는다</div>`;
+    <div class="pd">누가 나올지 알 수 없다. 이 층에 없는 <b>열여덟 혼</b> 가운데 하나가 끌려 나온다.<br>
+      여기서만 얻을 수 있는 천서가 있다.</div>
+    <div class="pw">공격이 ${Math.round((CONFIG.abyssPitDmg-1)*100)}% 더 아프다</div>
+    <div class="pw" style="color:var(--gold)">얻는 천서에 <b>⟨깊이 새김⟩</b>이 붙는다 — 좋은 쪽이 ${Math.round((DEEP_MUL-1)*100)}% 세다</div>`;
   ab.onclick=()=>{
     S.isAbyss=true;
     const slot=Math.floor(S.stage/CONFIG.bossEvery)-1;
@@ -8990,7 +9053,7 @@ function loop(now){
   try{update(dt);draw();}catch(err){console.error('게임 루프 오류:',err);}
   requestAnimationFrame(loop);
 }
-const BUILD='c27-3';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c28-4';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
