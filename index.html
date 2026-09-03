@@ -765,7 +765,8 @@ const CONFIG = {
 
   /* 심연(회차)마다 붙는 값 */
   abyssStep:0.10,        // 심연 한 단마다 하강·보스 체력·보스 공격이 오른다
-  abyssInkStep:0.30,     // 심연 한 단마다 먹이 오른다
+  abyssInkBase:1.00,     // 심연에 들어서면 먹이 이만큼 더
+  abyssInkStep:0.30,     // 심연 한 단마다 먹이 더 오른다
   abyssMaxRung:7,        // 계약은 일곱 단까지. 그 위는 숫자만 오른다
   p2Cost:100,            // 인물 두 번째 재주 값
   abyssKindBase:0.5,     // 심연에 들어서면 특수 석판이 한 줄에 이만큼 더
@@ -775,9 +776,14 @@ const CONFIG = {
   abyssTide:1.12,        // 계약 · 거센 물살 — 하강이 이만큼 더
   rushWarn:4.0,          // 내닫는 석판 — 깜빡이는 동안(초)
   rushSpeed:1.5,         // 내달릴 때의 배속
-  bodyPower:[0.25,0.50,1.00,1.25],   // 몸돌 눈금별 위력의 몫
-  bodyReach:[1,2,3,99],              // 몸돌 눈금별 범위(1이 기본, 99는 판 전체)
-  bodyOdds:[0.40,0.30,0.20,0.10],    // 눈금이 나올 몫 — 높을수록 드물다
+  /* 몸돌 — 터진 자리에서 한 칸씩 멀어질수록 석판 체력의 이만큼을 깎는다.
+     칸은 위아래양옆으로 센다. 배열 밖은 bodyRest 를 쓴다 */
+  bodyRings:[[0.70,0.30],
+             [1.00,0.70,0.30],
+             [1.00,1.00,0.70,0.30],
+             [1.00,1.00,1.00,1.00]],
+  bodyRest:[0,0,0,0.50],             // 그 너머 — 눈금 4만 판 전체를 훑는다
+  bodyOdds:[0.43,0.28,0.21,0.08],    // 눈금이 나올 몫
   regenEvery:5.0,        // 눈 — 기력이 차오르는 주기(초)
   arrowSide:0.60,        // 신기전 — 좌우 석판에 가는 위력의 몫
 
@@ -1614,7 +1620,7 @@ const PACTS = [
 const depth   = ()=>(S&&S.depth)||0;              // 이번 판의 심연 깊이
 const pactOn  = k=>depth()>=k;                    // 그 계약이 걸려 있는가
 const abyssHard = ()=>1+CONFIG.abyssStep*depth();     // 하강·보스에 곱한다
-const abyssInkMul=()=>1+CONFIG.abyssInkStep*depth();  // 먹에 곱한다
+const abyssInkMul=()=>depth()>0 ? 1+CONFIG.abyssInkBase+CONFIG.abyssInkStep*depth() : 1;
 const p2On    = id=>!!(META.p2&&META.p2[id]) && META.char===id;   // 두 번째 재주
 const p2Open  = id=>{const i=CHARS.findIndex(c=>c.id===id); return i>=0 && (META.abyss||0)>i;};
 
@@ -2653,22 +2659,37 @@ function chargeMulOf(t){
 }
 const chargeFull=()=>chargeMulOf(CONFIG.chargeMax);
 /* 몸돌이 깨진다 — 둘레 석판에 구슬 위력의 몫만큼 옮아간다 */
+/* 터진 자리에서 몇 칸 떨어진 석판인가 — 위아래양옆으로 센다 */
+function ringOf(b,cx,cy){
+  const CL=cell()||1, RH=b.h||1;
+  const gx=Math.max(0, Math.abs((b.x+b.w/2)-cx) - b.w/2);
+  const gy=Math.max(0, Math.abs((b.y+b.h/2)-cy) - b.h/2);
+  return Math.floor(Math.max(gx/CL, gy/RH)+0.35)+1;
+}
 function bodyBoom(cx,cy,gr){
   const g=Math.max(1,Math.min(4,gr||1));
-  const dmg=Math.max(1,Math.round((S.ballDamage||10)*CONFIG.bodyPower[g-1]));
-  const mul=CONFIG.bodyReach[g-1];
-  const all=(mul>=99);
-  const R=all?99999:cell()*1.9*mul;
+  const rings=CONFIG.bodyRings[g-1], rest=CONFIG.bodyRest[g-1]||0;
+  let far=0;
   for(let i=S.bricks.length-1;i>=0;i--){
-    const b=S.bricks[i]; if(!b)continue;
-    if(!all && Math.hypot(b.x+b.w/2-cx, b.y+b.h/2-cy)>R+b.w/2)continue;
-    chip(b,dmg,'jade'); if(S.screen!=='play')return;
+    const b=S.bricks[i]; if(!b||b.quiz||isSolid(b))continue;
+    const k=ringOf(b,cx,cy);
+    const pct=(k<=rings.length)?rings[k-1]:rest;
+    if(pct<=0)continue;
+    if(k>rings.length) far++;
+    chip(b, Math.max(1,Math.ceil((b.maxHp||b.hp)*pct)), 'jade');
+    if(S.screen!=='play')return;
   }
+  const reach=cell()*(rings.length+0.5);
+  const all=rest>0;
   S.rings=S.rings||[];
-  S.rings.push({x:cx,y:cy,r:10,max:all?Math.hypot(VW,VH):R,t:.28+.14*g,dur:.28+.14*g,gr:g});
-  burst(cx,cy,18+8*g,'jade');
-  S.shake=Math.max(S.shake,10+5*g); vibe('right'); S.winFlash=.3+.12*g;
-  if(all){ S.alertMsg={text:'몸돌 넷 — 구덩이가 흔들렸다',t:1.6,ok:true}; }
+  S.rings.push({x:cx,y:cy,r:12,max:reach,t:1.2,dur:1.2,gr:g});
+  if(g>=3) S.rings.push({x:cx,y:cy,r:12,max:reach*0.62,t:1.0,dur:1.0,gr:g});
+  if(all)  S.rings.push({x:cx,y:cy,r:12,max:Math.hypot(VW,VH),t:1.4,dur:1.4,gr:g});
+  burst(cx,cy,18+9*g,'jade');
+  S.shake=Math.max(S.shake,10+5*g);
+  vibe(g>=4?'boss':'right');
+  S.winFlash=Math.max(S.winFlash||0, all?0.9:0.3+0.12*g);
+  if(all) S.alertMsg={text:'몸돌 넷 — 구덩이가 흔들렸다',t:1.8,ok:true};
 }
 /* 구보씨 — 걸으면 오르고 멈추면 내린다 */
 function walkMul(){
@@ -6645,9 +6666,9 @@ function draw(){
       if(g.t<=0){ S.rings.splice(i,1); continue; }
       const k=1-g.t/g.dur;
       ctx.save();
-      ctx.strokeStyle=`rgba(82,191,160,${(1-k)*0.85})`;
-      ctx.lineWidth=6*(1-k)+1.5;
-      ctx.shadowColor='#52BFA0'; ctx.shadowBlur=18*(1-k);
+      ctx.strokeStyle=`rgba(82,191,160,${(1-k)*0.92})`;
+      ctx.lineWidth=14*(1-k)+2.5;
+      ctx.shadowColor='#52BFA0'; ctx.shadowBlur=30*(1-k);
       ctx.beginPath(); ctx.arc(g.x,g.y,g.r+(g.max-g.r)*k,0,Math.PI*2); ctx.stroke();
       ctx.restore();
     }
@@ -8683,14 +8704,24 @@ function drawCharFx(){
     roundRect(w.x,w.y,w.w,w.h,6);ctx.fill();ctx.stroke();
     ctx.shadowBlur=0; ctx.globalAlpha=1;
   }
-  if(S.sword){                                    // 장성검
-    const a=S.sword.ang;
+  if(S.sword){                                    // 장성검 — 화면 끝까지 뻗는다
+    const L=Math.hypot(VW,VH)*1.2;
+    const arms=(S.sword.forks&&S.sword.forks.length)?S.sword.forks:[S.sword.ang];
     ctx.globalAlpha=Math.max(0,S.sword.t/.5)*.9;
-    const g=ctx.createLinearGradient(S.px,S.py,S.px+Math.cos(a)*900,S.py+Math.sin(a)*900);
-    g.addColorStop(0,'rgba(200,180,255,.95)');g.addColorStop(1,'rgba(142,123,216,0)');
-    ctx.strokeStyle=g;ctx.lineWidth=26;ctx.lineCap='round';
-    ctx.beginPath();ctx.moveTo(S.px,S.py);
-    ctx.lineTo(S.px+Math.cos(a)*1400,S.py+Math.sin(a)*1400);ctx.stroke();
+    ctx.lineCap='round';
+    for(const a of arms){
+      const ex=S.px+Math.cos(a)*L, ey=S.py+Math.sin(a)*L;
+      const g=ctx.createLinearGradient(S.px,S.py,ex,ey);
+      g.addColorStop(0,'rgba(226,214,255,.98)');
+      g.addColorStop(.55,'rgba(180,160,255,.62)');
+      g.addColorStop(1,'rgba(142,123,216,.10)');
+      ctx.strokeStyle=g; ctx.shadowColor='#8E7BD8'; ctx.shadowBlur=24;
+      ctx.lineWidth=26;
+      ctx.beginPath();ctx.moveTo(S.px,S.py);ctx.lineTo(ex,ey);ctx.stroke();
+      ctx.shadowBlur=0; ctx.lineWidth=7;
+      ctx.strokeStyle='rgba(255,252,255,.9)';
+      ctx.beginPath();ctx.moveTo(S.px,S.py);ctx.lineTo(ex,ey);ctx.stroke();
+    }
     ctx.lineCap='butt';ctx.globalAlpha=1;
   }
   if(S.zealT>0){                                  // 수절
@@ -8959,7 +8990,7 @@ function loop(now){
   try{update(dt);draw();}catch(err){console.error('게임 루프 오류:',err);}
   requestAnimationFrame(loop);
 }
-const BUILD='c27-0';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c27-3';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
