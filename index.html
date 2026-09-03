@@ -759,6 +759,7 @@ const CONFIG = {
   abyssInkStep:0.30,     // 심연 한 단마다 먹이 오른다
   abyssMaxRung:7,        // 계약은 일곱 단까지. 그 위는 숫자만 오른다
   p2Cost:100,            // 인물 두 번째 재주 값
+  arrowSide:0.60,        // 신기전 — 좌우 석판에 가는 위력의 몫
 
   /* 구슬 · 문방 슬롯 */
   ballSlotBase:3,        // 구슬 슬롯. 주머니로 6칸까지
@@ -1571,7 +1572,7 @@ const CHARS = [
   {id:'none', name:'이름 없는 자', work:'구덩이로 내려온 채자인',
    skill:'재주 없음', desc:'남다른 것이 없다. 오로지 구슬로만 싸운다',
    floor:0, cost:0, color:'#52BFA0',
-   p2:'먹 터짐', p2desc:'구슬이 저마다 다른 석판을 좇아가 달라붙는다<br>0.5초 뒤 터지며 <b>좌우 석판</b>에 위력의 100%를 준다'},
+   p2:'신기전(神機箭)', p2desc:'구슬이 저마다 다른 석판을 좇아간다<br>닿는 순간 터지며 <b>좌우 석판</b>에 위력의 60%<br>한 번 쓰면 사라진다'},
   {id:'kwon', name:'권씨', work:'아홉 켤레의 구두로 남은 사내',
    skill:'맴돌이',
    desc:'작은 석판 <b>셋</b>이 곁을 돌며 닿는 석판을 친다<br>구두를 아홉 켤레 지고 다니듯, 늘 곁에 둔다',
@@ -2528,7 +2529,7 @@ function spawnBallAt(ang,slot,px,py,mid,chg){
     pierce:(d.pierce?d.pierce[lv]:0)+((S.tome&&S.tome.pierceAll)||0)+(S.pierceBonus||0),
     home:d.home?d.home[lv]:0,
     bounces:0, wallB:0, floorLeft:CONFIG.floorBounceMax, skip:null, trail:[],
-    stick:p2On('none')?1:0, seekB:null, stuckT:0});
+    stick:p2On('none')?1:0, seekB:null});
 }
 /* 지금 연속이 몇 배를 만드는가 */
 function comboMul(){
@@ -2726,65 +2727,70 @@ function applyEffects(b,ball){
     }
   }
 }
-/* ── 먹 터짐 (이름 없는 자) ──
-   구슬이 저마다 다른 석판을 좇아가 달라붙고, 0.5초 뒤 터지며 좌우 석판을 친다.
-   달라붙어 있는 동안(false를 돌려줄 때)에는 여느 구슬처럼 움직이지 않는다 */
+/* ── 신기전 (이름 없는 자) ──
+   구슬이 저마다 다른 석판을 좇아가, 닿는 즉시 그 자리에서 터진다.
+   맞은 석판을 한 번 치고 좌우에 위력의 100%를 준 뒤 사라진다.
+   움직임을 통째로 여기서 맡는다 — 벽에도 석판에도 튕기지 않는다.
+   false 를 돌려주면 여느 구슬의 물리는 건너뛴다 */
 function inkSeek(ball,dt){
-  if(ball.stuckT>0){                                   // 붙어 있다
-    ball.stuckT-=dt;
-    const t=ball.seekB;
-    if(t&&S.bricks.indexOf(t)>=0){ ball.x=t.x+t.w/2; ball.y=t.y+t.h/2; }
-    if(ball.stuckT<=0) inkBoom(ball);
-    return false;
-  }
-  /* 아직 겨눈 석판이 없거나 그새 깨졌으면 새로 고른다 — 다른 구슬이 찍은 것은 뺀다 */
+  if(ball.dead) return false;
+  /* 겨눈 석판이 없거나 그새 깨졌으면 새로 고른다 — 다른 구슬이 찍은 것은 뒤로 민다 */
   if(!ball.seekB || S.bricks.indexOf(ball.seekB)<0){
     const taken=new Set();
     for(const o of S.balls) if(o!==ball&&o.seekB) taken.add(o.seekB);
     let best=null,bd=Infinity;
     for(const b of S.bricks){
-      if(b.quiz&&!ball.fired)continue;
-      const d=Math.hypot(b.x+b.w/2-ball.x,b.y+b.h/2-ball.y);
-      if(taken.has(b)){ if(d*3<bd){best=b;bd=d*3;} continue; }
-      if(d<bd){best=b;bd=d;}
+      if(b.quiz)continue;
+      const d=Math.hypot(b.x+b.w/2-ball.x, b.y+b.h/2-ball.y);
+      const w=taken.has(b)?d*3:d;                    // 이미 찍힌 석판은 셋째 순위로
+      if(w<bd){best=b;bd=w;}
     }
     ball.seekB=best;
   }
   const t=ball.seekB;
-  if(t){                                               // 유도처럼 방향을 튼다
+  const sp=Math.hypot(ball.vx,ball.vy)||ball.sp0;
+  if(t){                                             // 유도처럼 방향을 튼다
     const a=Math.atan2(t.y+t.h/2-ball.y, t.x+t.w/2-ball.x);
     const cur=Math.atan2(ball.vy,ball.vx);
     let df=a-cur; while(df>Math.PI)df-=Math.PI*2; while(df<-Math.PI)df+=Math.PI*2;
     const na=cur+Math.max(-7*dt,Math.min(7*dt,df));
-    const sp=Math.hypot(ball.vx,ball.vy)||ball.sp0;
     ball.vx=Math.cos(na)*sp; ball.vy=Math.sin(na)*sp;
-    if(overlaps(ball,t)){                              // 닿았다 — 달라붙는다
-      hitBrick(t,ball);
-      ball.skip=t;                                     // 같은 석판을 두 번 치지 않는다
+  }
+  /* 스스로 나아간다 — 벽에도 석판에도 튕기지 않는다 */
+  const steps=Math.max(1,Math.ceil(sp*dt/(ball.r*.7))), h=dt/steps;
+  for(let s=0;s<steps;s++){
+    ball.x+=ball.vx*h; ball.y+=ball.vy*h;
+    if(t&&overlaps(ball,t)){                         // 닿았다 — 그 자리에서 터진다
+      ball.vx=ball.vy=0;
+      ball.dead=1; ball.life=-1;                     // 치기 전에 먼저 죽인다
+      hitBrick(t,ball);                              // 석판을 딱 한 번 친다
       if(S.screen!=='play')return false;
-      if(S.bricks.indexOf(t)<0){ ball.seekB=null; ball.skip=null; }
-      else { ball.stuckT=0.5; ball.vx=ball.vy=0; burst(ball.x,ball.y,4,'gold'); return false; }
+      inkBoom(ball,t);
+      return false;
     }
   }
-  return true;
+  /* 겨눌 석판이 없으면 곧게 날다 화면 밖에서 스러진다 */
+  if(ball.y-ball.r>VH+40 || ball.y+ball.r<-40
+     || ball.x+ball.r<WALL_L-60 || ball.x-ball.r>WALL_R+60) ball.life=-1;
+  return false;
 }
 /* 터진다 — 좌우 석판에 위력의 100%. 구슬은 자취를 남기고 사라진다 */
-function inkBoom(ball){
-  const t=ball.seekB, dmg=Math.max(1,Math.round(ball.base));
+function inkBoom(ball,at){
+  ball.dead=1; ball.life=-1;                         // 먼저 죽인다 — 도중에 층이 깨져도 되살지 않게
+  const t=at||ball.seekB, dmg=Math.max(1,Math.round(ball.base*CONFIG.arrowSide));
   if(t&&S.bricks.indexOf(t)>=0){
     const cy=t.y+t.h/2, reach=t.w*1.4;
     for(let i=S.bricks.length-1;i>=0;i--){
       const b=S.bricks[i];
       if(!b||b===t||b.quiz)continue;
       if(Math.abs((b.y+b.h/2)-cy)>t.h*0.7)continue;
-      const gap=Math.min(Math.abs(b.x-(t.x+t.w)),Math.abs(t.x-(b.x+b.w)));
+      const gap=Math.min(Math.abs(b.x-(t.x+t.w)), Math.abs(t.x-(b.x+b.w)));
       if(gap<=reach){ chip(b,dmg,'gold'); if(S.screen!=='play')return; }
     }
   }
   burst(ball.x,ball.y,16,'gold');
   S.beams.push({x1:ball.x-70,y1:ball.y,x2:ball.x+70,y2:ball.y,t:.26,col:'#E5B24F'});
   S.shake=Math.max(S.shake,7);
-  ball.life=-1;                                        // 사라진다
 }
 function hitBrick(b,ball){
   /* 설렁탕 — 가득 실은 구슬이 석판을 깨면 기력이 돌아온다. 한 층에 세 번 */
@@ -2945,7 +2951,7 @@ function homeIn(ball,dt){          // 나침반: 가까운 석판 쪽으로 조�
   ball.vx=Math.cos(a)*sp; ball.vy=Math.sin(a)*sp;
 }
 function moveBall(ball,dt){
-  if(ball.stick){ if(!inkSeek(ball,dt)) return; }      // 먹 터짐 — 좇아가 달라붙는다
+  if(ball.stick){ if(!inkSeek(ball,dt)) return; }      // 신기전 — 좇아가 터진다
   homeIn(ball,dt);
   const steps=Math.max(1,Math.ceil(Math.hypot(ball.vx,ball.vy)*dt/(ball.r*.7)));
   const h=dt/steps;
@@ -8674,7 +8680,7 @@ function loop(now){
   try{update(dt);draw();}catch(err){console.error('게임 루프 오류:',err);}
   requestAnimationFrame(loop);
 }
-const BUILD='c23-0';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c23-6';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
