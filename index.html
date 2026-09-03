@@ -629,7 +629,9 @@ const CONFIG = {
   ballDamageStart:2, spread:0,
   fanArc:0.785,          // 춘향 — 부채꼴이 벌어지는 각(45°)
   fanMidSpd:1.7,         // 춘향 — 한가운데 화살이 이만큼 빠르다
-  chargeMax:5.0,         // 김첨지 — 힘을 실을 수 있는 최대 시간(초)
+  chargeMax:3.0,         // 김첨지 — 힘을 실을 수 있는 최대 시간(초)
+  chargeStep:0.4,        // 이만큼마다 한 눈금씩 오른다
+  chargePer:0.6,         // 한 눈금이 더해 주는 배수
   jeomsunCells:5,        // 점순이 — 구슬이 나는 거리(칸)
   jeomsunDmg:2.0,        // 점순이 — 그 대신 위력
   /* 새끼 구슬 — 위력이 1로 고정된다. '먹' 문방이 붙지 않고 '낙수'로만 오른다 */
@@ -770,7 +772,9 @@ const CONFIG = {
   abyssTide:1.12,        // 계약 · 거센 물살 — 하강이 이만큼 더
   rushWarn:4.0,          // 내닫는 석판 — 깜빡이는 동안(초)
   rushSpeed:1.5,         // 내달릴 때의 배속
-  bodySplash:0.25,       // 몸돌이 깨질 때 둘레 석판에 가는 구슬 위력의 몫
+  bodyPower:[0.25,0.50,1.00,1.25],   // 몸돌 눈금별 위력의 몫
+  bodyReach:[1,2,3,99],              // 몸돌 눈금별 범위(1이 기본, 99는 판 전체)
+  bodyOdds:[0.40,0.30,0.20,0.10],    // 눈금이 나올 몫 — 높을수록 드물다
   regenEvery:5.0,        // 눈 — 기력이 차오르는 주기(초)
   arrowSide:0.60,        // 신기전 — 좌우 석판에 가는 위력의 몫
 
@@ -1966,7 +1970,7 @@ function newRun(){
       energy:ebase, energyBase:ebase, energyMax:ebase, invuln:0,
       tome:null, tomes:[], tomePending:0, fuseTok:0, pendingCard:0, mergeNo:{}, cardHold:null,
       orb:null, shadow:0, shadowT:0, zealT:0, zealCd:0, flowerT:0,
-      wallT:0, wallBlk:null, swordT:0, sword:null, charT:0,
+      wallT:0, walls:null, swordT:0, sword:null, charT:0,
       wallCharge:0, healFx:0, stunT:0, fireLock:0, mines:[], drips:[], lightBar:null, bossStep:0, bossDmg:CONFIG.bulletDamage, bossSpd:1,
       statusMul:1, healMul:1, touchCut:0, dmgMul:1,
       revives:lvOf('revive'), cardBonus:lvOf('eye'),
@@ -2369,6 +2373,11 @@ function spawnRow(){
         if(k.id==='home')  extra.homeT=CONFIG.homeEvery/diff();
         if(k.id==='laser') extra.laserT=CONFIG.laserEvery/diff();
         if(k.id==='post'||k.id==='body'){ hp=9999; extra.solid=true; }
+        if(k.id==='body'){                            // 몸돌 — 눈금을 매긴다
+          let r=Math.random(), pick=0;
+          for(let q=0;q<CONFIG.bodyOdds.length;q++){ r-=CONFIG.bodyOdds[q]; if(r<0){pick=q;break;} }
+          extra.bodyN=pick+1;
+        }
         if(k.id==='rush')  extra.rushT=CONFIG.rushWarn;  // 내닫기까지 남은 시간
         announceKind(k);
       }
@@ -2482,7 +2491,7 @@ function release(e){
   if(!S)return;
   if(S.chargeId===e.pointerId){                  // 김첨지 — 손을 떼면 나간다
     S.chargeId=null;
-    S.chargeMul=Math.max(1,Math.min(5,Math.floor(S.chargeT||0)+1));
+    S.chargeMul=chargeMulOf(S.chargeT||0);
     S.chargeT=0; S.gFire=false;
     if(S.screen==='play') tryFire();
   }
@@ -2633,20 +2642,30 @@ function dmgOf(ball){
   return Math.max(1, Math.round(v*(S.dmgMul||1)*(S.growMul||1)*walkMul()));
 }
 
+/* 김첨지 — 실린 힘. 0.4초마다 한 눈금, 3초면 가득 찬다 */
+function chargeMulOf(t){
+  const cap=Math.floor(CONFIG.chargeMax/CONFIG.chargeStep);
+  const step=Math.min(cap, Math.floor(Math.max(0,t)/CONFIG.chargeStep+1e-9));
+  return 1+step*CONFIG.chargePer;
+}
+const chargeFull=()=>chargeMulOf(CONFIG.chargeMax);
 /* 몸돌이 깨진다 — 둘레 석판에 구슬 위력의 몫만큼 옮아간다 */
-function bodyBoom(cx,cy){
-  const dmg=Math.max(1,Math.round((S.ballDamage||10)*CONFIG.bodySplash));
-  const R=cell()*1.9;
+function bodyBoom(cx,cy,gr){
+  const g=Math.max(1,Math.min(4,gr||1));
+  const dmg=Math.max(1,Math.round((S.ballDamage||10)*CONFIG.bodyPower[g-1]));
+  const mul=CONFIG.bodyReach[g-1];
+  const all=(mul>=99);
+  const R=all?99999:cell()*1.9*mul;
   for(let i=S.bricks.length-1;i>=0;i--){
     const b=S.bricks[i]; if(!b)continue;
-    if(Math.hypot(b.x+b.w/2-cx, b.y+b.h/2-cy)>R+b.w/2)continue;
+    if(!all && Math.hypot(b.x+b.w/2-cx, b.y+b.h/2-cy)>R+b.w/2)continue;
     chip(b,dmg,'jade'); if(S.screen!=='play')return;
   }
   S.rings=S.rings||[];
-  S.rings.push({x:cx,y:cy,r:10,max:R,t:.42,dur:.42});   // 퍼지는 테
-  burst(cx,cy,26,'jade');
-  S.shake=Math.max(S.shake,14); vibe('right'); S.winFlash=.4;
-  META.bodyN=(META.bodyN||0)+1; saveMeta();
+  S.rings.push({x:cx,y:cy,r:10,max:all?Math.hypot(VW,VH):R,t:.28+.14*g,dur:.28+.14*g,gr:g});
+  burst(cx,cy,18+8*g,'jade');
+  S.shake=Math.max(S.shake,10+5*g); vibe('right'); S.winFlash=.3+.12*g;
+  if(all){ S.alertMsg={text:'몸돌 넷 — 구덩이가 흔들렸다',t:1.6,ok:true}; }
 }
 /* 구보씨 — 걸으면 오르고 멈추면 내린다 */
 function walkMul(){
@@ -2898,7 +2917,7 @@ function inkBoom(ball,at,a0,sp0){
 }
 function hitBrick(b,ball){
   /* 설렁탕 — 가득 실은 구슬이 석판을 깨면 기력이 돌아온다. 한 층에 세 번 */
-  if(p2On('kimcheomji') && ball && ball.chg>=5 && (S.soupN||0)<3 && b && !b.quiz && b.hp<=ball.base){
+  if(p2On('kimcheomji') && ball && ball.chg>=chargeFull()-0.01 && (S.soupN||0)<3 && b && !b.quiz && b.hp<=ball.base){
     S.soupN=(S.soupN||0)+1;
     S.energy=Math.min(S.energyMax,S.energy+10);
     S.alertMsg={text:'설렁탕을 사왔는데',t:1.2,ok:true};
@@ -3096,7 +3115,11 @@ function moveBall(ball,dt){
       burst(ball.x,VH-10,4,'stone');
     }
     if(ball.skip&&!overlaps(ball,ball.skip)) ball.skip=null;
-    if(S.wallBlk&&overlaps(ball,S.wallBlk)){ reflect(ball,S.wallBlk); speedUp(ball); continue; }
+    if(S.walls){                                  // 인력거 — 앞쪽 좌우 두 판
+      let bumped=false;
+      for(const w of S.walls) if(overlaps(ball,w)){ reflect(ball,w); speedUp(ball); bumped=true; break; }
+      if(bumped) continue;
+    }
     let done=false;
     for(const b of S.bricks){
       if(b===ball.skip)continue;
@@ -3618,11 +3641,18 @@ function charTick(dt){
     S.wallT=(S.wallT||0)-dt;
     if(S.wallT<=0){
       S.wallT=7;
-      const CL=cell();
-      S.wallBlk={x:MARGIN+Math.floor(Math.random()*(cols()-1))*CL+4,
-                 y:(CEIL_Y+DANGER_Y)/2, w:CL-8, h:26, t:3.0};
+      const CL=cell(), W=CL*2-8, H=52;              // 길이도 두께도 두 배
+      const y=Math.max(CEIL_Y+40, S.py-150);        // 사람 앞쪽
+      const gap=heroR()*2.4;
+      S.walls=[
+        {x:Math.max(WALL_L+4, S.px-gap-W), y, w:W, h:H, t:3.0},
+        {x:Math.min(WALL_R-4-W, S.px+gap),  y, w:W, h:H, t:3.0},
+      ];
     }
-    if(S.wallBlk){ S.wallBlk.t-=dt; if(S.wallBlk.t<=0) S.wallBlk=null; }
+    if(S.walls){
+      for(let i=S.walls.length-1;i>=0;i--){ S.walls[i].t-=dt; if(S.walls[i].t<=0) S.walls.splice(i,1); }
+      if(!S.walls.length) S.walls=null;
+    }
   }
   if(c.id==='yuchungryeol'){               // 장성검
     S.swordT=(S.swordT||0)-dt;
@@ -5617,7 +5647,7 @@ function nextStage(){
   if(S.stage>=CONFIG.maxFloor){ runEnd(true); return; }
   S.stage++;S.destroyed=0;S.clearedThisStage=[];
   S.bricks=[];S.balls=[];S.bullets=[];S.sparks=[];S.beams=[];S.queue=[];S.sweeps=[];S.nums=[];S.mines=[];S.drips=[];
-  S.dark=null;S.fog=null;S.hook=null;S.pull=null;S.cross=null;S.blobs=[];S.rings=[];
+  S.dark=null;S.fog=null;S.hook=null;S.pull=null;S.cross=null;S.blobs=[];S.rings=[];S.walls=null;
   S.marks=[];S.pools=[];S.squeeze=null;S.beamsRot=null;S.seasonSpd=1;S.seasonCnt=1;S.boss=null;
   S.alert=null;S.alertPending=false;S.sinceAlert=0;S.alertMsg=null;
   S.cool=0;S.invuln=0;S.cyc=0;S.pendingCard=0;dropTouches();
@@ -6436,7 +6466,7 @@ function update(dt){
         if(touched){
           const cx=b.x+b.w/2, cy=b.y+b.h/2;
           S.bricks.splice(i,1);
-          bodyBoom(cx,cy);                           // 둘레 석판까지 함께 상한다
+          bodyBoom(cx,cy,b.bodyN||1);                // 눈금만큼 둘레가 상한다
           if(S.screen!=='play')return;
           continue;                                  // 부딪친 사람은 다치지 않는다
         }
@@ -6642,7 +6672,7 @@ function draw(){
   for(const b of S.balls){
     if(b.baby) continue;
     /* 김첨지 — 실린 힘이 클수록 짙은 금빛이 된다 */
-    const k=Math.max(0,Math.min(1,((b.chg||1)-1)/4));
+    const k=Math.max(0,Math.min(1,((b.chg||1)-1)/Math.max(0.001,chargeFull()-1)));
     const col=k>0.02 ? `rgb(${243-(243-229)*k|0},${237-(237-178)*k|0},${223-(223-79)*k|0})`
                      : C['--paper'];
     for(let i=0;i<b.trail.length;i++){const t=b.trail[i];
@@ -6957,11 +6987,18 @@ function drawBrick(b){
     ctx.strokeStyle=b.kind==='body'?'rgba(210,255,240,.9)':'rgba(70,70,70,.9)';
     ctx.lineWidth=2.5; ctx.lineCap='round';
     const cx=b.x+b.w/2, cy=b.y+b.h/2, r=Math.min(b.w,b.h)*0.26;
-    if(b.kind==='body'){                         // 몸돌 — 부딪히라는 뜻의 두 화살
+    if(b.kind==='body'){                         // 몸돌 — 눈금과, 부딪히라는 뜻의 두 화살
       ctx.beginPath();
-      ctx.moveTo(cx-r*1.5,cy-r); ctx.lineTo(cx,cy); ctx.lineTo(cx-r*1.5,cy+r);
-      ctx.moveTo(cx+r*1.5,cy-r); ctx.lineTo(cx,cy); ctx.lineTo(cx+r*1.5,cy+r);
+      ctx.moveTo(cx-r*1.7,cy-r*.9); ctx.lineTo(cx-r*.9,cy); ctx.lineTo(cx-r*1.7,cy+r*.9);
+      ctx.moveTo(cx+r*1.7,cy-r*.9); ctx.lineTo(cx+r*.9,cy); ctx.lineTo(cx+r*1.7,cy+r*.9);
       ctx.stroke();
+      const g=b.bodyN||1;
+      ctx.fillStyle=g>=4?'#FFF6D8':'rgba(226,255,246,.95)';
+      ctx.font=`700 ${Math.round(Math.min(b.h*0.56,b.w*0.5))}px 'Gowun Batang',serif`;
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      if(g>=3){ ctx.shadowColor='#52BFA0'; ctx.shadowBlur=12+6*(g-2); }
+      ctx.fillText(String(g),cx,cy+1);
+      ctx.shadowBlur=0;
     }else{                                       // 말뚝 — 굵은 대못 하나
       ctx.lineWidth=Math.max(4,b.w*0.16);
       ctx.beginPath();
@@ -8630,12 +8667,12 @@ function drawCharFx(){
     ctx.fillRect(w.x,w.y+w.h+3,w.w*left,3);
     ctx.restore();
   }
-  if(S.wallBlk){                                  // 인력거 벽
-    const w=S.wallBlk;
+  if(S.walls) for(const w of S.walls){             // 인력거 — 앞쪽 좌우 두 판
     ctx.globalAlpha=Math.min(1,w.t);
-    ctx.fillStyle='rgba(111,168,224,.35)';ctx.strokeStyle='#6FA8E0';ctx.lineWidth=3;
-    roundRect(w.x,w.y,w.w,w.h,4);ctx.fill();ctx.stroke();
-    ctx.globalAlpha=1;
+    ctx.fillStyle='rgba(111,168,224,.30)';ctx.strokeStyle='#6FA8E0';ctx.lineWidth=3;
+    ctx.shadowColor='#6FA8E0'; ctx.shadowBlur=10;
+    roundRect(w.x,w.y,w.w,w.h,6);ctx.fill();ctx.stroke();
+    ctx.shadowBlur=0; ctx.globalAlpha=1;
   }
   if(S.sword){                                    // 장성검
     const a=S.sword.ang;
@@ -8725,7 +8762,7 @@ function drawControls(){
   /* 김첨지 — 실리는 힘 */
   const chg=(S.chargeId!=null)?(S.chargeT||0):0;
   if(chg>0){
-    const step=Math.max(1,Math.min(5,Math.floor(chg)+1));
+    const step=Math.round((chargeMulOf(chg)-1)/CONFIG.chargePer)+1;
     const p=Math.min(1,chg/CONFIG.chargeMax);
     ctx.globalAlpha=1;
     ctx.strokeStyle='rgba(5,8,15,.5)';ctx.lineWidth=11;
@@ -8913,7 +8950,7 @@ function loop(now){
   try{update(dt);draw();}catch(err){console.error('게임 루프 오류:',err);}
   requestAnimationFrame(loop);
 }
-const BUILD='c25-0';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c26-0';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
