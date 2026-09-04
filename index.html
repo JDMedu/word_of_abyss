@@ -651,7 +651,7 @@ const CONFIG = {
   colsStart:8, colsMax:15, colsEvery:5,   // 5층마다 한 칸씩 넓어진다 (35층에 15칸)
   brickHMax:96, brickHMin:64,             // 넓어질수록 석판이 납작해져 줄 수가 늘어난다
   descentByChapter:[34,40,46,52,58],
-  descentPerFloor:3.2,
+  descentPerFloor:4.0,
   fillRatio:0.72,
   /* 석판 체력 = 기본 3 + 글자 수 + 층 보너스
      층 보너스 = 5층마다 +2, 10층마다 추가로 +3  →  50층에서 2글자 석판이 40 */
@@ -665,9 +665,8 @@ const CONFIG = {
   goldInk:1,             // 금 석판을 깼을 때 먹 (구간 배율 없음)
   hardInk:0.5,           // 굳은 석판 (구간 배율 없음)
   hardMul:1.6,           // 굳은 석판 체력 배수
-  /* 난이도 계수 — 깊을수록 가팔라진다. 50층에서 두 배
-     10층 1.05 · 20층 1.18 · 30층 1.39 · 40층 1.66 · 50층 2.00 */
-  diffMax:1.00, diffPow:1.8, diffTopFloor:50,
+  /* 난이도 계수 — 깊을수록 가팔라진다. 마지막 층에서 두 배 */
+  diffMax:1.00, diffPow:1.8, diffTopFloor:40,
   diffSpeedShare:0.6,    // 속도에는 계수를 이만큼만 태운다
   diffBossShare:0.5,     // 보스는 자체 상승이 있어 절반만
   shootEvery:1.3,        // 쏘는 석판 발사 주기
@@ -690,13 +689,15 @@ const CONFIG = {
 
   /* 어휘 회차 */
   /* 5층 한 덩이 = 두 회차. 앞 두 층 · 뒤 두 층 · 다섯째 층(보스)은 둘을 합쳐 묻는다
-     50층 = 10덩이 × 2 = 20회차. 한 판에 같은 회차가 두 번 나오지 않는다 */
-  lessonsPerRun:20,      // 한 판에 도는 회차 수
+     40층 = 8덩이 × 2 = 16회차. 한 판에 같은 회차가 두 번 나오지 않는다 */
+  lessonsPerRun:16,      // 한 판에 도는 회차 수 (8덩이 × 2)
 
   alertGap:8,                // 경보 줄과 뒤따르는 석판 사이의 틈(px)
+  alertAt:[0.30,0.90],       // 층을 이만큼 깼을 때 경보가 온다
+  alertAtHard:[0.22,0.55,0.88],  // 계약 · 잦은 물음이면 세 번
   alertEvery:10, alertChoicesByChapter:[4,5,5,6,6], alertBrickHp:3,
   /* 경보 후보 수 — 이 층부터 이만큼 */
-  alertChoiceCurve:[[1,4],[11,5],[30,6],[42,7]],
+  alertChoiceCurve:[[1,4],[9,5],[24,6],[34,7]],
   /* 오답 되돌리기 — 틀린 낱말을 기억했다가 더 자주 내보낸다 */
   weakMax:40,            // 기억해 둘 낱말 수
   weakNeed:2,            // 몇 번 맞혀야 목록에서 빠지는지
@@ -707,15 +708,21 @@ const CONFIG = {
   alertDescentMul:0.65, alertWrongDamage:0,
   wrongStun:2.0,         // 오답이면 이만큼 못 움직이고 못 쏜다(초)
 
-  clearBase:20, clearPerCycle:1,
-  bossEvery:5, maxFloor:50,
+  cardEvery:2,           // 몇 층마다 카드를 고르는가
+  /* 인물의 기억이 뜨는 자리 — 보스 층(5의 배수)은 비켜 간다.
+     앞세계는 여덟 조각, 뒷세계는 열여섯 조각이라 자리 수를 맞춰 둔다 */
+  memFrontAt:[3,8,13,18,22,27,32,37],
+  memBackAt :[2,4,6,8,11,13,16,18,21,23,26,28,31,33,36,38],
+  floorSec:16,           // 한 층이 대략 이만큼 걸리게 잡는다(초)
+  clearSlack:0.65,       // 내려오는 것 가운데 이만큼을 깨면 층이 넘어간다
+  bossEvery:5, maxFloor:40, chapterLen:8,
 
   bossBulletPer10:0.30,      // 10층마다 보스가 뱉는 탄이 이만큼 늘어난다
   bossQuizMax:3,             // 보스가 한 번에 내거는 낱말 수
   quizRoamW:230,             // 떠다니는 경보 석판의 최대 폭
   newPatFrom:10,             // 이 층부터 새 가락이 섞인다
   newPatRate:0.34,           // 공격 한 번마다 이만한 확률로
-  bossHpBase:340, bossHpPerBoss:140,     // 체력 증가는 줄이고 그만큼을 위협으로 옮긴다
+  bossHpBase:400, bossHpPerBoss:400,     // 방벽이 열린 뒤에도 버티도록 두껍게
   bossBulletSpeed:290, bossCycleBase:1.9,
   bossDmgPerBoss:0.075,   // 보스 한 번째마다 탄 피해 +7.5%
   bossSpdPerBoss:0.050,   // 탄 속도 +5%
@@ -763,7 +770,7 @@ const CONFIG = {
 
   /* 보상 — 구간 배율(1~10층 ×1, 11~20층 ×2 …)이 곱해진다 */
   inkPerFloor:1, inkPerBoss:1, inkPerAlert:0,   // 경보 보상은 먹 대신 기력으로 간다
-  inkGain:1.30,              // 들어오는 먹을 통째로 이만큼 곱한다
+  inkGain:1.60,              // 들어오는 먹을 통째로 이만큼 곱한다
 
   /* 심연(회차)마다 붙는 값 */
   abyssStep:0.10,        // 심연 한 단마다 하강·보스 체력·보스 공격이 오른다
@@ -787,6 +794,7 @@ const CONFIG = {
   bodyRest:[0,0,0,0.50],             // 그 너머 — 눈금 4만 판 전체를 훑는다
   bodyOdds:[0.43,0.28,0.21,0.08],    // 눈금이 나올 몫
   regenEvery:5.0,        // 눈 — 기력이 차오르는 주기(초)
+  pitMemory:5,           // 구덩이 — 최근 이만큼 만난 혼은 잘 안 나온다
   auraMul:0.15,          // 향 — 한 단마다 초당 구슬 위력의 몫
   arrowSide:0.60,        // 신기전 — 좌우 석판에 가는 위력의 몫
 
@@ -798,7 +806,7 @@ const CONFIG = {
   tierWeight:[0,50,33,17],   // 별1 / 별2 / 별3 이 뽑힐 가중치
   /* 축 — 일(상태이상) 취(빠름) 월(위력) 장(구슬 수) */
   /* 관상 — 관상가가 오늘의 운을 봐 준다 */
-  omenWindows:[[3,25],[26,49]],   // 이 사이에서 한 번씩
+  omenWindows:[[3,20],[21,39]],   // 이 사이에서 한 번씩
   omenN:5,                        // 몇 장을 깔아 두는가
   omenWeight:[10,20,30,25,15],    // 큰빛 · 볕 · 무던 · 맹탕 · 그늘
 
@@ -827,7 +835,7 @@ const CONFIG = {
   hitCapPct:0.70,            // 일반 석판은 한 번에 최대 체력의 이만큼까지만 깎인다
 
   hpCurveFrom:1,             // 이 층부터 석판이 지수로 단단해진다 — 처음부터
-  hpCurveEvery:5,            // 몇 층마다
+  hpCurveEvery:4,            // 몇 층마다
   hpCurveMul:1.18,           // 얼마씩 (49층에 걸쳐 곱하므로 완만하게)
 
   axGear:[1,1.10,1.18,1.26,1.34,1.45,1.55],   // 곱하는 문방, 레벨별
@@ -1042,8 +1050,8 @@ const BOSSES = [
    patterns:['ring', 'offring', 'fan'], p2:['bolt', 'ring', 'curtain'],
    cry:'어리고 햐암 뜻은 내 분수인가 하노라',
    trait:'사계 — 열 초마다 계절이 바뀐다',
-   tome:{id:'goyo',icon:'⏾',name:'만흥',text:'석판이 35% 느리게 내려온다. 대신 얻는 먹 -25%',
-         set:t=>{t.descentMul=.65;t.inkCut=.25;}}},
+   tome:{id:'goyo',icon:'⏾',name:'만흥',text:'석판이 35% 느리게 내려온다. 대신 얻는 먹 -15%',
+         set:t=>{t.descentMul=.65;t.inkCut=.15;}}},
   {ho:'난설헌', name:'허초희', color:'#C86FA8', move:'center',
    lines:{meet:'엊그제 젊었더니 어느새 다 늙었소. 그대는 아직 젊구려.',
      talk:['장안의 경박한 이를 꿈같이 만나서, 이 얼굴 이 태도로 백년을 기약했소.','삼삼오오 다니는 길에 새 사람이 났단 말이오. 소식조차 끊어졌지.','죽으며 내 글을 태우라 하였소. 아우가 듣지 않아 나만 예 남았구려.'],
@@ -1064,8 +1072,8 @@ const BOSSES = [
    patterns:['spiral', 'pool'], p2:['rain', 'pool', 'burstshot'],
    cry:'저승길은 피할 수가 없습니다.',
    trait:'환생 — 한 번 되살아난다',
-   tome:{id:'yunhoe',icon:'☵',name:'이생규장전',text:'한 번 더 되살아난다. 대신 얻는 먹 -30%',
-         set:t=>{t.revive=1;t.inkCut=.3;}}},
+   tome:{id:'yunhoe',icon:'☵',name:'이생규장전',text:'한 번 더 되살아난다. 대신 얻는 먹 -20%',
+         set:t=>{t.revive=1;t.inkCut=.2;}}},
   {ho:'서포', name:'김만중', color:'#B98AE0', move:'teleport',
    lines:{meet:'여덟 낭자와 노닐던 일이 한바탕 꿈이었소. 그대는 깨어 있다 자신하오?',
      talk:['성진이 돌다리에서 선녀를 만난 것부터가 시작이었소.','부귀영화가 다 하룻밤 꿈이라 하였는데, 이 꿈은 어찌 깨지지 않는지 모르겠소.','나는 귀양지에서 어머니를 위해 이 이야기를 지었소. 하룻밤 만에.'],
@@ -1696,7 +1704,7 @@ const CHARS = [
   {id:'yuchungryeol', name:'유충렬', work:'유충렬전',
    skill:'장성검',
    desc:'10초마다 겨눈 쪽으로 빛줄기를 내지른다<br>줄기에 닿는 석판이 모두 한꺼번에 상한다',
-   floor:50, cost:480, color:'#8E7BD8',
+   floor:40, cost:480, color:'#8E7BD8',
    p2:'천사마', p2desc:'장성검이 <b>세 갈래</b>로 갈라진다<br>지나간 자리에 3초간 불길이 남아 석판을 태운다'},
 ];
 const charDef=id=>CHARS.find(c=>c.id===id)||CHARS[0];
@@ -1797,9 +1805,9 @@ function adminLessons(){
   return a.list;
 }
 /* ── 회차 차례 ──
-   오래 안 본 회차부터 스무 개를 가져온다. 실제로 내려간 층의 회차만 '봤다'로 치므로
+   오래 안 본 회차부터 열여섯 개를 가져온다. 실제로 내려간 층의 회차만 '봤다'로 치므로
    도중에 멈추면 못 본 회차는 다음 판에 그대로 다시 나온다.
-   하루 두 판이면 교재 마흔 회차가 정확히 한 바퀴 돈다 */
+   두어 판이면 교재 마흔 회차를 한 바퀴 돈다 */
 const lessonOrd = q=>(META.ord&&META.ord[lessonKey(q)])||0;   // 클수록 최근에 봤다
 function planLessons(){
   META.ord=META.ord||{}; META.ordN=META.ordN||0;
@@ -1815,7 +1823,7 @@ function planLessons(){
     const used=new Set(front.map(lessonKey));
     back=byOld.filter(q=>!used.has(lessonKey(q))).slice(0,need-half);
   }else{
-    const pool=byOld.slice(0,need).sort(()=>Math.random()-.5);   // 스무 개를 뽑아 자리만 섞는다
+    const pool=byOld.slice(0,need).sort(()=>Math.random()-.5);   // 뽑아 놓고 자리만 섞는다
     front=pool.slice(0,half); back=pool.slice(half);
   }
   let plan=[...front,...back];
@@ -1876,10 +1884,17 @@ function memList(id){
 }
 function memKey(id,floor){ return id+'_'+(deepOpen(id)?'b':'f')+'_'+floor; }
 /* 층에 닿았을 때 열 조각이 있으면 돌려준다 */
+/* 기억은 쉰 층 시절 자리에 맞춰 적혀 있다.
+   마흔 층에 맞게 자리를 다시 깔아 준다 — 보스 층은 비켜 간다 */
+function memFloors(id){
+  return deepOpen(id) ? CONFIG.memBackAt : CONFIG.memFrontAt;
+}
 function memAt(floor){
-  const id=META.char, list=memList(id);
-  for(const [f,t] of list){
-    if(f===floor && !(META.mem&&META.mem[memKey(id,f)])){
+  const id=META.char, list=memList(id), at=memFloors(id);
+  for(let i=0;i<list.length;i++){
+    const [f,t]=list[i];
+    const want=(at[i]!==undefined)?at[i]:f;
+    if(want===floor && !(META.mem&&META.mem[memKey(id,f)])){
       META.mem=META.mem||{}; META.mem[memKey(id,f)]=1; saveMeta();
       return t;
     }
@@ -1962,7 +1977,7 @@ const maxed  = u=>lvOf(u.id)>=u.cap;
 const VW=880, VH=1560, MARGIN=20;
 const FIELD_W=VW-MARGIN*2;
 /* 층에 따라 칸 수가 달라진다 */
-function chapterOf(f){ return Math.min(4, Math.floor((f-1)/10)); }
+function chapterOf(f){ return Math.min(4, Math.floor((f-1)/CONFIG.chapterLen)); }
 /* 5층마다 한 칸씩 넓어진다 — 8칸에서 시작해 35층에 15칸 */
 function colsAt(f){ return Math.min(CONFIG.colsMax, CONFIG.colsStart+Math.floor(((f||1)-1)/CONFIG.colsEvery)); }
 function cols(){ return colsAt(S?S.stage:1); }
@@ -2032,7 +2047,7 @@ function newRun(){
       bricks:[], balls:[], bullets:[], sparks:[], beams:[], queue:[], sweeps:[], nums:[],
       marks:[], pools:[], squeeze:null, beamsRot:null, seasonSpd:1, seasonCnt:1,
       boss:null, cool:0, laserT:CONFIG.laserPeriod,
-      alert:null, alertPending:false, sinceAlert:0, alertMsg:null,
+      alert:null, alertPending:false, sinceAlert:0, alertStep:0, alertMsg:null,
       clearedThisStage:[], destroyed:0, totalWords:0,
       learned:new Set(), learnedWords:[],
       bonusInk:0, alertRight:0, alertWrong:0,
@@ -2109,10 +2124,19 @@ function resumeRun(d){
   S.energy=Math.min(S.energy,S.energyMax);
 }
 
+/* 그 층이 본디 내는 하강 속도 — 천서나 심연이 건드리기 전의 값 */
+const descentBase=f=>CONFIG.descentByChapter[chapterOf(f)]
+                     +((f-1)%CONFIG.chapterLen)*CONFIG.descentPerFloor;
 const cycle      =()=>Math.floor((S.stage-1)/CONFIG.bossEvery);
-const clearNeed  =()=>Math.max(1,Math.round(
-  (CONFIG.clearBase+cycle()*CONFIG.clearPerCycle)*cols()/CONFIG.colsStart
-  * (easeOn(S&&S.stage)?CONFIG.easeNeed:1)));
+/* 한 층이 대략 floorSec 초 걸리도록 깨야 할 수를 정한다.
+   내려오는 속도가 빠를수록 같은 시간에 더 많이 내려오므로 요구량도 함께 오른다 */
+const clearNeed  =()=>{
+  const f=(S&&S.stage)||1;
+  const rowT=rowStep()/Math.max(1,descentBase(f));      // 한 줄이 내려오는 데 걸리는 시간
+  const per=Math.max(1,Math.round(cols()*CONFIG.fillRatio));
+  const n=CONFIG.floorSec/rowT*per*CONFIG.clearSlack;
+  return Math.max(8, Math.round(n*(easeOn(f)?CONFIG.easeNeed:1)));
+};
 /* 층이 깊어질수록 석판이 단단해진다 */
 const floorHp    =f=>Math.floor(f/5)*CONFIG.hpPer5+Math.floor(f/10)*CONFIG.hpPer10;
 /* 이 층에서 한 줄에 몇 개의 특수 석판이 들어가는가 */
@@ -2150,14 +2174,13 @@ function kindRate(f){
   return d>0 ? (base+CONFIG.abyssKindBase)*(1+CONFIG.abyssKindStep*d) : base;
 }
 const abyssMul   =()=>abyssHard()*(pactOn(6)?CONFIG.abyssTide:1);   // 거센 물살
-const descentSpd =()=>(CONFIG.descentByChapter[chapterOf(S.stage)]
-                        +((S.stage-1)%10)*CONFIG.descentPerFloor)*S.descentMul*abyssMul()
+const descentSpd =()=>descentBase(S.stage)*S.descentMul*abyssMul()
                         *(gimOn('overload')?CONFIG.overloadDescent:1)   // 과부하 — 세 배
                         *(1+(S.scaleUp||0))                             // 역린 — 깰수록 빨라진다
                         *(easeOn(S.stage)?CONFIG.easeDescent:1);        // 16층부터 숨통
 const isBossStage=n=>n%CONFIG.bossEvery===0;
 const ZONE_MUL=[1,2,3,4,6];
-const zoneMul    =f=>ZONE_MUL[Math.min(4,Math.floor((f-1)/10))];
+const zoneMul    =f=>ZONE_MUL[Math.min(4,Math.floor((f-1)/CONFIG.chapterLen))];
 
 const maxBallSlots=()=>Math.max(1,CONFIG.ballSlotBase+lvOf('pouch')-lvOf('picky'));
 const maxGearLv  =()=>CONFIG.gearLvBase+lvOf('mastery');   // 문방은 칸 제한이 없다
@@ -2783,7 +2806,14 @@ function checkClear(){
   if(S.destroyed>=clearNeed()){stageClear();return;}
   if(S.twins&&S.twins.length) return;              // 쌍혼 — 석판이 없다
   if(gimOn('silence')||gimOn('overload')) return;   // 물을 일이 없다
-  if(!S.alert&&!S.alertPending&&S.sinceAlert>=alertGap()) S.alertPending=true;
+  /* 경보는 시간이 아니라 층을 얼마나 깼는가로 온다 — 층 넘김과 겹치지 않는다 */
+  if(!S.alert&&!S.alertPending){
+    const need=clearNeed(), at=alertPoints();
+    const k=S.alertStep||0;
+    if(k<at.length && S.destroyed>=Math.round(need*at[k])){
+      S.alertStep=k+1; S.alertPending=true;
+    }
+  }
 }
 function nearbyBricks(b,n){
   const cx=b.x+b.w/2, cy=b.y+b.h/2;
@@ -2801,7 +2831,8 @@ function chip(b,amount,color){          // 다른 석판에 간접 피해
 }
 /* 타수형 효과 — 위력을 보지 않는다 */
 const hasStatus=b=>!!(b.bleedN>0||b.poiN>0||b.freeze>0||b.brandT>0);
-const alertGap =()=>Math.max(4,CONFIG.alertEvery-(pactOn(4)?3:0));   // 계약 · 잦은 물음
+/* 계약 · 잦은 물음 — 경보가 한 번 더 온다 */
+const alertPoints=()=>pactOn(4)?CONFIG.alertAtHard:CONFIG.alertAt;
 /* 춘향 · 옥중가 — 기력이 절반 아래로 떨어졌는가 */
 const jailOn   =()=>p2On('chunhyang')&&S&&S.energyMax>0&&S.energy<S.energyMax*0.5;
 const holdT=t=>t*(S.statusMul||1)+(S.holdBonus||0);
@@ -3293,13 +3324,42 @@ function predictPath(maxB){
 
 /* ---------- 보스 ---------- */
 /* 5층마다 두 명 중 하나가 나온다. 한 판 안에서는 고정된다 */
+/* 구덩이에서 끌려 나올 혼을 고른다.
+   이미 가진 천서의 주인과 최근에 만난 혼은 뒤로 민다 — 같은 얼굴만 보지 않게 */
+/* 그 보스 층에 설 수 있는 문인들.
+   앞 네 자리(5·10·15·20층)는 셋 중 하나, 뒤 네 자리(25~40층)는 둘 중 하나 */
+function bossPool(stage){
+  const slot=Math.floor(stage/CONFIG.bossEvery)-1;
+  const i=Math.max(0,Math.min(7,slot));
+  const p=[BOSSES[(i*2)%BOSSES.length], BOSSES[(i*2+1)%BOSSES.length]];
+  if(i<4 && BOSSES[16+i]) p.push(BOSSES[16+i]);   // 황진이·기형도·이원록·김수영
+  return p;
+}
+function pickPitBoss(here){
+  const pool=BOSSES.filter(b=>!here.includes(b));
+  const mine=new Set((S.tomes||[]).map(t=>t.id));
+  META.pitSeen=META.pitSeen||[];
+  const recent=new Set(META.pitSeen);
+  const w=pool.map(b=>{
+    let x=1;
+    if(mine.has(b.tome.id)) x*=0.15;        // 이미 가진 천서면 거의 안 나온다
+    if(recent.has(b.name))  x*=0.25;        // 최근에 만난 얼굴이면 뒤로
+    return x;
+  });
+  let tot=w.reduce((a,b)=>a+b,0), r=Math.random()*tot, pick=pool[pool.length-1];
+  for(let i=0;i<pool.length;i++){ r-=w[i]; if(r<=0){ pick=pool[i]; break; } }
+  META.pitSeen.push(pick.name);
+  while(META.pitSeen.length>CONFIG.pitMemory) META.pitSeen.shift();
+  saveMeta();
+  return pick;
+}
 function bossOf(stage){
   if(S&&S.isAbyss&&S.abyssBoss) return S.abyssBoss;
   const slot=Math.floor(stage/CONFIG.bossEvery)-1;
-  const pair=[BOSSES[(slot*2)%BOSSES.length], BOSSES[(slot*2+1)%BOSSES.length]];
+  const pool=bossPool(stage);
   if(!S.bossPick) S.bossPick={};
-  if(S.bossPick[slot]===undefined) S.bossPick[slot]=Math.random()<.5?0:1;
-  return pair[S.bossPick[slot]];
+  if(S.bossPick[slot]===undefined) S.bossPick[slot]=Math.floor(Math.random()*pool.length);
+  return pool[Math.min(pool.length-1,S.bossPick[slot])];
 }
 function spawnBoss(){
   const n=Math.floor(S.stage/CONFIG.bossEvery),d=bossOf(S.stage);
@@ -4911,6 +4971,8 @@ function stageClear(){
     growPlain(CONFIG.growClean);
     S.alertMsg={text:`무결 — 자람 +${CONFIG.growClean}`,t:1.8,ok:true};
   }
+  /* 카드는 두 층에 한 번 — 층이 짧아진 만큼 고르는 자리도 줄인다 */
+  if(S.stage % CONFIG.cardEvery !== 0){ nextStage(); return; }
   startQuiz(false);          // 복습 화면 없이 바로 뜻 맞히기로
 }
 
@@ -5022,6 +5084,17 @@ function drawCards(n){
   }
   return out.sort(()=>Math.random()-.5);
 }
+/* 숫자로는 안 잡히는 구슬이 있다 — 무엇을 주는지 한 줄로 알려준다 */
+function roleNote(c){
+  const d=c&&c.def; if(!d||c.kind!=='ball')return '';
+  if(d.vamp)   return '깨뜨릴 때마다 기력이 돌아온다';
+  if(d.freeze) return '석판을 멈춰 세운다';
+  if(d.brand)  return '상태이상 걸린 석판이 더 아프게 맞는다';
+  if(d.pen)    return '경보를 맞힐수록 세진다';
+  if(d.pool)   return '지나간 자리에 먹이 남아 계속 삭인다';
+  if(d.turn)   return '되돌아오는 길에도 때린다';
+  return '';
+}
 /* 한 번 발사가 초당 내는 공격력 — 카드를 고르기 전후를 견주려고 어림잡는다 */
 function estDps(){
   if(!S.ballSlots.length) return 0;
@@ -5035,6 +5108,7 @@ function estDps(){
     let v=Math.max(1,base*(S.dmgMul||1)*(S.growMul||1));
     let hits=1+at(d.pierce,lv)+(S.pierceBonus||0);               // 꿰뚫는 만큼 더 맞는다
     if(d.split)  hits+=at(d.split,lv)*(S.spawnMul||1)*0.5;
+    if(d.seed)   hits+=at(d.seed,lv)*(S.spawnMul||1)*0.8;   // 씨앗 — 벽마다 새끼
     if(d.boomN)  hits+=at(d.boomN,lv)*0.4;
     if(d.splash) hits+=(d.splashN?at(d.splashN,lv):1)*at(d.splash,lv);
     if(d.bolt)   hits+=at(d.bolt,lv);
@@ -5062,7 +5136,7 @@ function estDps(){
     const d=b.def, lv=Math.max(0,b.lv);
     if(d.brand)  team*=1+at(d.brand,lv)*(stat?1.6:0.3);   // 상태이상 걸린 석판이 받는 피해
     if(d.freeze) team*=1+at(d.freeze,lv)*0.30;    // 얼려서 버는 시간
-    if(d.heal)   team*=1+at(d.heal,lv)*0.06;      // 기력도 오래 버티는 값이다
+    if(d.vamp)   team*=1+at(d.vamp,lv)*4.0;       // 흡혈 — 기력도 오래 버티는 값이다
   }
   const avg=sum/S.ballSlots.length;
   const cd=Math.max(0.05,CONFIG.shotCooldown*(S.rateMul||1));
@@ -5073,12 +5147,15 @@ function estDps(){
 function estDpsWith(c){
   const kb=S.ballSlots.map(x=>({def:x.def,lv:x.lv}));
   const kg=S.gearSlots.map(x=>({def:x.def,lv:x.lv}));
-  let out=null;
+  let out=null, fresh=0;
   try{
     if(c.kind==='ball'){
       const own=S.ballSlots.find(x=>x.def.id===c.def.id);
       if(own) own.lv=Math.min(maxBallLv(),own.lv+1);
-      else if(S.ballSlots.length<maxBallSlots()) S.ballSlots.push({def:c.def,lv:1});
+      else if(S.ballSlots.length<maxBallSlots()){
+        S.ballSlots.push({def:c.def,lv:1});
+        fresh=S.ballSlots.length;             // 새 구슬 — 자리 나누는 몫은 빼고 본다
+      }
       else return null;                       // 자리가 없으면 견줄 수 없다
     }else if(c.kind==='gear'){
       const own=S.gearSlots.find(x=>x.def.id===c.def.id);
@@ -5086,6 +5163,9 @@ function estDpsWith(c){
       else S.gearSlots.push({def:c.def,lv:1});
     }else return null;
     recalc(); out=estDps();
+    /* 새로 들이는 구슬은 여섯 발을 한 종류 더 나눠 쓴다.
+       그 몫을 되돌려, 그 구슬이 제 값으로 얼마나 보태는지를 보여준다 */
+    if(fresh>1 && out!==null) out=Math.round(out*fresh/(fresh-1));
   }catch(e){ out=null; }
   S.ballSlots=kb; S.gearSlots=kg; recalc();
   return out;
@@ -5383,6 +5463,7 @@ function offerCards(n){
         <div class="cname">${c.def.name}</div>
         <div class="cdesc">${c.def.text(c.lv)}</div>
         <div class="stars">${'★'.repeat(t)} ${tag}</div>
+        ${after!==null&&roleNote(c)?`<div class="cdps" style="color:var(--jade)">${roleNote(c)}</div>`:''}
         ${after!==null?`<div class="cdps">초당 ${now.toLocaleString()} ➜ `
           +`<b style="color:${dpct>0?'var(--jade)':(dpct<0?'var(--vermilion)':'var(--stone-deep)')}">`
           +`${after.toLocaleString()}</b>`
@@ -5703,7 +5784,9 @@ function offerTome(n){
       <div style="color:#B9A9F0;font-size:.7em;margin-top:.25em;letter-spacing:.1em">
         ★★★★ 천서${own?' · 방금 잠재운 혼의 것':''}</div>${
         (own&&S.isAbyss)?`<div style="color:var(--gold);font-size:.72em;margin-top:.3em">
-          ⟨깊이 새김⟩ 구덩이에서 건졌다 — 좋은 쪽이 10% 세다</div>`:''}</div>`;
+          ⟨깊이 새김⟩ 구덩이에서 건졌다 — ${DEEP_BOON[t.id]
+            ? `좋은 쪽이 ${Math.round((DEEP_MUL-1)*100)}% 세다`
+            : `위력과 기력이 ${Math.round((DEEP_MUL-1)*100)}% 낫다`}</div>`:''}</div>`;
     d.onclick=()=>{
       const deep=!!(own && S.isAbyss);        // 구덩이에서 끌려 나온 혼의 것
       S.tome=S.tome||{};
@@ -5759,7 +5842,7 @@ function nextStage(){
   S.bricks=[];S.balls=[];S.bullets=[];S.sparks=[];S.beams=[];S.queue=[];S.sweeps=[];S.nums=[];S.mines=[];S.drips=[];
   S.dark=null;S.fog=null;S.hook=null;S.pull=null;S.cross=null;S.blobs=[];S.rings=[];S.walls=null;
   S.marks=[];S.pools=[];S.squeeze=null;S.beamsRot=null;S.seasonSpd=1;S.seasonCnt=1;S.boss=null;
-  S.alert=null;S.alertPending=false;S.sinceAlert=0;S.alertMsg=null;
+  S.alert=null;S.alertPending=false;S.sinceAlert=0;S.alertStep=0;S.alertMsg=null;
   S.cool=0;S.invuln=0;S.cyc=0;S.pendingCard=0;dropTouches();
   S.isBoss=isBossStage(S.stage);
   if(S.gimLeft>0){ S.gimLeft--; if(S.gimLeft<=0){ S.gim=null; S.gim2=null; } }
@@ -5911,28 +5994,24 @@ function offerPath(){
   S.screen='path';dropTouches();
   const list=el('pathList');list.innerHTML='';
 
-  const slot0=Math.floor(S.stage/CONFIG.bossEvery)-1;
-  const pair=[BOSSES[(slot0*2)%BOSSES.length],BOSSES[(slot0*2+1)%BOSSES.length]];
+  const pair=bossPool(S.stage);
   const nm=b=>(b.ho?b.ho+' ':'')+b.name;
   const cave=document.createElement('div');cave.className='path cave';
   cave.innerHTML=`<div class="pn">문인의 동굴</div>
-    <div class="pd">${nm(pair[0])} 또는 ${nm(pair[1])}.<br>이미 한 번 지나온 길이다.</div>
-    <div class="pw" style="color:var(--stone-deep)">여느 때와 같다 · 이 둘의 천서만 얻는다</div>`;
+    <div class="pd">${pair.map(nm).join(' · ')} 가운데 하나.<br>이미 한 번 지나온 길이다.</div>
+    <div class="pw" style="color:var(--stone-deep)">여느 때와 같다 · 이들의 천서만 얻는다</div>`;
   cave.onclick=()=>{ S.isAbyss=false; S.abyssBoss=null; showBossIntro(); };
   list.appendChild(cave);
 
   const ab=document.createElement('div');ab.className='path abyss';
   ab.innerHTML=`<div class="pn">심연의 구덩이</div>
-    <div class="pd">누가 나올지 알 수 없다. 이 층에 없는 <b>열여덟 혼</b> 가운데 하나가 끌려 나온다.<br>
+    <div class="pd">누가 나올지 알 수 없다. 이 층에 없는 혼 가운데 하나가 끌려 나온다.<br>
       여기서만 얻을 수 있는 천서가 있다.</div>
     <div class="pw">공격이 ${Math.round((CONFIG.abyssPitDmg-1)*100)}% 더 아프다</div>
-    <div class="pw" style="color:var(--gold)">얻는 천서에 <b>⟨깊이 새김⟩</b>이 붙는다 — 좋은 쪽이 ${Math.round((DEEP_MUL-1)*100)}% 세다</div>`;
+    <div class="pw" style="color:var(--gold)">얻는 천서에 <b>⟨깊이 새김⟩</b>이 붙는다 — ${Math.round((DEEP_MUL-1)*100)}% 더 좋다</div>`;
   ab.onclick=()=>{
     S.isAbyss=true;
-    const slot=Math.floor(S.stage/CONFIG.bossEvery)-1;
-    const here=[BOSSES[(slot*2)%BOSSES.length],BOSSES[(slot*2+1)%BOSSES.length]];
-    const pool=BOSSES.filter(b=>!here.includes(b));
-    S.abyssBoss=pool[Math.floor(Math.random()*pool.length)];
+    S.abyssBoss=pickPitBoss(bossPool(S.stage));
     showBossIntro();
   };
   list.appendChild(ab);
@@ -5956,12 +6035,12 @@ function runEnd(won){
   if(won){
     /* 고른 깊이를 끝까지 내려갔을 때만 다음 심연이 열린다 */
     if((S.depth||0)>=(META.abyss||0)){ META.abyss=(META.abyss||0)+1; opened=META.abyss; }
-    if(META.deep) delete META.deep[META.char];       // 50층을 끝내면 뒷세계가 닫힌다
+    if(META.deep) delete META.deep[META.char];       // 마지막 층을 끝내면 뒷세계가 닫힌다
   }
   clearRun();
   saveMeta();
 
-  el('endEyebrow').textContent = won?`50층을 끝까지 내려갔다`:`${S.stage}층에서 멈추다`;
+  el('endEyebrow').textContent = won?`${CONFIG.maxFloor}층을 끝까지 내려갔다`:`${S.stage}층에서 멈추다`;
   el('endTitle').innerHTML = won?'구덩이의 <em>바닥</em>에 닿다':'뜻을 놓치고 <em>밀려났다</em>';
   const acc=S.alertRight+S.alertWrong;
   el('endStats').innerHTML=
@@ -6201,7 +6280,7 @@ function renderAdmin(){
   const a=META.admin;
   const cur=a&&a.list&&a.list.length
     ? `지금 지정 — ${a.list.map(q=>BOOKNAME[q.b]+' '+q.l+'회').join(', ')}<br>${a.from||'제한 없음'} ~ ${a.to||'제한 없음'}`
-    : '지정 없음 · 오래 안 본 회차부터 스무 개가 자동으로 배정됩니다';
+    : '지정 없음 · 오래 안 본 회차부터 열여섯 개가 자동으로 배정됩니다';
   const t=previewLessons();
   el('admNow').innerHTML=cur+`<br><span style="color:var(--stone-deep)">다음 판 앞쪽(1~25층)에 나올 회차: ${t.map(q=>BOOKNAME[q.b]+' '+q.l+'회').join(', ')}</span>`;
 }
@@ -9122,7 +9201,7 @@ function loop(now){
   try{update(dt);draw();}catch(err){console.error('게임 루프 오류:',err);}
   requestAnimationFrame(loop);
 }
-const BUILD='c30-0';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c33-0';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
