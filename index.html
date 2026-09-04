@@ -543,7 +543,7 @@ canvas{display:block;width:100%;height:100%}
   </div>
 
   <div class="veil" id="vTome">
-    <div class="eyebrow">천서(天書) · 한 번뿐이다</div>
+    <div class="eyebrow" id="tomeEyebrow">천서(天書) · 한 번뿐이다</div>
     <div class="loadout" id="loadTome"></div>
     <div id="tomeList"></div>
   </div>
@@ -693,8 +693,8 @@ const CONFIG = {
   lessonsPerRun:16,      // 한 판에 도는 회차 수 (8덩이 × 2)
 
   alertGap:8,                // 경보 줄과 뒤따르는 석판 사이의 틈(px)
-  alertAt:[0.30,0.90],       // 층을 이만큼 깼을 때 경보가 온다
-  alertAtHard:[0.22,0.55,0.88],  // 계약 · 잦은 물음이면 세 번
+  alertBand:[0.30,0.90],     // 층을 이 사이만큼 깼을 때 한 번, 자리는 판마다 다르다
+  alertHardN:2,              // 계약 · 잦은 물음이면 이만큼 온다
   alertEvery:10, alertChoicesByChapter:[4,5,5,6,6], alertBrickHp:3,
   /* 경보 후보 수 — 이 층부터 이만큼 */
   alertChoiceCurve:[[1,4],[9,5],[24,6],[34,7]],
@@ -709,6 +709,8 @@ const CONFIG = {
   wrongStun:2.0,         // 오답이면 이만큼 못 움직이고 못 쏜다(초)
 
   cardEvery:2,           // 몇 층마다 카드를 고르는가
+  quizPerFloor:2,        // 층을 넘길 때 뜻을 몇 번 묻는가
+  cardBase:5,            // 한 번에 보는 카드 수 — 하나도 못 맞히면 한 장 적다
   /* 인물의 기억이 뜨는 자리 — 보스 층(5의 배수)은 비켜 간다.
      앞세계는 여덟 조각, 뒷세계는 열여섯 조각이라 자리 수를 맞춰 둔다 */
   memFrontAt:[3,8,13,18,22,27,32,37],
@@ -2047,7 +2049,8 @@ function newRun(){
       bricks:[], balls:[], bullets:[], sparks:[], beams:[], queue:[], sweeps:[], nums:[],
       marks:[], pools:[], squeeze:null, beamsRot:null, seasonSpd:1, seasonCnt:1,
       boss:null, cool:0, laserT:CONFIG.laserPeriod,
-      alert:null, alertPending:false, sinceAlert:0, alertStep:0, alertMsg:null,
+      alert:null, alertPending:false, sinceAlert:0, alertStep:0, alertMarks:null, alertMsg:null,
+      quizN:0, quizHit:0, quizShort:0, quizAfterBoss:false,
       clearedThisStage:[], destroyed:0, totalWords:0,
       learned:new Set(), learnedWords:[],
       bonusInk:0, alertRight:0, alertWrong:0,
@@ -2075,6 +2078,7 @@ function newRun(){
     S.gearSlots.push({def:pool[Math.floor(Math.random()*pool.length)],lv:1});
   }
   S.isBoss=isBossStage(S.stage);
+  rollAlertMarks();
   S.depth=Math.max(0,Math.min(META.depth||0, META.abyss||0));   // 이번 판에 고른 심연
   S.souptimes=0;                                    // 김첨지 — 층당 설렁탕 횟수
   planLessons();
@@ -2831,8 +2835,18 @@ function chip(b,amount,color){          // 다른 석판에 간접 피해
 }
 /* 타수형 효과 — 위력을 보지 않는다 */
 const hasStatus=b=>!!(b.bleedN>0||b.poiN>0||b.freeze>0||b.brandT>0);
-/* 계약 · 잦은 물음 — 경보가 한 번 더 온다 */
-const alertPoints=()=>pactOn(4)?CONFIG.alertAtHard:CONFIG.alertAt;
+/* 층마다 경보가 설 자리를 미리 뽑는다.
+   30~90% 사이 아무 데나 — 층이 열릴 때 한 번 정해 두고 그대로 쓴다 */
+function rollAlertMarks(){
+  const [lo,hi]=CONFIG.alertBand, k=pactOn(4)?CONFIG.alertHardN:1;
+  const out=[];
+  for(let i=0;i<k;i++){
+    const a=lo+(hi-lo)*(i/k), b=lo+(hi-lo)*((i+1)/k);
+    out.push(a+Math.random()*(b-a));
+  }
+  S.alertMarks=out;
+}
+const alertPoints=()=>(S&&S.alertMarks&&S.alertMarks.length)?S.alertMarks:CONFIG.alertBand.slice(0,1);
 /* 춘향 · 옥중가 — 기력이 절반 아래로 떨어졌는가 */
 const jailOn   =()=>p2On('chunhyang')&&S&&S.energyMax>0&&S.energy<S.energyMax*0.5;
 const holdT=t=>t*(S.statusMul||1)+(S.holdBonus||0);
@@ -4976,14 +4990,37 @@ function stageClear(){
   startQuiz(false);          // 복습 화면 없이 바로 뜻 맞히기로
 }
 
+/* 층을 넘길 때 뜻을 두 번 묻는다.
+   맞힌 수만큼 카드를 고른다 — 못 맞혀도 한 번은 고르되 볼 카드가 한 장 적다 */
 function startQuiz(afterBoss){
+  S.quizN=0; S.quizHit=0; S.quizAfterBoss=!!afterBoss;
+  askQuiz();
+}
+function cardN(){                                  // 한 번에 보는 카드 수
+  return Math.max(2, CONFIG.cardBase+(S.cardBonus||0)-((S.quizShort||0)?1:0));
+}
+function quizDone(){
+  const hit=S.quizHit||0;
+  S.quizShort=(hit===0)?1:0;                       // 하나도 못 맞히면 볼 카드가 한 장 적다
+  const times=Math.max(1,hit);                     // 못 맞혀도 한 번은 고른다
+  if(S.tomePending>0){                             // 보스 — 천서를 먼저, 카드는 그 뒤에
+    S.tomePending--; S.pendingCard=(S.pendingCard||0)+times;
+    offerTome(); return;
+  }
+  S.pendingCard=(S.pendingCard||0)+times-1;
+  offerCards(cardN());
+}
+function askQuiz(){
+  const afterBoss=S.quizAfterBoss;
   S.screen='quiz';dropTouches();
   const pool=afterBoss?(S.learnedWords.length?S.learnedWords:WORDS)
                       :(S.clearedThisStage.length?S.clearedThisStage:WORDS);
-  el('qzEyebrow').textContent=afterBoss?'혼을 잠재웠다 · 지금까지 건진 낱말에서':'뜻을 맞히면 한 장을 더 본다';
+  const turn=(S.quizN||0)+1, total=CONFIG.quizPerFloor;
+  el('qzEyebrow').textContent=(afterBoss?'혼을 잠재웠다 · 지금까지 건진 낱말에서':'뜻을 맞힌 만큼 고른다')
+    +`  ·  ${turn} / ${total}`;
   let ans=pickWord(new Set(), CONFIG.weakQuizRate);
-  if(!afterBoss && pool.length && !pool.some(x=>x.w===ans.w) && Math.random()>CONFIG.weakQuizRate)
-    ans=pool[Math.floor(Math.random()*pool.length)];
+  if(turn===1 && pool.length && !pool.some(x=>x.w===ans.w) && Math.random()>CONFIG.weakQuizRate)
+    ans=pool[Math.floor(Math.random()*pool.length)];   // 첫 물음은 방금 깬 낱말에서
   noteAsked(ans.w);
   const wrong=WORDS.filter(x=>x.w!==ans.w).sort(()=>Math.random()-.5).slice(0,3);
   const opts=[ans,...wrong].sort(()=>Math.random()-.5);
@@ -4994,15 +5031,20 @@ function startQuiz(afterBoss){
     const b=document.createElement('div');b.className='qOpt';b.textContent=o.w;
     b.onclick=()=>{if(done)return;done=true;
       const ok=o.w===ans.w;b.classList.add(ok?'right':'wrong');
-      if(ok){ growHit(CONFIG.growQuiz); weakHit(ans.w); } else { growMiss(); weakAdd(ans.w); }
+      if(ok){ growHit(CONFIG.growQuiz); weakHit(ans.w); S.quizHit=(S.quizHit||0)+1; }
+      else   { growMiss(); weakAdd(ans.w); }
       if(!ok)[...box.children].find(c=>c.textContent===ans.w)?.classList.add('right');
+      S.quizN=turn;
+      const last=turn>=total;
+      const got=S.quizHit||0;
       el('quizNote').innerHTML=ok
-        ? `맞혔다. 한 장을 더 본다.<br><span style="color:var(--gold)">연속 ${S.combo}`
+        ? `맞혔다.<br><span style="color:var(--gold)">연속 ${S.combo}`
           +`${comboMul()>1?' · 자람 '+comboMul().toFixed(1)+'배':''} — 자람 ${(S.grow||0).toFixed(0)}</span>`
-        : `정답은 ‘${ans.w}’.`;
-      const n=(ok?4:3)+S.cardBonus;
-      setTimeout(()=>{ if(S.tomePending>0){S.tomePending--;offerTome(n);} else offerCards(n); },
-                 ok?850:1500);};
+          +(last?`<br><span style="color:var(--jade)">${got}개 맞혔다 — ${Math.max(1,got)}번 고른다</span>`:'')
+        : `정답은 ‘${ans.w}’.`
+          +(last?`<br><span style="color:var(--stone-deep)">${got}개 맞혔다 — ${Math.max(1,got)}번 고른다`
+                 +`${got===0?' (한 장 적게 본다)':''}</span>`:'');
+      setTimeout(()=>{ if(last) quizDone(); else askQuiz(); }, ok?850:1500);};
     box.appendChild(b);
   }
   show('vQuiz');
@@ -5427,7 +5469,8 @@ function giveFate(bless){
   show('vFate');
 }
 function offerCards(n){
-  if(pactOn(2)) n=Math.max(2,(n||4)-1);                          // 계약 · 얕은 서랍
+  n=n||cardN();
+  if(pactOn(2)) n=Math.max(2,n-1);                               // 계약 · 얕은 서랍
   if(mergePool().length){ S.cardHold=n; offerFuse(); return; }   // 합칠 게 있으면 먼저 묻는다
   S.screen='card';
   const first=!tipSeen('card');
@@ -5435,9 +5478,10 @@ function offerCards(n){
   if(first){ showTip('card'); }
   else if(S.ballSlots.length>=maxBallSlots() && !tipSeen('full')) showTip('full');
   else if(pick.some(c=>c.own) && !tipSeen('level')) showTip('level');
+  const left=(S.pendingCard||0);
   el('cardEyebrow').textContent=first
     ? '구슬은 날아가는 것 · 문방은 모든 구슬을 강하게 한다'
-    : `${pick.length}장 중 한 장을 고른다`;
+    : `${pick.length}장 중 한 장을 고른다`+(left>0?`  ·  뒤에 ${left}번 더`:'');
   renderLoadout('loadCard'); bindSell('loadCard');
   const now=estDps();
   const row=el('cardRow');row.innerHTML='';
@@ -5530,8 +5574,8 @@ function afterCard(){
       up, afterCard);
     return;
   }
-  if(S.pendingCard>0){ S.pendingCard--; offerCards(3+S.cardBonus); return; }
-  if(S.tomePending>0){ S.tomePending--; offerTome(4+S.cardBonus); return; }
+  if(S.pendingCard>0){ S.pendingCard--; offerCards(cardN()); return; }
+  if(S.tomePending>0){ S.tomePending--; offerTome(); return; }
   /* 관상 — 정해진 층에 이르면 관상가가 기다린다 */
   if(S.omens && S.omens.includes(S.stage+1)){
     S.omens=S.omens.filter(x=>x!==S.stage+1);
@@ -5760,8 +5804,13 @@ el('btnFuseSkip').onclick=()=>{
   afterCard();
 };
 
-function offerTome(n){
+/* 천서만 보여 준다 — 일반 카드는 이 화면을 마친 뒤 따로 뜬다.
+   동굴은 그 문인의 것 하나, 구덩이는 둘 가운데 하나를 고른다 */
+function offerTome(){
   S.screen='tome';
+  el('tomeEyebrow').textContent = S.isAbyss
+    ? '천서(天書) · 구덩이에서 건졌다 · 둘 가운데 하나'
+    : '천서(天書) · 한 번뿐이다';
   renderLoadout('loadTome'); bindSell('loadTome');
   const owned=new Set((S.tomes||[]).map(t=>t.id));
   const mine=S.lastBossTome && !owned.has(S.lastBossTome.id) ? S.lastBossTome : null;
@@ -5769,11 +5818,12 @@ function offerTome(n){
                     .sort(()=>Math.random()-.5);
   const tomePick=[];
   if(mine) tomePick.push(mine);
-  if(others.length) tomePick.push(others[0]);
-  if(!mine&&others.length>1) tomePick.push(others[1]);
+  /* 구덩이에서 끌려 나온 혼이면 하나를 더 보여 고르게 한다 */
+  const want=S.isAbyss?2:1;
+  while(tomePick.length<want && others.length) tomePick.push(others.shift());
+  if(!tomePick.length && others.length) tomePick.push(others[0]);
 
-  const cardN=Math.max(1,(n||4)-tomePick.length);      // 남는 자리는 일반 카드
-  const cards=drawCards(cardN);
+  const cards=[];
 
   const list=el('tomeList'); list.innerHTML='';
   for(const t of tomePick){
@@ -5798,7 +5848,6 @@ function offerTome(n){
       if(S.tome.oneHp) S.energy=1;
       if(S.tome.halfHp) S.energy=Math.min(S.energy,S.energyMax);
       if(S.tome.fuseNow){ S.pendingCard=(S.pendingCard||0)+S.tome.fuseNow; S.tome.fuseNow=0; }
-      if(S.tome.alertFast){ CONFIG.alertEvery=Math.max(4,CONFIG.alertEvery-S.tome.alertFast); S.tome.alertFast=0; }
       afterCard();
     };
     list.appendChild(d);
@@ -5843,6 +5892,7 @@ function nextStage(){
   S.dark=null;S.fog=null;S.hook=null;S.pull=null;S.cross=null;S.blobs=[];S.rings=[];S.walls=null;
   S.marks=[];S.pools=[];S.squeeze=null;S.beamsRot=null;S.seasonSpd=1;S.seasonCnt=1;S.boss=null;
   S.alert=null;S.alertPending=false;S.sinceAlert=0;S.alertStep=0;S.alertMsg=null;
+  rollAlertMarks();                               // 이 층의 경보 자리를 새로 뽑는다
   S.cool=0;S.invuln=0;S.cyc=0;S.pendingCard=0;dropTouches();
   S.isBoss=isBossStage(S.stage);
   if(S.gimLeft>0){ S.gimLeft--; if(S.gimLeft<=0){ S.gim=null; S.gim2=null; } }
@@ -9201,7 +9251,7 @@ function loop(now){
   try{update(dt);draw();}catch(err){console.error('게임 루프 오류:',err);}
   requestAnimationFrame(loop);
 }
-const BUILD='c33-0';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c35-0';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
