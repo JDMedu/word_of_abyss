@@ -164,7 +164,7 @@ canvas{display:block;width:100%;height:100%}
 #admLessons .tg{padding:.5em 0;text-align:center;font-size:.85em}
 #admNow{font-size:.78em;color:var(--jade);text-align:center;margin-top:.6em;line-height:1.6;min-height:2.4em}
 /* ── 인물의 기억 ── */
-#vMem{justify-content:flex-end;padding-bottom:14%;cursor:pointer;
+#vMem{justify-content:center;padding-bottom:22%;cursor:pointer;
   background:radial-gradient(circle at 50% 62%,rgba(82,191,160,.13),rgba(5,8,15,.97) 62%)}
 #memWho{font-family:var(--font-carve);font-size:.95em;letter-spacing:.3em;
   color:var(--stone-deep);margin-bottom:.9em}
@@ -1573,6 +1573,15 @@ const EVOS = [
   {id:'engrav',icon:'㊙', name:'인각(印刻)', evo:true, from:'brand', with:'*',
    text:()=>'낙인 +60%. 낙인 찍힌 석판이 깨지면 옆 석판에 옮는다',
    dmg:[0,0,0,3,3,4,4,5,5], spd:[1,1,1,1,1,1,1,1,1], brand:[0,0,0,0.6,0.69,0.78,0.87,0.96,1.05], brandSpread:true},
+  /* ── 심연에서만 나오는 진화 ── */
+  {id:'inkspring',icon:'❧', name:'먹샘(墨泉)', evo:true, from:'inkfang', with:'mirror', abyss:true,
+   text:()=>'돌아오는 기력이 두 배. 깨진 자리에 먹이 고인다',
+   dmg:[0,0,0,1,1,2,2,3,3], spd:[1,1,1,1,1,1,1,1,1],
+   vamp:[0,0,0,.06,.069,.078,.087,.096,.105], pool:[0,0,0,4,5,5,6,7,7]},
+  {id:'looking', icon:'◈', name:'되쏘는 거울', evo:true, from:'inkfang', with:'slab', abyss:true,
+   text:()=>'상태이상이 걸린 석판을 깰 때마다 기력이 돌아오고, 위력이 쌓인다',
+   dmg:[0,0,0,2,2,3,3,4,4], spd:[1,1,1,1,1,1,1,1,1],
+   vamp:[0,0,0,.05,.058,.065,.073,.08,.088], echo:[0,0,0,3,3,4,5,5,6]},
   {id:'core',  icon:'❂', name:'단심', evo:true, from:'stone', with:'ink',
    text:()=>'꾸밈이 없다. 위력 +12',
    dmg:[0,0,0,12,14,16,17,19,21], spd:[1,1,1,1.05,1.05,1.05,1.05,1.05,1.05]},
@@ -1959,25 +1968,30 @@ function deepOpen(id){
 const deepHave=id=>frontDone(id);
 const deepRead=id=>memRead(id,'back');
 const deepTotal=id=>memTotal(id,'back');
+/* 판이 도는 중에는 시작할 때 정한 쪽을 끝까지 쓴다 — 도중에 세계가 바뀌지 않는다 */
+const inDeep=id=>(S&&S.deepRun!==undefined&&S.deepRun!==null)?!!S.deepRun:deepOpen(id);
 function memList(id){
   const m=MEM.mem[id]; if(!m)return [];
-  return deepOpen(id)? m.back : m.front;
+  return inDeep(id)? m.back : m.front;
 }
-function memKey(id,floor){ return id+'_'+(deepOpen(id)?'b':'f')+'_'+floor; }
+function memKey(id,floor){ return id+'_'+(inDeep(id)?'b':'f')+'_'+floor; }
 /* 층에 닿았을 때 열 조각이 있으면 돌려준다 */
 /* 기억은 쉰 층 시절 자리에 맞춰 적혀 있다.
    마흔 층에 맞게 자리를 다시 깔아 준다 — 보스 층은 비켜 간다 */
-/* 조각이 n개면 어느 층에 깔리는가 — 보스 층은 비켜 간다 */
+/* 대사는 카드를 고르는 층에만 붙인다 — 판이 끊기는 자리를 한 곳으로 모은다.
+   조각이 자리보다 많으면 한 층에 둘씩 붙는다 */
+function cardFloors(){
+  const out=[];
+  for(let f=2;f<=CONFIG.maxFloor;f++)
+    if(f%CONFIG.bossEvery!==0 && f%CONFIG.cardEvery===0) out.push(f);
+  return out;
+}
 const _spread={};
-function spreadFor(n){
+function spreadFor(n){                              // 조각 i 가 붙는 층
   if(_spread[n]) return _spread[n];
-  const pool=[];
-  for(let f=2;f<=CONFIG.maxFloor-2;f++) if(f%CONFIG.bossEvery!==0) pool.push(f);
-  let out;
-  if(n<=1) out=[pool[0]];
-  else if(n>=pool.length) out=pool.slice(0,n);
-  else { out=[]; for(let i=0;i<n;i++) out.push(pool[Math.round(i*(pool.length-1)/(n-1))]); }
-  return (_spread[n]=[...new Set(out)]);
+  const F=cardFloors(), out=[];
+  for(let i=0;i<n;i++) out.push(F[Math.min(F.length-1, Math.floor(i*F.length/Math.max(1,n)))]);
+  return (_spread[n]=out);
 }
 function memFloors(id){ return spreadFor(memList(id).length); }
 function memAt(floor){
@@ -1988,11 +2002,10 @@ function memAt(floor){
   for(let i=0;i<list.length;i++){
     const [f,t]=list[i];
     const want=(at[i]!==undefined)?at[i]:f;
-    if(head ? want>floor : want!==floor) continue;
+    if(head ? want>floor : want!==floor) continue;   // 한 층에 둘이 붙으면 함께 나온다
     const k=memKey(id,f);                            // 처음 들은 것만 적어 둔다
     if(!(META.mem&&META.mem[k])){ META.mem=META.mem||{}; META.mem[k]=1; saveMeta(); }
     out.push(t);                                     // 들었어도 다시 뜬다
-    if(!head) break;
   }
   return out.length ? out.join('\n\n') : null;
 }
@@ -5304,13 +5317,17 @@ function drawCards(n){
   return out.sort(()=>Math.random()-.5);
 }
 /* 날개 — 고르고 나면 다섯 장이 모두 드러난다 */
-function revealCards(pick,mine){
+function revealCards(pick,mine,after){
   const nm=c=>c.def?c.def.name:'?';
-  const others=pick.filter(c=>c!==mine).map(nm).join(' · ');
-  S.alertMsg={ text:`${nm(mine)} — 한 단 더 깊이 새겨졌다`+(others?`   (놓친 것 ${others})`:''),
-               t:3.6, ok:true };
-  S.winFlash=Math.max(S.winFlash||0,.5);
+  const lv=c=>c.own?`Lv.${c.lv}`:'새것';
+  const others=pick.filter(c=>c!==mine)
+    .map(c=>`<span style="color:var(--stone-deep)">${nm(c)} <span style="font-size:.8em">${lv(c)}</span></span>`)
+    .join('<br>');
   vibe('open');
+  showResult('덮인 것을 뒤집었다', mine.def?mine.def.icon:'▢', nm(mine),
+    `<b style="color:var(--gold)">한 단 더 깊이 새겨졌다</b>`
+    + (others?`<div style="margin-top:.9em;font-size:.82em;line-height:1.8">놓친 것<br>${others}</div>`:''),
+    true, after);
 }
 /* 숫자로는 안 잡히는 구슬이 있다 — 무엇을 주는지 한 줄로 알려준다 */
 function roleNote(c){
@@ -5705,15 +5722,18 @@ function offerCards(n){
       ${c.own?'<div class="upmark">▲<span>강화</span></div>':''}`;
     d.onclick=()=>{
       if(takeCard(c)===false) return;
-      if(blind) revealCards(pick,c);              // 무엇을 골랐고 무엇을 놓쳤는지 보여 준다
-      if(S.diceUsed){                          // 주사위가 걸린 한 장
-        const up=S.diceUsed>1; S.diceUsed=null;
-        showResult(up?'주사위가 맞아떨어졌다':'주사위가 어긋났다', up?'⚅':'⚀',
-          c.def.name, up?'두 눈금이 한꺼번에 올랐다':'손에 잡히지 않고 흩어졌다',
-          up, afterCard);
-        return;
-      }
-      afterCard();
+      const go=()=>{
+        if(S.diceUsed){                        // 주사위가 걸린 한 장
+          const up=S.diceUsed>1; S.diceUsed=null;
+          showResult(up?'주사위가 맞아떨어졌다':'주사위가 어긋났다', up?'⚅':'⚀',
+            c.def.name, up?'두 눈금이 한꺼번에 올랐다':'손에 잡히지 않고 흩어졌다',
+            up, afterCard);
+          return;
+        }
+        afterCard();
+      };
+      if(blind){ revealCards(pick,c,go); return; }   // 무엇을 골랐고 무엇을 놓쳤는지 먼저 보여 준다
+      go();
     };
     row.appendChild(d);
   }
@@ -5858,6 +5878,7 @@ function evoGear(e){
 function fusePool(){
   const out=[];
   for(const e of EVOS){
+    if(!abyssOK(e)) continue;                       // 심연에서만 나오는 진화
     const b=S.ballSlots.find(x=>x.def.id===e.from && x.lv>=CONFIG.fuseAtLv && !x.def.evo);
     if(!b) continue;
     const g=evoGear(e);
@@ -5886,6 +5907,11 @@ const FXNAME=[
   {a:'iron',b:'seed',    name:'쇠비',         add:d=>{d.seed=[0,2,2,3,3,4,4];}},
   {a:'blood',b:'worm',   name:'삭아내림',     add:d=>{d.gnawPct=[0,.14,.16,.18,.20,.22,.24];}},
   {a:'pen', b:'brand',   name:'먹도장',       add:d=>{d.brandSpread=true;}},
+  /* ── 심연에서만 볼 수 있는 것 ── */
+  {a:'inkfang',b:'poison', name:'먹독(墨毒)',  add:d=>{d.spread2=true; d.vamp=[0,.02,.024,.028,.032,.036,.04,.044,.048];}},
+  {a:'inkfang',b:'blood',  name:'검은 피',     add:d=>{d.bleed=[0,8,10,12,14,16,18,20,22]; d.vamp=[0,.024,.028,.032,.036,.04,.044,.048,.052];}},
+  {a:'inkfang',b:'pool',   name:'먹의 우물',   add:d=>{d.bigPool=true; d.poolFreeze=true;}},
+  {a:'inkfang',b:'brand',  name:'낙인의 값',   add:d=>{d.brandSpread=true; d.vamp=[0,.03,.034,.038,.042,.046,.05,.054,.058];}},
 ];
 const fxNameOf=(x,y)=>FXNAME.find(f=>(f.a===x&&f.b===y)||(f.a===y&&f.b===x));
 function fuseDef(A,B){
@@ -9555,7 +9581,7 @@ function loop(now){
   try{update(dt);draw();}catch(err){console.error('게임 루프 오류:',err);}
   requestAnimationFrame(loop);
 }
-const BUILD='c40-1';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c41-2';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
