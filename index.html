@@ -1952,11 +1952,11 @@ function memKey(id,floor){ return id+'_'+(deepOpen(id)?'b':'f')+'_'+floor; }
 /* 층에 닿았을 때 열 조각이 있으면 돌려준다 */
 /* 기억은 쉰 층 시절 자리에 맞춰 적혀 있다.
    마흔 층에 맞게 자리를 다시 깔아 준다 — 보스 층은 비켜 간다 */
+/* 조각이 n개면 어느 층에 깔리는가 — 보스 층은 비켜 간다 */
 const _spread={};
-function memFloors(id){
-  const n=memList(id).length;
+function spreadFor(n){
   if(_spread[n]) return _spread[n];
-  const pool=[];                                  // 보스 층은 비켜 간다
+  const pool=[];
   for(let f=2;f<=CONFIG.maxFloor-2;f++) if(f%CONFIG.bossEvery!==0) pool.push(f);
   let out;
   if(n<=1) out=[pool[0]];
@@ -1964,6 +1964,7 @@ function memFloors(id){
   else { out=[]; for(let i=0;i<n;i++) out.push(pool[Math.round(i*(pool.length-1)/(n-1))]); }
   return (_spread[n]=[...new Set(out)]);
 }
+function memFloors(id){ return spreadFor(memList(id).length); }
 function memAt(floor){
   const id=META.char, list=memList(id), at=memFloors(id);
   for(let i=0;i<list.length;i++){
@@ -6571,14 +6572,15 @@ function renderBook(){
   }
   const list=el('bookList'); list.innerHTML='';
   const src=bookDeep?m.back:m.front, tag=bookDeep?'b':'f';
-  let got=0;
+  const at=spreadFor(src.length);                 // 지금 보고 있는 쪽의 자리로 매긴다
+  let got=0, idx=-1;
   for(const [f,t] of src){
+    idx++;
     const has=!!(META.mem&&META.mem[bookId+'_'+tag+'_'+f]);
     if(has) got++;
     const d=document.createElement('div');
     d.className='bkRow'+(has?' on':' locked');
-    const at=memFloors(bookId)[src.indexOf(src.find(x=>x[0]===f))];
-    d.innerHTML=`<div class="bf">${at||f}층</div><div class="bt">${has?t:'아직 닿지 못한 기억'}</div>`;
+    d.innerHTML=`<div class="bf">${at[idx]||f}층</div><div class="bt">${has?t:'아직 닿지 못한 기억'}</div>`;
     list.appendChild(d);
   }
   el('bookEyebrow').textContent=`기억 · ${got} / ${src.length}`;
@@ -9530,7 +9532,7 @@ function loop(now){
   try{update(dt);draw();}catch(err){console.error('게임 루프 오류:',err);}
   requestAnimationFrame(loop);
 }
-const BUILD='c38-2';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c38-3';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
