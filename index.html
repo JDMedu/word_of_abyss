@@ -795,7 +795,13 @@ const CONFIG = {
              [1.00,1.00,1.00,1.00]],
   bodyRest:[0,0,0,0.50],             // 그 너머 — 눈금 4만 판 전체를 훑는다
   bodyOdds:[0.43,0.28,0.21,0.08],    // 눈금이 나올 몫
+  bodyVamp:0.001,                    // 몸돌이 준 피해의 이만큼이 기력으로
   regenEvery:5.0,        // 눈 — 기력이 차오르는 주기(초)
+  comboHitAt:10, comboHitPct:0.30,   // 자람 열 번 연속 — 모든 석판 체력의 30%
+  comboBigAt:20, comboBigPct:0.50,   // 스무 번 연속 — 50%
+  shieldEvery:10,        // 거울 — 몇 초마다 방벽이 서는가
+  shieldR:1.9,           // 방벽 반지름 — 사람 크기의 몇 배
+  shieldBack:3,          // 되돌아간 탄이 보스에게 주는 배수
   pitMemory:5,           // 구덩이 — 최근 이만큼 만난 혼은 잘 안 나온다
   auraMul:0.15,          // 향 — 한 단마다 초당 구슬 위력의 몫
   arrowSide:0.60,        // 신기전 — 좌우 석판에 가는 위력의 몫
@@ -1151,8 +1157,8 @@ const BOSSES = [
    patterns:['mine', 'star', 'rise'], p2:['spiral', 'wall', 'burstshot'],
    cry:'‘박제가 되어 버린 천재’를 아시오?',
    trait:'날개 — 위아래로 크게 오르내린다',
-   tome:{id:'baekji',icon:'▢',name:'날개',text:'카드가 뒤집힌 채 나온다. 고르고 나서야 안다. 대신 반드시 높은 등급',
-         set:t=>{t.highTier=true;t.blindCards=true;}}},
+   tome:{id:'baekji',icon:'▢',name:'날개',text:'카드가 뒤집힌 채 나온다. 고르고 나면 전부 드러난다. 고른 것은 한 단 더 깊이(약 1.5배) 새겨진다',
+         set:t=>{t.blindCards=true;t.blindMul=1.5;}}},
   {ho:'', name:'조세희', color:'#8AD96F', move:'sine',
    lines:{meet:'사람들은 아버지를 난쟁이라고 불렀소. 부르는 쪽은 언제나 크지.',
      talk:['아버지는 채권을 팔고, 우리는 집을 잃었소. 오백만 원짜리 종이 한 장에.','안과 밖이 이어진 띠가 있소. 어디가 안인지 말해보시오.','아버지가 굴뚝에 올라 공을 쏘아 올렸소. 여기서는 올려다볼 하늘도 없구려.'],
@@ -1283,6 +1289,11 @@ const BALLS = [
   {id:'pool',  icon:'❍', name:'먹웅덩이', tier:2, line:'poison',
    text:lv=>`사라진 자리에 먹이 고인다. 닿은 석판이 초당 ${[0,2,3,4,5,6,7][lv]}씩 삭는다`,
    dmg:[0,0,0,0,1,1,1], spd:[1,1,1,1,1,1,1], pool:[0,2,3,4,5,6,7]},
+  /* ── 심연에서만 나온다 ── */
+  {id:'inkfang',icon:'❦', name:'먹물독', tier:2, line:'poison', abyss:true,
+   text:lv=>`상태이상이 걸린 석판을 깨면 기력 ${[0,1.4,2,2.6,3.2,3.8,4.4][lv]}% 회복. 먹빛으로 스며든다`,
+   dmg:[0,0,0,1,1,2,2], spd:[1,1,1,1,1,1,1],
+   vamp:[0,.014,.020,.026,.032,.038,.044], inkVamp:true},
   {id:'brand', icon:'㊝', name:'낙인', tier:3, line:'poison',
    text:lv=>`상태이상이 걸린 석판이 받는 피해 +${[0,20,26,32,36,40,45][lv]}%`,
    dmg:[0,0,0,1,1,1,2], spd:[1,1,1,1,1,1,1], brand:[0,.20,.26,.32,.36,.40,.45]},
@@ -1338,6 +1349,12 @@ const GEARS = [
   {id:'charm', icon:'✚', name:'부적', tier:2,
    text:lv=>`최대 기력 +${[0,20,40,65,85,105,125][lv]}, 회복량 증가`,
    maxhp:[0,20,40,65,85,105,125], heal:[0,.5,.8,1.2,1.4,1.6,1.8]},
+  {id:'mirror', icon:'◎', name:'거울', tier:2, abyss:true,
+   text:lv=>`10초마다 ${[0,1.0,1.3,1.6,1.9,2.2,2.5][lv]}초간 방벽이 선다. 그동안 맞은 탄은 되돌아간다`,
+   shield:[0,1.0,1.3,1.6,1.9,2.2,2.5]},
+  {id:'slab',   icon:'▬',name:'무거운 벼루', tier:2, abyss:true,
+   text:lv=>`구슬 ${[0,1,1,1,1,2,2][lv]}개가 줄어든다. 대신 최대 기력 +${[0,20,20,35,35,60,60][lv]}%`,
+   less:[0,1,1,1,1,2,2], vigor:[0,.20,.20,.35,.35,.60,.60]},
   {id:'thimble',icon:'◐',name:'골무', tier:2,
    text:lv=>`몸에 닿은 석판 피해 -${[0,40,60,80,85,88,91][lv]}%`, guard:[0,.4,.6,.8,.85,.88,.91]},
   {id:'scroll',icon:'⌸', name:'두루마리', tier:3,
@@ -1665,7 +1682,9 @@ const PACTS = [
 const depth   = ()=>(S&&S.depth)||0;              // 이번 판의 심연 깊이
 const pactOn  = k=>depth()>=k;                    // 그 계약이 걸려 있는가
 const abyssHard = ()=>1+CONFIG.abyssStep*depth();     // 하강·보스에 곱한다
-const abyssInkMul=()=>depth()>0 ? 1+CONFIG.abyssInkBase+CONFIG.abyssInkStep*depth() : 1;
+const inkMulAt   =d=>d>0 ? 1+CONFIG.abyssInkBase+CONFIG.abyssInkStep*d : 1;
+const hardAt     =d=>1+CONFIG.abyssStep*d;
+const abyssInkMul=()=>inkMulAt(depth());
 const p2On    = id=>!!(META.p2&&META.p2[id]) && META.char===id;   // 두 번째 재주
 const p2Open  = id=>{const i=CHARS.findIndex(c=>c.id===id); return i>=0 && (META.abyss||0)>i;};
 
@@ -2252,7 +2271,8 @@ function recalc(){
   const t=S.tome||{};
   const ax=axisTally(); S.ax=ax.mul; S.axN=ax.cnt; S.growAx=ax.gx; S.growAxN=ax.gn;
   S.growMul = 1 + (S.grow||0)*CONFIG.growPer*(S.growAx||1);   // 자람 — 뜻을 맞힌 만큼
-  S.shotBalls  = Math.max(1, CONFIG.shotBalls + lvOf('burst') + gv('brush','shots') + (t.shotsAdd||0));
+  S.shotBalls  = Math.max(1, CONFIG.shotBalls + lvOf('burst') + gv('brush','shots') + (t.shotsAdd||0)
+                          - gv('slab','less'));   // 무거운 벼루 — 구슬을 판다
   if(S.zealT>0) S.shotBalls*=2;              // 춘향 수절
   if(t.shotsMul) S.shotBalls*=t.shotsMul;
   if(t.halfShots) S.shotBalls=Math.max(1,Math.floor(S.shotBalls/2));
@@ -2288,6 +2308,7 @@ function recalc(){
   S.holdBonus  = gv('mortar','hold');        // 상태이상 지속
   S.capBonus   = gv('mortar','cap');         // 겹 상한
   S.aura       = gv('incense','aura')*CONFIG.auraMul;   // 향 — 구슬 위력에 얹는다
+  S.shieldSec  = gv('mirror','shield');                 // 거울 — 방벽이 서 있는 시간
   S.finish     = gv('anvil','finish');       // 모루
   S.sizeMul    = 1;                          // 구슬 크기는 더 이상 변하지 않는다
   S.alertSlow  = (1-0.08*lvOf('focus')) * (1 - gv('lamp','lamp')) * (t.lampMul||1);
@@ -2310,7 +2331,8 @@ function recalc(){
                  * (omenHas('gale')?1.5:1) * (omenHas('heavy')?0.2:1);   // 바람결 · 무거운발
   const fl2=gearLv('flint');
   S.accel     *= (t.accelMul||1);
-  const emax   = Math.max(20, Math.round((S.energyBase + gv('charm','maxhp') + (t.energyFlat||0)) * (t.energyMul||1)));
+  const emax   = Math.max(20, Math.round((S.energyBase + gv('charm','maxhp') + (t.energyFlat||0))
+                 * (t.energyMul||1) * (1+gv('slab','vigor'))));   // 무거운 벼루 — 최대 기력을 산다
   S.energyMax  = t.oneHp ? 1 : (t.halfHp ? Math.max(1,Math.round(emax*0.5)) : emax);
   S.energy     = Math.min(S.energy, S.energyMax);
 }
@@ -2678,6 +2700,7 @@ function comboMul(){
 function growHit(base){
   S.combo=(S.combo||0)+1;
   if(S.combo>(S.comboBest||0)) S.comboBest=S.combo;
+  comboBurst(S.combo);                          // 열 번·스무 번마다 판을 훑는다
   const step=CONFIG.comboSteps.includes(S.combo);
   const mul=comboMul();
   for(const b of S.ballSlots) if(b.def.stackPer)      // 먹쌓임 — 이 구슬만 쌓인다
@@ -2721,6 +2744,28 @@ function chargeMulOf(t){
   return 1+step*CONFIG.chargePer;
 }
 const chargeFull=()=>chargeMulOf(CONFIG.chargeMax);
+/* 자람을 잇달아 맞히면 판 전체가 한 번 훑린다 */
+function comboBurst(c){
+  if(!S||S.screen!=='play')return;
+  let pct=0, big=false;
+  if(c>0 && c%CONFIG.comboBigAt===0){ pct=CONFIG.comboBigPct; big=true; }
+  else if(c>0 && c%CONFIG.comboHitAt===0){ pct=CONFIG.comboHitPct; }
+  if(!pct)return;
+  for(let i=S.bricks.length-1;i>=0;i--){
+    const b=S.bricks[i];
+    if(!b||b.quiz||isSolid(b))continue;          // 경보 석판은 건드리지 않는다
+    chip(b, Math.max(1,Math.ceil((b.maxHp||b.hp)*pct)), 'gold');
+    if(S.screen!=='play')return;
+  }
+  S.sweepFx=S.sweepFx||[];
+  const lines=big?3:1;
+  for(let k=0;k<lines;k++) S.sweepFx.push({t:0.55+k*0.12, dur:0.55, delay:k*0.12, big});
+  S.winFlash=Math.max(S.winFlash||0, big?0.95:0.5);
+  S.shake=Math.max(S.shake, big?22:11);
+  vibe(big?'boss':'right');
+  S.alertMsg={text: big?`연속 ${c} — 구덩이가 울린다`:`연속 ${c} — 자람이 터진다`,
+              t: big?2.0:1.4, ok:true};
+}
 /* 몸돌이 깨진다 — 둘레 석판에 구슬 위력의 몫만큼 옮아간다 */
 /* 터진 자리에서 몇 칸 떨어진 석판인가 — 위아래양옆으로 센다 */
 function ringOf(b,cx,cy){
@@ -2732,16 +2777,25 @@ function ringOf(b,cx,cy){
 function bodyBoom(cx,cy,gr){
   const g=Math.max(1,Math.min(4,gr||1));
   const rings=CONFIG.bodyRings[g-1], rest=CONFIG.bodyRest[g-1]||0;
-  let far=0;
+  let dealt=0;
   for(let i=S.bricks.length-1;i>=0;i--){
     const b=S.bricks[i]; if(!b||b.quiz||isSolid(b))continue;
     const k=ringOf(b,cx,cy);
     const pct=(k<=rings.length)?rings[k-1]:rest;
     if(pct<=0)continue;
-    if(k>rings.length) far++;
-    chip(b, Math.max(1,Math.ceil((b.maxHp||b.hp)*pct)), 'jade');
-    if(S.screen!=='play')return;
+    const amt=Math.max(1,Math.ceil((b.maxHp||b.hp)*pct));
+    dealt+=Math.min(amt,b.hp);
+    chip(b, amt, 'jade');
+    if(S.screen!=='play') break;                 // 층이 깨져도 기력은 돌려준다
   }
+  if(dealt>0){                                   // 준 피해의 몫만큼 기력이 돌아온다
+    const back=dealt*CONFIG.bodyVamp;
+    if(back>=0.5 && S.energy<S.energyMax){
+      S.energy=Math.min(S.energyMax,S.energy+back);
+      S.alertMsg={text:`몸돌 — 기력 +${Math.round(back)}`,t:1.1,ok:true};
+    }
+  }
+  if(S.screen!=='play') return;
   const reach=cell()*(rings.length+0.5);
   const all=rest>0;
   S.rings=S.rings||[];
@@ -4467,7 +4521,22 @@ function updateBullets(dt){
     if(b.trail!==undefined){
       b.trail-=dt;
       if(b.trail<=0){S.bullets.splice(i,1);continue;}
-      if(S.invuln<=0&&Math.hypot(b.x-S.px,b.y-(S.py-6))<b.r+14){hurt(b.dmg||CONFIG.bulletDamage);if(S.screen!=='play')return;}
+      if(S.shieldOn>0){                           // 거울 — 방벽에 닿은 탄은 되돌아간다
+        const dx=b.x-S.px, dy=b.y-(S.py-6), R=heroR()*CONFIG.shieldR;
+        if(dx*dx+dy*dy < (R+b.r)*(R+b.r) && !b.bounced){
+          const a=Math.atan2(dy,dx), sp=Math.max(240,Math.hypot(b.vx||0,b.vy||0));
+          b.vx=Math.cos(a)*sp; b.vy=Math.sin(a)*sp;
+          b.x=S.px+Math.cos(a)*(R+b.r+2); b.y=(S.py-6)+Math.sin(a)*(R+b.r+2);
+          b.bounced=1; b.foe=1;                    // 되돌아간 탄은 보스를 친다
+          burst(b.x,b.y,6,'jade'); vibe('right');
+          continue;
+        }
+      }
+      if(S.invuln<=0&&!b.bounced&&Math.hypot(b.x-S.px,b.y-(S.py-6))<b.r+14){hurt(b.dmg||CONFIG.bulletDamage);if(S.screen!=='play')return;}
+      if(b.bounced&&S.boss&&overlaps({x:b.x-b.r,y:b.y-b.r,w:b.r*2,h:b.r*2},S.boss)){
+        S.boss.hp-=(b.dmg||CONFIG.bulletDamage)*CONFIG.shieldBack; S.boss.hit=.12;
+        burst(b.x,b.y,8,'jade'); b.hold=-1; continue;
+      }
       continue;
     }
     if(b.hold>0){ b.hold-=dt; if(b.hold<=0){b.vx*=1.5;b.vy*=1.5;} continue; }
@@ -5067,10 +5136,13 @@ function pickWeighted(list,k){
 }
 /* 이 구슬을 한 번 더 올리면 융합 문턱에 닿는가 */
 const nearFuse=lv=>lv+1>=CONFIG.fuseAtLv && lv<CONFIG.fuseAtLv;
+/* 심연에서만 나오는 구슬·문방 */
+const abyssOK=d=>!d.abyss || depth()>0;
 function ballOptions(){
   const out=[];
   const full=S.ballSlots.length>=maxBallSlots();
   for(const d of BALLS){
+    if(!abyssOK(d)) continue;
     const own=S.ballSlots.find(x=>x.def.id===d.id);
     if(own){
       if(own.lv<maxBallLv())
@@ -5088,6 +5160,7 @@ function ballOptions(){
 function gearOptions(){
   const out=[];
   for(const d of GEARS){
+    if(!abyssOK(d)) continue;
     const own=S.gearSlots.find(x=>x.def.id===d.id);
     if(own){ if(own.lv<maxGearLv())
       out.push({kind:'gear',def:d,lv:own.lv+1,own:true,w:CONFIG.ownGearW}); }
@@ -5125,6 +5198,15 @@ function drawCards(n){
     if(cs.length) out[Math.floor(Math.random()*out.length)]=cs[Math.floor(Math.random()*cs.length)];
   }
   return out.sort(()=>Math.random()-.5);
+}
+/* 날개 — 고르고 나면 다섯 장이 모두 드러난다 */
+function revealCards(pick,mine){
+  const nm=c=>c.def?c.def.name:'?';
+  const others=pick.filter(c=>c!==mine).map(nm).join(' · ');
+  S.alertMsg={ text:`${nm(mine)} — 한 단 더 깊이 새겨졌다`+(others?`   (놓친 것 ${others})`:''),
+               t:3.6, ok:true };
+  S.winFlash=Math.max(S.winFlash||0,.5);
+  vibe('open');
 }
 /* 숫자로는 안 잡히는 구슬이 있다 — 무엇을 주는지 한 줄로 알려준다 */
 function roleNote(c){
@@ -5224,7 +5306,9 @@ function takeCard(c){
   /* 주사위 — 구슬·문방 한 장에만 걸린다 */
   const die=(c.kind==='ball'||c.kind==='gear') ? (S.dice||1) : 1;
   if(die!==1){ S.dice=null; S.diceUsed=die; }
-  const step=die>1?2:(die<1?0:1);              // 두 배면 두 눈금, 헛것이면 없던 일
+  let step=die>1?2:(die<1?0:1);               // 두 배면 두 눈금, 헛것이면 없던 일
+  /* 날개 — 안 보고 고른 값으로 한 단 더 깊이 새겨진다 */
+  if(step>0 && S.tome&&S.tome.blindMul && (c.kind==='ball'||c.kind==='gear')) step++;
   if(c.kind==='ball'){
     const own=S.ballSlots.find(x=>x.def.id===c.def.id);
     if(own) own.lv=Math.min(maxBallLv(), own.lv+step);
@@ -5517,7 +5601,7 @@ function offerCards(n){
       ${c.own?'<div class="upmark">▲<span>강화</span></div>':''}`;
     d.onclick=()=>{
       if(takeCard(c)===false) return;
-      if(blind) S.alertMsg={text:`${c.def.name} — ${c.own?`Lv.${c.lv}`:'새것'}`,t:2.6,ok:true};
+      if(blind) revealCards(pick,c);              // 무엇을 골랐고 무엇을 놓쳤는지 보여 준다
       if(S.diceUsed){                          // 주사위가 걸린 한 장
         const up=S.diceUsed>1; S.diceUsed=null;
         showResult(up?'주사위가 맞아떨어졌다':'주사위가 어긋났다', up?'⚅':'⚀',
@@ -5889,7 +5973,7 @@ function nextStage(){
   if(S.stage>=CONFIG.maxFloor){ runEnd(true); return; }
   S.stage++;S.destroyed=0;S.clearedThisStage=[];
   S.bricks=[];S.balls=[];S.bullets=[];S.sparks=[];S.beams=[];S.queue=[];S.sweeps=[];S.nums=[];S.mines=[];S.drips=[];
-  S.dark=null;S.fog=null;S.hook=null;S.pull=null;S.cross=null;S.blobs=[];S.rings=[];S.walls=null;
+  S.dark=null;S.fog=null;S.hook=null;S.pull=null;S.cross=null;S.blobs=[];S.rings=[];S.walls=null;S.sweepFx=[];
   S.marks=[];S.pools=[];S.squeeze=null;S.beamsRot=null;S.seasonSpd=1;S.seasonCnt=1;S.boss=null;
   S.alert=null;S.alertPending=false;S.sinceAlert=0;S.alertStep=0;S.alertMsg=null;
   rollAlertMarks();                               // 이 층의 경보 자리를 새로 뽑는다
@@ -6467,8 +6551,8 @@ function renderAbyssPick(){
   note.innerHTML = cur===0
     ? '<span style="color:var(--stone-deep)">계약 없음<br>여느 때와 같이 내려간다</span>'
     : PACTS.filter(x=>x.n<=cur).map(x=>`<b style="color:#E2593F">${x.name}</b> — ${x.text}`).join('<br>')
-      + `<br><br><span style="color:var(--jade)">하강 · 보스 <b>+${Math.round(CONFIG.abyssStep*cur*100)}%</b>`
-      + ` · 먹 <b>×${(1+CONFIG.abyssInkStep*cur).toFixed(1)}</b></span>`;
+      + `<br><br><span style="color:var(--jade)">하강 · 보스 <b>+${Math.round((hardAt(cur)-1)*100)}%</b>`
+      + ` · 먹 <b>×${inkMulAt(cur).toFixed(1)}</b></span>`;
 }
 /* 판을 시작한다 — 고른 깊이로 */
 function beginRun(){
@@ -6502,6 +6586,11 @@ function update(dt){
   if(!S||S.screen!=='play')return;
   S.btnGlow=Math.max(0,S.btnGlow-dt*3);
   S.walkT=Math.max(0,(S.walkT||0)-dt);            // 구보씨 — 멈추면 이내 식는다
+  if(S.shieldSec>0){                              // 거울 — 열 번 세고 한 번 선다
+    S.shieldT=(S.shieldT||0)-dt;
+    if(S.shieldT<=0){ S.shieldT=CONFIG.shieldEvery; S.shieldOn=S.shieldSec; vibe('open'); }
+    if(S.shieldOn>0) S.shieldOn-=dt;
+  }
   if(S.tome&&S.tome.regen&&S.energy>0){           // 눈 — 스스로 차오른다
     S.regenT=(S.regenT||0)+dt;
     if(S.regenT>=CONFIG.regenEvery){
@@ -6872,6 +6961,22 @@ function draw(){
   }
   drawEchoes();
   for(const b of S.bricks)drawBrick(b);
+  if(S.sweepFx&&S.sweepFx.length){                // 자람 연속 — 판을 훑는 줄
+    for(let i=S.sweepFx.length-1;i>=0;i--){
+      const f=S.sweepFx[i]; f.t-=1/60;
+      if(f.t<=0){ S.sweepFx.splice(i,1); continue; }
+      if(f.delay>0){ f.delay-=1/60; continue; }
+      const k=1-f.t/f.dur, y=CEIL_Y+(VH-CEIL_Y)*k;
+      ctx.save();
+      const col=f.big?'255,252,232':'229,178,79';
+      const g=ctx.createLinearGradient(0,y-46,0,y+46);
+      g.addColorStop(0,`rgba(${col},0)`);
+      g.addColorStop(.5,`rgba(${col},${f.big?.92:.62})`);
+      g.addColorStop(1,`rgba(${col},0)`);
+      ctx.fillStyle=g; ctx.fillRect(WALL_L-8,y-46,WALL_R-WALL_L+16,92);
+      ctx.restore();
+    }
+  }
   if(S.rings&&S.rings.length){                    // 몸돌이 퍼뜨린 테
     for(let i=S.rings.length-1;i>=0;i--){
       const g=S.rings[i]; g.t-=1/60;
@@ -8958,6 +9063,22 @@ function drawCharFx(){
     ctx.fillRect(w.x,w.y+w.h+3,w.w*left,3);
     ctx.restore();
   }
+  if(S.shieldOn>0){                               // 거울 — 방벽
+    const R=heroR()*CONFIG.shieldR, T=performance.now()/1000;
+    ctx.save();
+    ctx.globalAlpha=Math.min(1,S.shieldOn*3)*0.9;
+    const g=ctx.createRadialGradient(S.px,S.py-6,R*0.55,S.px,S.py-6,R);
+    g.addColorStop(0,'rgba(82,191,160,0)');
+    g.addColorStop(.75,'rgba(82,191,160,.18)');
+    g.addColorStop(1,'rgba(150,255,220,.55)');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(S.px,S.py-6,R,0,7); ctx.fill();
+    ctx.strokeStyle='rgba(180,255,232,.95)'; ctx.lineWidth=2.5;
+    ctx.shadowColor='#52BFA0'; ctx.shadowBlur=16;
+    ctx.beginPath(); ctx.arc(S.px,S.py-6,R,0,7); ctx.stroke();
+    ctx.lineWidth=1.4; ctx.globalAlpha*=.7;       // 도는 테
+    ctx.beginPath(); ctx.arc(S.px,S.py-6,R*0.82,T*2.2,T*2.2+2.1); ctx.stroke();
+    ctx.restore();
+  }
   if(S.walls) for(const w of S.walls){             // 인력거 — 앞쪽 좌우 두 판
     ctx.globalAlpha=Math.min(1,w.t);
     ctx.fillStyle='rgba(111,168,224,.30)';ctx.strokeStyle='#6FA8E0';ctx.lineWidth=3;
@@ -9251,7 +9372,7 @@ function loop(now){
   try{update(dt);draw();}catch(err){console.error('게임 루프 오류:',err);}
   requestAnimationFrame(loop);
 }
-const BUILD='c35-0';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c36-4';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
