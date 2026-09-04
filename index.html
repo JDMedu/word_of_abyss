@@ -1929,21 +1929,29 @@ function lessonLabel(){
 /* ══════════════════════════════════════════════════════════
    인물의 기억 — 30층을 깨면 뒷세계가 열린다
    ══════════════════════════════════════════════════════════ */
-/* 뒷세계는 서른 층을 넘기면 열리고, 스무 조각을 다 읽어야 닫힌다.
-   둘 다 열려 있으면 판을 시작할 때 어느 쪽을 걸을지 고른다 */
-function deepHave(id){ return !!(META.deep&&META.deep[id]); }
-function deepOpen(id){ return deepHave(id) && META.world!=='front'; }
-function deepRead(id){
-  const m=MEM.mem[id]; if(!m||!m.back)return 0;
-  let k=0; for(const [f] of m.back) if(META.mem&&META.mem[id+'_b_'+f]) k++;
+/* ── 인물의 이야기 ──
+   앞세계 열두 조각을 다 들으면 저절로 뒷세계로 넘어간다.
+   뒷세계 스무 조각까지 다 들으면, 그 뒤로는 판마다 어느 쪽을 걸을지 고른다.
+   조각은 한 번 들었어도 그 층에 닿으면 다시 뜬다 — 이야기는 늘 처음부터 이어진다 */
+function memRead(id,side){
+  const m=MEM.mem[id]; if(!m||!m[side])return 0;
+  const t=(side==='back')?'_b_':'_f_';
+  let k=0; for(const [f] of m[side]) if(META.mem&&META.mem[id+t+f]) k++;
   return k;
 }
-function deepTotal(id){ const m=MEM.mem[id]; return (m&&m.back)?m.back.length:0; }
-function closeDeepIfDone(id){
-  if(!deepHave(id))return false;
-  if(deepRead(id)<deepTotal(id))return false;
-  delete META.deep[id]; saveMeta(); return true;      // 다 들었다 — 뒷세계가 닫힌다
+const memTotal=(id,side)=>{const m=MEM.mem[id];return (m&&m[side])?m[side].length:0;};
+const frontDone=id=>memTotal(id,'front')>0 && memRead(id,'front')>=memTotal(id,'front');
+const backDone =id=>memTotal(id,'back') >0 && memRead(id,'back') >=memTotal(id,'back');
+const bothDone =id=>frontDone(id)&&backDone(id);
+function deepOpen(id){
+  if(!frontDone(id)) return false;                 // 앞 이야기가 아직 남았다
+  if(!backDone(id))  return true;                  // 앞을 다 들었으니 뒤로 넘어간다
+  return META.world==='back';                      // 둘 다 들었다 — 고른 대로
 }
+/* 옛 이름으로 부르는 데가 있어 남겨 둔다 */
+const deepHave=id=>frontDone(id);
+const deepRead=id=>memRead(id,'back');
+const deepTotal=id=>memTotal(id,'back');
 function memList(id){
   const m=MEM.mem[id]; if(!m)return [];
   return deepOpen(id)? m.back : m.front;
@@ -1967,15 +1975,19 @@ function spreadFor(n){
 function memFloors(id){ return spreadFor(memList(id).length); }
 function memAt(floor){
   const id=META.char, list=memList(id), at=memFloors(id);
+  /* 선발로 아래에서 시작하면, 지나쳐 온 조각을 그 자리에서 한꺼번에 듣는다 */
+  const head=(S && floor===S.startStage && S.startStage>1);
+  const out=[];
   for(let i=0;i<list.length;i++){
     const [f,t]=list[i];
     const want=(at[i]!==undefined)?at[i]:f;
-    if(want===floor && !(META.mem&&META.mem[memKey(id,f)])){
-      META.mem=META.mem||{}; META.mem[memKey(id,f)]=1; saveMeta();
-      return t;
-    }
+    if(head ? want>floor : want!==floor) continue;
+    const k=memKey(id,f);                            // 처음 들은 것만 적어 둔다
+    if(!(META.mem&&META.mem[k])){ META.mem=META.mem||{}; META.mem[k]=1; saveMeta(); }
+    out.push(t);                                     // 들었어도 다시 뜬다
+    if(!head) break;
   }
-  return null;
+  return out.length ? out.join('\n\n') : null;
 }
 /* 묵귀 */
 function ghostAt(n){
@@ -4717,10 +4729,6 @@ function defeatBoss(){
   healPct(CONFIG.healBossKill);
   if(!META.cleared) META.cleared={};
   if(!META.cleared[S.stage]){ META.cleared[S.stage]=1; saveMeta(); }
-  if(S.stage>=30){                                   // 30층을 넘기면 뒷세계가 열린다
-    META.deep=META.deep||{};
-    if(!META.deep[META.char]){ META.deep[META.char]=1; saveMeta(); }
-  }
   S.tomePending=(S.tomePending||0)+1;
   S.lastBossTome=B.def.tome;
   for(let i=S.bricks.length-1;i>=0;i--) if(S.bricks[i].quiz) S.bricks.splice(i,1);
@@ -6165,6 +6173,7 @@ function sayMem(text,after){
   el('vMem').style.background=
     `radial-gradient(circle at 50% 62%, ${c.color}26, rgba(5,8,15,.97) 62%)`;
   el('memText').textContent=text;
+  el('memText').style.whiteSpace='pre-wrap';
   S.screen='mem'; show('vMem');
 }
 el('vMem').onclick=()=>{ const f=memAfter; memAfter=null; if(f)f(); };
@@ -6255,7 +6264,7 @@ function runEnd(won){
   if(newBest) META.best=S.stage;
   if(newInk) META.bestInk=gained;
   let opened=0;
-  const deepDone=closeDeepIfDone(META.char);          // 스무 조각을 다 들었는가
+  const opened2 = frontDone(META.char) && !backDone(META.char);
   META.world=undefined; saveMeta();                   // 다음 판에 다시 묻는다
   if(won){
     /* 고른 깊이를 끝까지 내려갔을 때만 다음 심연이 열린다 */
@@ -6285,7 +6294,9 @@ function runEnd(won){
   }else{ btn.classList.remove('glow'); btn.textContent='묵귀에게'; }
   renderLoadout('endLoad');
   el('inkGain').innerHTML = won
-    ? `먹 <b>+${gained}</b>`+(opened?`<br><span style="font-size:.6em;color:var(--jade)">심연 ${opened}이 열렸다`
+    ? `먹 <b>+${gained}</b>`
+       +(opened2?`<br><span style="font-size:.6em;color:#E2593F">${charDef(META.char).name}의 뒷이야기가 열렸다</span>`:'')
+       +(opened?`<br><span style="font-size:.6em;color:var(--jade)">심연 ${opened}이 열렸다`
         +(CHARS[opened-1]?` · ${CHARS[opened-1].name}의 <b>${CHARS[opened-1].p2}</b>`:'')+`</span>`:'')
     : `먹 <b>+${gained}</b>`;
   /* 심연을 처음 끝까지 내려갔으면, 정산에 앞서 바닥에서 들은 말이 나온다 */
@@ -6651,17 +6662,16 @@ function renderAbyssPick(){
 /* 앞뒤가 다 열려 있으면 어느 쪽을 걸을지 먼저 묻는다 */
 function beginRun(){
   const id=META.char;
-  if(deepHave(id) && META.world===undefined){ askWorld(); return; }
+  if(bothDone(id) && META.world===undefined){ askWorld(); return; }
   startRunNow();
 }
 function askWorld(){
   const id=META.char, box=el('worldPick');
-  const got=deepRead(id), tot=deepTotal(id);
   box.innerHTML=
     `<div class="wp" data-w="front"><div class="wn">앞 세 계</div>
-       <div class="ws">구덩이를 내려간다<br>여느 때와 같다</div></div>
+       <div class="ws">세상에 알려진 이야기<br>${memTotal(id,'front')}조각</div></div>
      <div class="wp back" data-w="back"><div class="wn">뒷 세 계</div>
-       <div class="ws">아직 다 듣지 못한 말<br><b>${got} / ${tot}</b></div></div>`;
+       <div class="ws">아무도 묻지 않은 이야기<br>${memTotal(id,'back')}조각</div></div>`;
   box.querySelectorAll('.wp').forEach(d=>{
     d.onclick=()=>{ META.world=d.dataset.w; saveMeta(); vibe('open'); startRunNow(); };
   });
@@ -9532,7 +9542,7 @@ function loop(now){
   try{update(dt);draw();}catch(err){console.error('게임 루프 오류:',err);}
   requestAnimationFrame(loop);
 }
-const BUILD='c38-3';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c39-2';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
