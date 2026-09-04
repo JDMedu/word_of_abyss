@@ -332,6 +332,14 @@ canvas{display:block;width:100%;height:100%}
   0%{opacity:0} 22%{opacity:1} 62%{opacity:1} 100%{opacity:0}}
 #vAbyss{background:linear-gradient(180deg,rgba(22,6,5,.96),rgba(8,4,6,.99))}
 #vAbyss h2 em{color:#E2593F}
+#worldPick{display:flex;gap:.8em;justify-content:center;flex-wrap:wrap;margin:.5em 0 1.4em}
+#worldPick .wp{flex:1 1 11em;max-width:14em;padding:1.3em 1em;cursor:pointer;text-align:center;
+  border:1px solid rgba(222,211,184,.28);border-radius:12px;background:rgba(222,211,184,.04)}
+#worldPick .wp:active{transform:scale(.985)}
+#worldPick .wn{font-family:var(--font-carve);font-size:1.25em;letter-spacing:.2em;margin-bottom:.4em}
+#worldPick .ws{font-size:.76em;color:var(--stone-deep);line-height:1.6}
+#worldPick .wp.back{border-color:rgba(194,56,42,.55);background:rgba(120,20,14,.14)}
+#worldPick .wp.back .wn{color:#E2593F}
 #abyssPick{display:flex;gap:.4em;justify-content:center;align-items:center;flex-wrap:wrap;margin-bottom:1.2em}
 #abyssPick button{font:inherit;font-size:.95em;min-width:2.4em;padding:.45em .6em;cursor:pointer;
   background:transparent;color:rgba(222,211,184,.6);border:1px solid rgba(158,143,110,.3);border-radius:7px}
@@ -499,6 +507,12 @@ canvas{display:block;width:100%;height:100%}
     <div class="eyebrow" id="cardEyebrow">한 장을 고른다</div>
     <div class="loadout" id="loadCard"></div>
     <div id="cardRow"></div>
+  </div>
+
+  <div class="veil" id="vWorld">
+    <div class="eyebrow">어느 쪽을 걷겠나</div>
+    <div id="worldPick"></div>
+    <button class="btn ghost" id="btnWorldBack">돌아간다</button>
   </div>
 
   <div class="veil" id="vAbyss">
@@ -969,7 +983,15 @@ const LORE = {
   bossPre:'제 말이 함부로 쓰이는 걸 견디지 못해 남은 혼이다.',
 };
 const pick=a=>a[Math.floor(Math.random()*a.length)];
-const zoneOf=f=>LORE.zones[Math.min(LORE.zones.length-1,Math.floor((f-1)/10))];
+const zoneOf=f=>LORE.zones[Math.min(LORE.zones.length-1,Math.floor((f-1)/CONFIG.chapterLen))];
+/* 뒷세계에서는 같은 자리를 뒤에서 본다 */
+const DEEP_ZONE=['떨어진 말 아래','마른 먹의 속','찢긴 책의 뒷장','부르는 소리','못의 바닥'];
+function zoneName(f){
+  const i=Math.min(4,Math.floor((f-1)/CONFIG.chapterLen));
+  return (S&&S.deepRun) ? DEEP_ZONE[i] : LORE.zones[i].name;
+}
+/* 뒷세계면 그렇다고 앞에 밝힌다 */
+const worldZone=f=>(S&&S.deepRun)?('뒷세계 : '+zoneName(f)):zoneName(f);
 
 /* ══════════════════════════════════════════════════════════
    ② WORDS — 500개 받으면 이 배열만 통째로 교체
@@ -1742,7 +1764,7 @@ const charDef=id=>CHARS.find(c=>c.id===id)||CHARS[0];
 /* ---------- 저장 (기기 안에만 남는다) ---------- */
 const SAVE_KEY='vocab-pit-save-v1';
 let META={ink:0, up:{}, best:0, bestInk:0, abyss:0, runs:0, totalWords:0, lastBall:null, weak:{}, cleared:{}, met:{}, chars:{none:1}, char:'none', tip:{},
-  mem:{}, deep:{}, shopVisits:0, p2:{}, depth:0, tale:{},
+  mem:{}, deep:{}, shopVisits:0, p2:{}, depth:0, tale:{}, world:undefined,
   ord:{}, ordN:0, plan:null, admin:null};
 let saveOK=true;
 function loadMeta(){
@@ -1788,7 +1810,7 @@ function saveRun(){
       tomes:(S.tomes||[]).map(t=>t.id), deepTomes:S.deepTomes||null,
       bossPick:S.bossPick, isAbyss:S.isAbyss,
       plan:(META.plan||[]).map(q=>q.b+'|'+q.l),      // 회차 차례도 함께 둔다
-      depth:S.depth||0,
+      depth:S.depth||0, deepRun:!!S.deepRun,
       abyssBoss:S.abyssBoss?S.abyssBoss.name:null,
       balls:S.ballSlots.map(x=>[x.def.id,x.lv]),
       gears:S.gearSlots.map(x=>[x.def.id,x.lv]),
@@ -1907,7 +1929,21 @@ function lessonLabel(){
 /* ══════════════════════════════════════════════════════════
    인물의 기억 — 30층을 깨면 뒷세계가 열린다
    ══════════════════════════════════════════════════════════ */
-function deepOpen(id){ return !!(META.deep&&META.deep[id]); }
+/* 뒷세계는 서른 층을 넘기면 열리고, 스무 조각을 다 읽어야 닫힌다.
+   둘 다 열려 있으면 판을 시작할 때 어느 쪽을 걸을지 고른다 */
+function deepHave(id){ return !!(META.deep&&META.deep[id]); }
+function deepOpen(id){ return deepHave(id) && META.world!=='front'; }
+function deepRead(id){
+  const m=MEM.mem[id]; if(!m||!m.back)return 0;
+  let k=0; for(const [f] of m.back) if(META.mem&&META.mem[id+'_b_'+f]) k++;
+  return k;
+}
+function deepTotal(id){ const m=MEM.mem[id]; return (m&&m.back)?m.back.length:0; }
+function closeDeepIfDone(id){
+  if(!deepHave(id))return false;
+  if(deepRead(id)<deepTotal(id))return false;
+  delete META.deep[id]; saveMeta(); return true;      // 다 들었다 — 뒷세계가 닫힌다
+}
 function memList(id){
   const m=MEM.mem[id]; if(!m)return [];
   return deepOpen(id)? m.back : m.front;
@@ -2117,6 +2153,7 @@ function newRun(){
   }
   S.isBoss=isBossStage(S.stage);
   rollAlertMarks();
+  S.deepRun=deepOpen(META.char);                    // 이번 판이 뒷세계인가
   S.depth=Math.max(0,Math.min(META.depth||0, META.abyss||0));   // 이번 판에 고른 심연
   S.souptimes=0;                                    // 김첨지 — 층당 설렁탕 횟수
   planLessons();
@@ -2153,6 +2190,7 @@ function resumeRun(d){
   S.gearSlots=(d.gears||[]).map(([id,lv])=>({def:GEARDEF(id),lv})).filter(x=>x.def);
   if(!S.ballSlots.length) S.ballSlots=[{def:BALLDEF('stone'),lv:1}];
   S.isBoss=isBossStage(S.stage);
+  S.deepRun=!!d.deepRun;
   S.depth=Math.max(0,Math.min(d.depth||0, META.abyss||0));      // 두고 온 판의 심연 깊이
   /* 두고 온 판의 회차 차례를 그대로 되살린다. 없으면 새로 짠 것을 쓴다 */
   if(d.plan&&d.plan.length===CONFIG.lessonsPerRun){
@@ -6216,10 +6254,11 @@ function runEnd(won){
   if(newBest) META.best=S.stage;
   if(newInk) META.bestInk=gained;
   let opened=0;
+  const deepDone=closeDeepIfDone(META.char);          // 스무 조각을 다 들었는가
+  META.world=undefined; saveMeta();                   // 다음 판에 다시 묻는다
   if(won){
     /* 고른 깊이를 끝까지 내려갔을 때만 다음 심연이 열린다 */
     if((S.depth||0)>=(META.abyss||0)){ META.abyss=(META.abyss||0)+1; opened=META.abyss; }
-    if(META.deep) delete META.deep[META.char];       // 마지막 층을 끝내면 뒷세계가 닫힌다
   }
   clearRun();
   saveMeta();
@@ -6344,7 +6383,7 @@ el('btnIntroNext').onclick=()=>{
 let zoneTimer=null;
 function announceZone(floor){
   const z=zoneOf(floor), card=el('zoneCard');
-  card.querySelector('.zn').textContent=z.name;
+  card.querySelector('.zn').textContent=worldZone(floor);
   card.querySelector('.zs').textContent=z.sub;
   card.querySelector('.zf').textContent=`${floor}층`;
   card.classList.add('on');
@@ -6356,7 +6395,7 @@ function announceZone(floor){
 function pauseGame(){
   if(!S||S.screen!=='play')return;
   S.screen='pause'; dropTouches(); saveRun();
-  el('pauseHead').innerHTML=`<em>${S.stage}층</em> · ${zoneOf(S.stage).name}`;
+  el('pauseHead').innerHTML=`<em>${S.stage}층</em> · ${worldZone(S.stage)}`;
   renderLoadout('loadPause');
   show('vPause');
 }
@@ -6538,7 +6577,8 @@ function renderBook(){
     if(has) got++;
     const d=document.createElement('div');
     d.className='bkRow'+(has?' on':' locked');
-    d.innerHTML=`<div class="bf">${f}층</div><div class="bt">${has?t:'아직 닿지 못한 기억'}</div>`;
+    const at=memFloors(bookId)[src.indexOf(src.find(x=>x[0]===f))];
+    d.innerHTML=`<div class="bf">${at||f}층</div><div class="bt">${has?t:'아직 닿지 못한 기억'}</div>`;
     list.appendChild(d);
   }
   el('bookEyebrow').textContent=`기억 · ${got} / ${src.length}`;
@@ -6606,8 +6646,27 @@ function renderAbyssPick(){
       + `<br><br><span style="color:var(--jade)">하강 · 보스 <b>+${Math.round((hardAt(cur)-1)*100)}%</b>`
       + ` · 먹 <b>×${inkMulAt(cur).toFixed(1)}</b></span>`;
 }
-/* 판을 시작한다 — 고른 깊이로 */
+/* 앞뒤가 다 열려 있으면 어느 쪽을 걸을지 먼저 묻는다 */
 function beginRun(){
+  const id=META.char;
+  if(deepHave(id) && META.world===undefined){ askWorld(); return; }
+  startRunNow();
+}
+function askWorld(){
+  const id=META.char, box=el('worldPick');
+  const got=deepRead(id), tot=deepTotal(id);
+  box.innerHTML=
+    `<div class="wp" data-w="front"><div class="wn">앞 세 계</div>
+       <div class="ws">구덩이를 내려간다<br>여느 때와 같다</div></div>
+     <div class="wp back" data-w="back"><div class="wn">뒷 세 계</div>
+       <div class="ws">아직 다 듣지 못한 말<br><b>${got} / ${tot}</b></div></div>`;
+  box.querySelectorAll('.wp').forEach(d=>{
+    d.onclick=()=>{ META.world=d.dataset.w; saveMeta(); vibe('open'); startRunNow(); };
+  });
+  show('vWorld');
+}
+/* 판을 시작한다 — 고른 깊이로 */
+function startRunNow(){
   const got=settleSavedRun();
   newRun(); show(null); announceZone(S.stage);
   if(got>0) S.alertMsg={text:`두고 온 판을 정산했다 · 먹 +${got}`,t:2.8,ok:true};
@@ -6631,6 +6690,7 @@ el('btnAbyss').onclick=()=>{
 };
 el('btnAbyssGo').onclick=()=>beginRun();
 el('btnAbyssBack').onclick=()=>{ show('vTitle'); refreshTitle(); };
+el('btnWorldBack').onclick=()=>{ META.world=undefined; show('vTitle'); refreshTitle(); };
 el('btnRetry')?.addEventListener('click',()=>{settleSavedRun();newRun();show(null);});
 
 /* ---------- 갱신 ---------- */
@@ -6967,6 +7027,33 @@ function cacheColors(){['--pit-void','--pit-ink','--pit-mist','--stone','--stone
 function roundRect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);
   ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
 
+/* 뒷세계의 바탕 — 살아 있는 자리가 아니다.
+   붉은 그늘이 가장자리에 앉고, 잃어버린 넉 자가 아주 흐리게 떠오른다 */
+const LOST_JAMO=['ㆆ','ㅿ','ㆁ','ㆍ'];
+function drawDeepBg(){
+  const T=performance.now()/1000;
+  ctx.save();
+  ctx.fillStyle='rgba(60,10,8,.22)';               // 붉은 기가 도는 어둠
+  ctx.fillRect(-40,-40,VW+80,VH+80);
+  const r=ctx.createRadialGradient(VW/2,VH/2,Math.min(VW,VH)*0.32,VW/2,VH/2,Math.max(VW,VH)*0.78);
+  r.addColorStop(0,'rgba(0,0,0,0)');
+  r.addColorStop(1,'rgba(120,18,12,.42)');         // 가장자리 그늘
+  ctx.fillStyle=r; ctx.fillRect(-40,-40,VW+80,VH+80);
+  /* 가라앉은 넉 자가 천천히 떠오른다 */
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  for(let k=0;k<7;k++){
+    const seed=k*137.5;
+    const ph=((T*0.035+k*0.143)%1);
+    const x=MARGIN+((seed*7.3)%1)*(VW-MARGIN*2);
+    const y=VH+60-(VH+140)*ph;
+    const sz=Math.round(52+((seed*3.1)%1)*70);
+    ctx.globalAlpha=Math.sin(ph*Math.PI)*0.045;
+    ctx.fillStyle='#FFD9CE';
+    ctx.font=`700 ${sz}px 'Gowun Batang','Apple SD Gothic Neo',serif`;
+    ctx.fillText(LOST_JAMO[k%4],x,y);
+  }
+  ctx.restore();
+}
 function draw(){
   ctx.setTransform(scale,0,0,scale,0,0);
   if(S&&S.shake>0)ctx.translate((Math.random()-.5)*S.shake,(Math.random()-.5)*S.shake);
@@ -6974,6 +7061,7 @@ function draw(){
   g.addColorStop(0,C['--pit-mist']);g.addColorStop(.5,C['--pit-ink']);g.addColorStop(1,C['--pit-void']);
   ctx.fillStyle=g;ctx.fillRect(-40,-40,VW+80,VH+80);
   if(!S)return;
+  if(S.deepRun) drawDeepBg();                    // 뒷세계 — 붉은 그늘과 가라앉은 글자
 
   ctx.strokeStyle='rgba(222,211,184,.055)';ctx.lineWidth=1.5;
   const CL=cell();
@@ -9348,8 +9436,9 @@ function drawHud(){
     let x=ex+2;
     for(const a of AXES){
       const v=S.ax[a]||1, cnt=(S.axN&&S.axN[a])||0, on=cnt>=2;
+      if(v<=1.02 && !on) continue;               // 아직 쌓인 것이 없으면 아예 안 보인다
       ctx.font=`700 21px 'Gowun Batang',serif`;
-      ctx.fillStyle=on?C['--gold']:(v>1.02?'rgba(222,211,184,.75)':'rgba(222,211,184,.28)');
+      ctx.fillStyle=on?C['--gold']:'rgba(222,211,184,.75)';
       const t=`${a}×${v<10?v.toFixed(1):Math.round(v)}`;
       ctx.fillText(t,x,ey+66);
       if(on){ ctx.font=`700 13px 'IBM Plex Sans KR',sans-serif`;
@@ -9379,7 +9468,7 @@ function drawHud(){
   const RX=WALL_R-72;
   ctx.fillText(`${S.stage}층`,RX,ey-4);
   ctx.font=`600 18px 'IBM Plex Sans KR',sans-serif`;ctx.fillStyle='rgba(222,211,184,.55)';
-  ctx.fillText(zoneOf(S.stage).name+(lessonLabel()?' · '+lessonLabel():''),RX,ey-26);
+  ctx.fillText(worldZone(S.stage)+(lessonLabel()?' · '+lessonLabel():''),RX,ey-26);
   if(S.gim){
     ctx.fillStyle=C['--gold'];
     ctx.fillText(`${S.gim.icon} ${S.gim.name}${S.gim2?` + ${S.gim2.icon} ${S.gim2.name}`:''}`
@@ -9441,7 +9530,7 @@ function loop(now){
   try{update(dt);draw();}catch(err){console.error('게임 루프 오류:',err);}
   requestAnimationFrame(loop);
 }
-const BUILD='c37-1';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c38-2';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
