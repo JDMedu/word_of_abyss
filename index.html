@@ -711,10 +711,7 @@ const CONFIG = {
   cardEvery:2,           // 몇 층마다 카드를 고르는가
   quizPerFloor:2,        // 층을 넘길 때 뜻을 몇 번 묻는가
   cardBase:5,            // 한 번에 보는 카드 수 — 하나도 못 맞히면 한 장 적다
-  /* 인물의 기억이 뜨는 자리 — 보스 층(5의 배수)은 비켜 간다.
-     앞세계는 여덟 조각, 뒷세계는 열여섯 조각이라 자리 수를 맞춰 둔다 */
-  memFrontAt:[3,8,13,18,22,27,32,37],
-  memBackAt :[2,4,6,8,11,13,16,18,21,23,26,28,31,33,36,38],
+
   floorSec:16,           // 한 층이 대략 이만큼 걸리게 잡는다(초)
   clearSlack:0.65,       // 내려오는 것 가운데 이만큼을 깨면 층이 넘어간다
   bossEvery:5, maxFloor:40, chapterLen:8,
@@ -797,6 +794,8 @@ const CONFIG = {
   bodyOdds:[0.43,0.28,0.21,0.08],    // 눈금이 나올 몫
   bodyVamp:0.001,                    // 몸돌이 준 피해의 이만큼이 기력으로
   regenEvery:5.0,        // 눈 — 기력이 차오르는 주기(초)
+  rageEvery:20, rageSec:3, rageMul:2,   // 우투리 — 몇 초마다 몇 초간 몇 배
+  horseEvery:60, horsePct:0.50,         // 용마 — 몇 초마다 모든 석판 체력의 몇 몫
   comboHitAt:10, comboHitPct:0.30,   // 자람 열 번 연속 — 모든 석판 체력의 30%
   comboBigAt:20, comboBigPct:0.50,   // 스무 번 연속 — 50%
   shieldEvery:10,        // 거울 — 몇 초마다 방벽이 서는가
@@ -1686,7 +1685,12 @@ const inkMulAt   =d=>d>0 ? 1+CONFIG.abyssInkBase+CONFIG.abyssInkStep*d : 1;
 const hardAt     =d=>1+CONFIG.abyssStep*d;
 const abyssInkMul=()=>inkMulAt(depth());
 const p2On    = id=>!!(META.p2&&META.p2[id]) && META.char===id;   // 두 번째 재주
-const p2Open  = id=>{const i=CHARS.findIndex(c=>c.id===id); return i>=0 && (META.abyss||0)>i;};
+const p2Open  = id=>{
+  const c=CHARS.find(x=>x.id===id); if(!c) return false;
+  if(c.p2Abyss) return (META.abyss||0)>=c.p2Abyss;
+  const i=CHARS.findIndex(x=>x.id===id);
+  return i>=0 && (META.abyss||0)>i;
+};
 
 const CHARS = [
   {id:'none', name:'이름 없는 자', work:'구덩이로 내려온 채자인',
@@ -1727,6 +1731,11 @@ const CHARS = [
    desc:'10초마다 겨눈 쪽으로 빛줄기를 내지른다<br>줄기에 닿는 석판이 모두 한꺼번에 상한다',
    floor:40, cost:480, color:'#8E7BD8',
    p2:'천사마', p2desc:'장성검이 <b>세 갈래</b>로 갈라진다<br>지나간 자리에 3초간 불길이 남아 석판을 태운다'},
+  {id:'utturi', name:'우투리', work:'아기장수 우투리',
+   skill:'광폭',
+   desc:'20초마다 3초간 겨드랑이의 날개가 펴진다<br>그동안 이동·구슬 수·위력이 모두 <b>두 배</b>',
+   floor:0, abyss:3, p2Abyss:4, cost:600, color:'#E2593F',
+   p2:'용마(龍馬)', p2desc:'60초마다 용마가 울며 <b>모든 석판</b>을 친다<br>그 석판 체력의 50%'},
 ];
 const charDef=id=>CHARS.find(c=>c.id===id)||CHARS[0];
 
@@ -1907,8 +1916,17 @@ function memKey(id,floor){ return id+'_'+(deepOpen(id)?'b':'f')+'_'+floor; }
 /* 층에 닿았을 때 열 조각이 있으면 돌려준다 */
 /* 기억은 쉰 층 시절 자리에 맞춰 적혀 있다.
    마흔 층에 맞게 자리를 다시 깔아 준다 — 보스 층은 비켜 간다 */
+const _spread={};
 function memFloors(id){
-  return deepOpen(id) ? CONFIG.memBackAt : CONFIG.memFrontAt;
+  const n=memList(id).length;
+  if(_spread[n]) return _spread[n];
+  const pool=[];                                  // 보스 층은 비켜 간다
+  for(let f=2;f<=CONFIG.maxFloor-2;f++) if(f%CONFIG.bossEvery!==0) pool.push(f);
+  let out;
+  if(n<=1) out=[pool[0]];
+  else if(n>=pool.length) out=pool.slice(0,n);
+  else { out=[]; for(let i=0;i<n;i++) out.push(pool[Math.round(i*(pool.length-1)/(n-1))]); }
+  return (_spread[n]=[...new Set(out)]);
 }
 function memAt(floor){
   const id=META.char, list=memList(id), at=memFloors(id);
@@ -2051,6 +2069,7 @@ function newRun(){
       tome:null, tomes:[], tomePending:0, fuseTok:0, pendingCard:0, mergeNo:{}, cardHold:null,
       orb:null, shadow:0, shadowT:0, zealT:0, zealCd:0, flowerT:0,
       wallT:0, walls:null, swordT:0, sword:null, charT:0,
+      rageT:0, rageOn:0, horseT:0,
       wallCharge:0, healFx:0, stunT:0, fireLock:0, mines:[], drips:[], lightBar:null, bossStep:0, bossDmg:CONFIG.bulletDamage, bossSpd:1,
       statusMul:1, healMul:1, touchCut:0, dmgMul:1,
       revives:lvOf('revive'), cardBonus:lvOf('eye'),
@@ -2273,6 +2292,7 @@ function recalc(){
   S.growMul = 1 + (S.grow||0)*CONFIG.growPer*(S.growAx||1);   // 자람 — 뜻을 맞힌 만큼
   S.shotBalls  = Math.max(1, CONFIG.shotBalls + lvOf('burst') + gv('brush','shots') + (t.shotsAdd||0)
                           - gv('slab','less'));   // 무거운 벼루 — 구슬을 판다
+  if(S.rageOn>0) S.shotBalls*=CONFIG.rageMul;      // 우투리 — 날개가 펴지면 구슬도 두 배
   if(S.zealT>0) S.shotBalls*=2;              // 춘향 수절
   if(t.shotsMul) S.shotBalls*=t.shotsMul;
   if(t.halfShots) S.shotBalls=Math.max(1,Math.floor(S.shotBalls/2));
@@ -2325,7 +2345,7 @@ function recalc(){
                  * (omenHas('sunup')?2:1);                            // 큰빛 · 해오름
   /* 월 — 한 방이 무거워질수록 석판을 꿰뚫는다. 넘친 위력이 버려지지 않게 */
   S.pierceBonus= Math.max(0, Math.floor(Math.log2(Math.max(1,S.ax['월']))));
-  S.moveMul    = (1+0.06*lvOf('foot')) * (t.moveMul||1);
+  S.moveMul    = (1+0.06*lvOf('foot')) * (t.moveMul||1) * rageMul();
   S.speedMul   = (S.speedMulBase||1) * (1+0.06*lvOf('swift')) * (1+gv('flint','speed'))
                  * (t.speedMul||1) * Math.pow(S.fastMul||1,0.5)
                  * (omenHas('gale')?1.5:1) * (omenHas('heavy')?0.2:1);   // 바람결 · 무거운발
@@ -2734,7 +2754,7 @@ function dmgOf(ball){
   if(d.stackPer) v=1+(S.stackUp||0);          // 먹쌓임 — 제 위력은 오직 쌓인 몫
   if(d.vampPower) v+=(S.vampPow||0);
   if(d.scale) v=Math.round(v*(1+(1-S.energy/S.energyMax)*d.scale[lv]));
-  return Math.max(1, Math.round(v*(S.dmgMul||1)*(S.growMul||1)*walkMul()));
+  return Math.max(1, Math.round(v*(S.dmgMul||1)*(S.growMul||1)*walkMul()*rageMul()));
 }
 
 /* 김첨지 — 실린 힘. 0.4초마다 한 눈금, 3초면 가득 찬다 */
@@ -2808,6 +2828,8 @@ function bodyBoom(cx,cy,gr){
   S.winFlash=Math.max(S.winFlash||0, all?0.9:0.3+0.12*g);
   if(all) S.alertMsg={text:'몸돌 넷 — 구덩이가 흔들렸다',t:1.8,ok:true};
 }
+/* 우투리 — 날개가 펴져 있는 동안 */
+const rageMul=()=>(S&&S.rageOn>0)?CONFIG.rageMul:1;
 /* 구보씨 — 걸으면 오르고 멈추면 내린다 */
 function walkMul(){
   if(!(S&&S.tome&&S.tome.walkPower))return 1;
@@ -3865,6 +3887,34 @@ function charTick(dt){
     if(S.walls){
       for(let i=S.walls.length-1;i>=0;i--){ S.walls[i].t-=dt; if(S.walls[i].t<=0) S.walls.splice(i,1); }
       if(!S.walls.length) S.walls=null;
+    }
+  }
+  if(c.id==='utturi'){                     // 우투리 — 날개가 펴진다
+    S.rageT=(S.rageT||0)-dt;
+    if(S.rageT<=0){
+      S.rageT=CONFIG.rageEvery;
+      S.rageOn=CONFIG.rageSec; recalc();
+      S.alertMsg={text:'날개가 펴진다',t:1.4,ok:true};
+      vibe('boss'); S.winFlash=Math.max(S.winFlash||0,.5);
+    }
+    const was=S.rageOn>0;
+    if(S.rageOn>0) S.rageOn-=dt;
+    if(was!==(S.rageOn>0)) recalc();
+    if(p2On('utturi')){                    // 용마 — 울면 판이 통째로 상한다
+      S.horseT=(S.horseT||0)-dt;
+      if(S.horseT<=0){
+        S.horseT=CONFIG.horseEvery;
+        for(let i=S.bricks.length-1;i>=0;i--){
+          const b=S.bricks[i]; if(!b||b.quiz||isSolid(b))continue;
+          chip(b, Math.max(1,Math.ceil((b.maxHp||b.hp)*CONFIG.horsePct)), 'vermilion');
+          if(S.screen!=='play')return;
+        }
+        S.sweepFx=S.sweepFx||[];
+        S.sweepFx.push({t:.7,dur:.7,delay:0,big:true});
+        S.shake=Math.max(S.shake,20); S.winFlash=Math.max(S.winFlash||0,.8);
+        vibe('boss');
+        S.alertMsg={text:'용마가 운다',t:1.8,ok:true};
+      }
     }
   }
   if(c.id==='yuchungryeol'){               // 장성검
@@ -6332,13 +6382,14 @@ function renderChars(){
   const list=el('charList'); list.innerHTML='';
   for(const c of CHARS){
     const own=!!(META.chars&&META.chars[c.id]);
-    const unlocked=META.best>=c.floor;
+    const unlocked=c.abyss ? (META.abyss||0)>=c.abyss : META.best>=c.floor;
     const cur=META.char===c.id;
     const can=!own&&unlocked&&META.ink>=c.cost;
     const d=document.createElement('div');
     d.className='chr'+(cur?' on':'')+(own?' own':(can?' buy':(unlocked?'':' lock')));
     const price=own?(cur?'쓰는 중':'고르기')
-              :(unlocked?`${c.cost} 먹으로<br>데려오기`:`${c.floor}층<br>도달 필요`);
+              :(unlocked?`${c.cost} 먹으로<br>데려오기`
+                        :(c.abyss?`심연 ${c.abyss}<br>완주 필요`:`${c.floor}층<br>도달 필요`));
     const pcls=own?(cur?'cur':'own'):(can?'':'no');
     d.innerHTML=`<div class="cm" style="background:${c.color}">${c.name[0]}</div>
       <div class="ci">
@@ -6353,7 +6404,8 @@ function renderChars(){
     if(act){ d.onclick=act; d.querySelector('.cp').onclick=e=>{ e.stopPropagation(); act(); }; }
     /* 두 번째 재주 — 심연을 그만큼 깨야 열린다 */
     if(c.p2 && own){
-      const has=!!(META.p2&&META.p2[c.id]), open=p2Open(c.id), rung=CHARS.findIndex(x=>x.id===c.id)+1;
+      const has=!!(META.p2&&META.p2[c.id]), open=p2Open(c.id),
+            rung=c.p2Abyss||(CHARS.findIndex(x=>x.id===c.id)+1);
       const buy=!has&&open&&META.ink>=CONFIG.p2Cost;
       const p=document.createElement('div');
       p.className='chr p2'+(has?' own':(buy?' buy':' lock'));
@@ -9121,8 +9173,25 @@ function drawHero(){
   ctx.translate(x,y);ctx.scale(K,K);
   if(blink)ctx.globalAlpha=.35;
   ctx.fillStyle='rgba(0,0,0,.4)';ctx.beginPath();ctx.ellipse(0,26,30,10,0,0,7);ctx.fill();
-  const cc=charDef(META.char).color;
-  ctx.fillStyle=cc;ctx.shadowColor=cc;ctx.shadowBlur=16;
+  let cc=charDef(META.char).color;
+  if(S.rageOn>0){                            // 우투리 — 날개가 펴지면 몸이 붉게 탄다
+    const q=.5+.5*Math.sin(performance.now()/1000*14);
+    cc='#FF5A3A';
+    ctx.save();
+    ctx.globalAlpha=.30+.28*q;
+    ctx.fillStyle='#FF7A4A'; ctx.shadowColor='#FF5A3A'; ctx.shadowBlur=34+18*q;
+    ctx.beginPath(); ctx.arc(0,-4,44+8*q,0,7); ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle=`rgba(255,190,150,${.6+.35*q})`;   // 겨드랑이의 날개
+    ctx.lineWidth=3; ctx.lineCap='round';
+    ctx.beginPath();
+    for(const sx of [-1,1]){
+      ctx.moveTo(sx*20,-6);
+      ctx.quadraticCurveTo(sx*(40+8*q),-26-6*q, sx*(30+6*q),-2);
+    }
+    ctx.stroke(); ctx.lineCap='butt';
+  }
+  ctx.fillStyle=cc;ctx.shadowColor=cc;ctx.shadowBlur=S.rageOn>0?30:16;
   roundRect(-22,-14,44,42,9);ctx.fill();ctx.shadowBlur=0;
   ctx.fillStyle=C['--paper'];ctx.beginPath();ctx.arc(0,-30,17,0,7);ctx.fill();
   ctx.translate(0,-4);ctx.rotate(Math.atan2(S.aimY,S.aimX)+Math.PI/2);
@@ -9372,7 +9441,7 @@ function loop(now){
   try{update(dt);draw();}catch(err){console.error('게임 루프 오류:',err);}
   requestAnimationFrame(loop);
 }
-const BUILD='c36-4';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c37-1';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
