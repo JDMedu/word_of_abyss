@@ -6101,6 +6101,13 @@ function offerTome(){
 
 function nextStage(){
   if(S.stage>=CONFIG.maxFloor){ runEnd(true); return; }
+  /* 기억은 층에 들어설 때가 아니라 층을 다 깬 뒤에 듣는다.
+     시작 층 몫은 startRunNow 에서 이미 들려주었다 */
+  if(!S.memSaid && S.stage!==S.startStage){
+    const t=memAt(S.stage);
+    if(t){ S.memSaid=true; sayMem(t,()=>nextStage()); return; }
+  }
+  S.memSaid=false;
   S.stage++;S.destroyed=0;S.clearedThisStage=[];
   S.bricks=[];S.balls=[];S.bullets=[];S.sparks=[];S.beams=[];S.queue=[];S.sweeps=[];S.nums=[];S.mines=[];S.drips=[];
   S.dark=null;S.fog=null;S.hook=null;S.pull=null;S.cross=null;S.blobs=[];S.rings=[];S.walls=null;S.sweepFx=[];
@@ -6148,9 +6155,6 @@ function nextStage(){
     if(META.cleared&&META.cleared[S.stage]){ offerPath(); return; }   // 깨본 층이면 갈림길
     showBossIntro();
   }else{
-    const t=memAt(S.stage);
-    if(t){ sayMem(t,()=>{ S.screen='play';show(null);
-             if(zoneOf(S.stage)!==zoneOf(S.stage-1)) announceZone(S.stage); }); return; }
     S.screen='play';show(null);
     if(zoneOf(S.stage)!==zoneOf(S.stage-1)) announceZone(S.stage);
   }
@@ -7577,12 +7581,7 @@ function drawBrick(b){
   }
   const seg=b.w/b.maxHp;ctx.fillStyle=b.quiz?C['--vermilion']:C['--gold'];
   for(let i=0;i<Math.ceil(b.hp);i++)ctx.fillRect(b.x+i*seg+4,b.y+5,seg-8,4);
-  // 상태이상 표시
-  if(b.freeze>0){
-    ctx.strokeStyle='rgba(120,190,255,.85)';ctx.lineWidth=3;
-    roundRect(b.x-2,b.y-2,b.w+4,b.h+4,6);ctx.stroke();
-    ctx.fillStyle='rgba(120,190,255,.12)';roundRect(b.x,b.y,b.w,b.h,5);ctx.fill();
-  }
+  // 상태이상은 아래 한 곳에서만 그린다
   // 뒤집혔거나(지용) 어두운(동주) 석판은 글자를 감춘다
   let hide=false;
   if(b.flip&&!b.open) hide=true;
@@ -7600,87 +7599,84 @@ function drawBrick(b){
     ctx.save();
     const T=performance.now()/1000, seed=(b.x*0.13+b.y*0.07);
 
-    if(b.poiN>0){                                // 중독 — 끓어오른다
-      const q=Math.min(1,b.poiN/4);
-      ctx.fillStyle=`rgba(143,209,79,${.13+.10*q})`;
-      roundRect(b.x,b.y,b.w,b.h,6);ctx.fill();
+    /* 걸린 것들의 색을 섞는다 — 둘이면 그 중간색이 테를 두른다 */
+    const on=[];
+    if(b.bleedN>0) on.push([226,72,58]);
+    if(b.poiN>0)   on.push([143,209,79]);
+    if(b.freeze>0) on.push([127,212,232]);
+    if(b.brandT>0) on.push([229,178,79]);
+    const mix=[0,1,2].map(i=>Math.round(on.reduce((a,c)=>a+c[i],0)/on.length));
+    const MIX=`rgb(${mix[0]},${mix[1]},${mix[2]})`;
+
+    /* 채움 — 상태마다 차오르는 자리가 다르다 */
+    ctx.save(); roundRect(b.x,b.y,b.w,b.h,5); ctx.clip();
+
+    if(b.poiN>0){                                // 중독 — 석판 전체가 물든다
+      ctx.fillStyle=`rgba(143,209,79,${.12+.12*Math.min(1,b.poiN/4)})`;
+      ctx.fillRect(b.x,b.y,b.w,b.h);
       const nb=Math.min(7,1+b.poiN*2);           // 겹수만큼 기포가 많다
       for(let k=0;k<nb;k++){
-        const ph=((T*0.8+k*0.37+seed)%1);        // 아래에서 위로 올랐다 터진다
+        const ph=((T*0.8+k*0.37+seed)%1);
         const bx=b.x+6+((k*37+seed*11)%Math.max(1,b.w-12));
-        const by=b.y+b.h-4-(b.h-8)*ph;
-        const r=2+2.2*(1-ph);
         ctx.globalAlpha=Math.min(1,(1-ph)*1.6)*0.9;
         ctx.fillStyle='rgba(168,232,104,.95)';
-        ctx.beginPath();ctx.arc(bx,by,r,0,7);ctx.fill();
+        ctx.beginPath();ctx.arc(bx,b.y+b.h-4-(b.h-8)*ph,2+2.2*(1-ph),0,7);ctx.fill();
       }
       ctx.globalAlpha=1;
     }
 
-    if(b.bleedN>0){                              // 출혈 — 아래로 방울이 떨어진다
-      const q=Math.min(1,b.bleedN/12);
-      ctx.fillStyle=`rgba(196,52,42,${.14+.14*q})`;
-      roundRect(b.x,b.y,b.w,b.h,6);ctx.fill();
+    if(b.bleedN>0){                              // 출혈 — 아래에서 차오른다
+      const lv=Math.min(1,b.bleedN/20), hh=Math.max(4,b.h*lv);
+      ctx.fillStyle=`rgba(196,52,42,${.22+.16*lv})`;
+      ctx.fillRect(b.x,b.y+b.h-hh,b.w,hh);
       const pulse=.5+.5*Math.sin(T*(3+b.bleedN*0.5)+seed);   // 겹수만큼 빨리 뛴다
-      ctx.strokeStyle=`rgba(232,72,58,${.45+.5*pulse})`;
-      ctx.lineWidth=2+2*q; roundRect(b.x+1,b.y+1,b.w-2,b.h-2,5); ctx.stroke();
-      const nd=Math.min(6,1+Math.floor(b.bleedN/3));
-      ctx.fillStyle='rgba(220,60,48,.95)';
-      for(let k=0;k<nd;k++){
-        const ph=((T*1.5+k*0.29+seed)%1);        // 아래 테두리에서 떨어진다
-        const dx=b.x+8+((k*53+seed*17)%Math.max(1,b.w-16));
-        const dy=b.y+b.h-2+ph*16;
-        ctx.globalAlpha=Math.max(0,1-ph);
-        ctx.beginPath();ctx.ellipse(dx,dy,2.4,4.2+3*ph,0,0,7);ctx.fill();
-      }
-      ctx.globalAlpha=1;
+      ctx.fillStyle=`rgba(232,72,58,${.45+.45*pulse})`;
+      ctx.fillRect(b.x,b.y+b.h-hh,b.w,2.5);      // 핏물의 수면
     }
 
-    if(b.freeze>0){                              // 서리 — 네 모서리에서 얼어 들어온다
-      ctx.fillStyle='rgba(210,240,252,.26)';
-      roundRect(b.x,b.y,b.w,b.h,6);ctx.fill();
-      const gr=Math.min(1,b.freeze/2.2), L=Math.min(b.w,b.h)*0.42*(0.5+0.5*gr);
-      ctx.strokeStyle='rgba(215,246,255,.95)'; ctx.lineWidth=2.4; ctx.lineCap='round';
+    if(b.freeze>0){                              // 서리 — 하얗게 굳는다
+      ctx.fillStyle='rgba(214,242,252,.34)';
+      ctx.fillRect(b.x,b.y,b.w,b.h);
+      const L=Math.min(b.w,b.h)*0.42*(0.5+0.5*Math.min(1,b.freeze/2.2));
+      ctx.strokeStyle='rgba(240,252,255,.95)'; ctx.lineWidth=3.5; ctx.lineCap='round';
       ctx.beginPath();
       for(const [ox,oy,sx,sy] of [[b.x,b.y,1,1],[b.x+b.w,b.y,-1,1],
                                   [b.x,b.y+b.h,1,-1],[b.x+b.w,b.y+b.h,-1,-1]]){
         ctx.moveTo(ox,oy); ctx.lineTo(ox+sx*L,oy+sy*L);
-        ctx.moveTo(ox+sx*L*0.55,oy+sy*L*0.55); ctx.lineTo(ox+sx*L*0.95,oy+sy*L*0.2);
-        ctx.moveTo(ox+sx*L*0.55,oy+sy*L*0.55); ctx.lineTo(ox+sx*L*0.2,oy+sy*L*0.95);
       }
-      ctx.stroke();
-      ctx.strokeStyle='rgba(255,255,255,.55)'; ctx.lineWidth=1.4;   // 얼음 금
+      ctx.stroke(); ctx.lineCap='butt';
+    }
+    ctx.restore();                               // 오려내기 끝
+
+    if(b.bleedN>0){                              // 방울이 아래 테두리에서 떨어진다
+      const nd=Math.min(6,1+Math.floor(b.bleedN/3));
+      ctx.fillStyle='rgba(220,60,48,.95)';
+      for(let k=0;k<nd;k++){
+        const ph=((T*1.5+k*0.29+seed)%1);
+        const dx=b.x+8+((k*53+seed*17)%Math.max(1,b.w-16));
+        ctx.globalAlpha=Math.max(0,1-ph);
+        ctx.beginPath();ctx.ellipse(dx,b.y+b.h-2+ph*16,2.4,4.2+3*ph,0,0,7);ctx.fill();
+      }
+      ctx.globalAlpha=1;
+    }
+
+    if(b.brandT>0){                              // 낙인 — 네 귀퉁이가 물린다
+      const r=Math.min(b.w,b.h)*0.3;
+      ctx.strokeStyle='rgba(245,205,120,.95)'; ctx.lineWidth=3.5; ctx.lineCap='round';
       ctx.beginPath();
-      ctx.moveTo(b.x+b.w*0.2,b.y+b.h*0.75); ctx.lineTo(b.x+b.w*0.45,b.y+b.h*0.35);
-      ctx.lineTo(b.x+b.w*0.62,b.y+b.h*0.6); ctx.lineTo(b.x+b.w*0.85,b.y+b.h*0.28);
+      for(const [ox,oy,sx,sy] of [[b.x+3,b.y+3,1,1],[b.x+b.w-3,b.y+3,-1,1],
+                                  [b.x+3,b.y+b.h-3,1,-1],[b.x+b.w-3,b.y+b.h-3,-1,-1]]){
+        ctx.moveTo(ox+sx*r,oy); ctx.lineTo(ox,oy); ctx.lineTo(ox,oy+sy*r);
+      }
       ctx.stroke(); ctx.lineCap='butt';
     }
 
-    if(b.brandT>0){                              // 낙인 — 인장이 떠서 돈다
-      const cx=b.x+b.w/2, cy=b.y+b.h/2;
-      ctx.save(); ctx.translate(cx,cy); ctx.rotate(T*0.7);
-      ctx.globalAlpha=.55+.25*Math.sin(T*3);
-      ctx.strokeStyle='rgba(229,178,79,.95)'; ctx.lineWidth=2.6;
-      const r=Math.min(b.w,b.h)*0.28;
-      ctx.strokeRect(-r,-r,r*2,r*2);
-      ctx.beginPath();ctx.arc(0,0,r*0.55,0,7);ctx.stroke();
-      ctx.restore();
-      ctx.globalAlpha=1;
-      ctx.strokeStyle='rgba(229,178,79,.75)';ctx.lineWidth=2.5;
-      roundRect(b.x+2,b.y+2,b.w-4,b.h-4,5);ctx.stroke();
-    }
-
-    /* 겹수를 오른쪽 위에 숫자로 */
-    const tag = b.bleedN>0 ? [b.bleedN,'rgba(232,72,58,.98)']
-              : b.poiN>0   ? [b.poiN,'rgba(168,232,104,.98)'] : null;
-    if(tag){
-      ctx.font=`700 15px 'IBM Plex Sans KR',sans-serif`;
-      ctx.textAlign='right'; ctx.textBaseline='top';
-      ctx.fillStyle='rgba(5,8,15,.75)';
-      ctx.fillText(String(tag[0]),b.x+b.w-5,b.y+4);
-      ctx.fillStyle=tag[1];
-      ctx.fillText(String(tag[0]),b.x+b.w-6,b.y+3);
-    }
+    /* 테두리 — 섞인 색으로 굵게, 바깥으로 후광 */
+    ctx.strokeStyle=MIX; ctx.shadowColor=MIX;
+    ctx.lineWidth=5; ctx.shadowBlur=18;
+    roundRect(b.x,b.y,b.w,b.h,5); ctx.stroke();
+    ctx.shadowBlur=10; ctx.stroke();             // 한 번 더 — 후광이 짙어진다
+    ctx.shadowBlur=0;
     ctx.restore();
   }
   if(b.laserWarn>0){                           // 빛 석판 예고선
@@ -7696,7 +7692,8 @@ function drawBrick(b){
   ctx.font=`700 ${size}px 'Gowun Batang',serif`;
   ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.fillStyle='rgba(5,8,15,.55)';ctx.fillText(word,b.x+b.w/2+2,b.y+b.h/2+off+2);
-  ctx.fillStyle=b.hit>0?'#fff':(b.quiz?'#FFF0EA':C['--stone']);
+  ctx.fillStyle=b.hit>0?'#fff'
+    :(b.freeze>0?'#EAF9FF':(b.quiz?'#FFF0EA':C['--stone']));   // 얼면 낱말도 하얘진다
   ctx.fillText(word,b.x+b.w/2,b.y+b.h/2+off);
   ctx.restore();
 }
