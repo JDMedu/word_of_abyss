@@ -72,7 +72,7 @@ canvas{display:block;width:100%;height:100%}
 .rvPos{font-size:.72em;color:var(--stone-deep)}
 .rvDef{font-size:.85em;line-height:1.5;color:rgba(243,237,223,.8)}
 #quizDef{font-family:var(--font-carve);font-size:1.6em;line-height:1.6;text-align:center;margin-bottom:1.4em}
-#quizDef .qpos{display:block;font-family:var(--font-ui);font-size:.52em;font-weight:700;letter-spacing:.2em;color:var(--gold);margin-bottom:.9em}
+#quizDef .qpos,#quizDefJ .qpos{display:block;font-family:var(--font-ui);font-size:.52em;font-weight:700;letter-spacing:.2em;color:var(--gold);margin-bottom:.9em}
 #quizOpts{display:grid;grid-template-columns:1fr 1fr;gap:.7em;width:100%}
 .qOpt{font-family:var(--font-carve);font-weight:700;font-size:1.75em;text-align:center;padding:.62em .4em;
   background:rgba(222,211,184,.09);border:1px solid rgba(222,211,184,.22);border-radius:4px;color:var(--stone);cursor:pointer;transition:background .12s}
@@ -2837,11 +2837,16 @@ function chargeMulOf(t){
 const chargeFull=()=>chargeMulOf(CONFIG.chargeMax);
 /* 자람을 잇달아 맞히면 판 전체가 한 번 훑린다 */
 function comboBurst(c){
-  if(!S||S.screen!=='play')return;
+  if(!S)return;
   let pct=0, big=false;
   if(c>0 && c%CONFIG.comboBigAt===0){ pct=CONFIG.comboBigPct; big=true; }
   else if(c>0 && c%CONFIG.comboHitAt===0){ pct=CONFIG.comboHitPct; }
   if(!pct)return;
+  /* 뜻 맞히는 중에 채워졌으면 미뤄 둔다 — 판에 석판이 깔린 뒤에 터진다 */
+  if(S.screen!=='play'){ S.comboPend={pct,big,c}; return; }
+  comboBlast(pct,big,c);
+}
+function comboBlast(pct,big,c){
   for(let i=S.bricks.length-1;i>=0;i--){
     const b=S.bricks[i];
     if(!b||b.quiz||isSolid(b))continue;          // 경보 석판은 건드리지 않는다
@@ -2849,11 +2854,12 @@ function comboBurst(c){
     if(S.screen!=='play')return;
   }
   S.sweepFx=S.sweepFx||[];
-  const lines=big?3:1;
+  const lines=big?3:2;                           // 열 번도 두 줄로 훑는다
   for(let k=0;k<lines;k++) S.sweepFx.push({t:0.55+k*0.12, dur:0.55, delay:k*0.12, big});
-  S.winFlash=Math.max(S.winFlash||0, big?0.95:0.5);
-  S.shake=Math.max(S.shake, big?22:11);
-  vibe(big?'boss':'right');
+  S.winFlash=Math.max(S.winFlash||0, big?0.95:0.75);
+  S.shake=Math.max(S.shake, big?24:16);
+  vibe(big?'boss':'right'); if(big) vibe('boss');
+  S.shout={text: big?'여기까지 왔다':'아직 멀었다', big, t:2.0, max:2.0};
   S.alertMsg={text: big?`연속 ${c} — 구덩이가 울린다`:`연속 ${c} — 자람이 터진다`,
               t: big?2.0:1.4, ok:true};
 }
@@ -4627,7 +4633,7 @@ function statusTick(dt){
   for(let i=S.pools.length-1;i>=0;i--){             // 내가 만든 먹웅덩이
     const q=S.pools[i]; if(!q.mine)continue;
     for(let k=S.bricks.length-1;k>=0;k--){
-      const b=S.bricks[k]; if(!b||b.quiz)continue;
+      const b=S.bricks[k]; if(!b||b.quiz||isSolid(b))continue;   // 말뚝·몸돌은 먹에 안 녹는다
       const cx=Math.max(b.x,Math.min(q.x,b.x+b.w)), cy=Math.max(b.y,Math.min(q.y,b.y+b.h));
       if(Math.hypot(q.x-cx,q.y-cy)>q.r)continue;
       b.hp-=(b.maxHp||b.hp)*Math.min(CONFIG.dotCap,(q.pct||0)*(S.dotMul||1))*dt; b.hit=Math.max(b.hit,.06);
@@ -4639,25 +4645,25 @@ function statusTick(dt){
 function updateBullets(dt){
   for(let i=S.bullets.length-1;i>=0;i--){
     const b=S.bullets[i];if(!b)continue;
+    if(S.shieldOn>0 && !b.bounced){                // 거울 — 방벽에 닿은 탄은 되돌아간다
+      const dx=b.x-S.px, dy=b.y-(S.py-6), R=heroR()*CONFIG.shieldR;
+      if(dx*dx+dy*dy < (R+b.r)*(R+b.r)){
+        const a=Math.atan2(dy,dx), sp=Math.max(240,Math.hypot(b.vx||0,b.vy||0));
+        b.vx=Math.cos(a)*sp; b.vy=Math.sin(a)*sp;
+        b.x=S.px+Math.cos(a)*(R+b.r+2); b.y=(S.py-6)+Math.sin(a)*(R+b.r+2);
+        b.bounced=1; b.foe=1; b.hold=0;            // 되돌아간 탄은 보스를 친다
+        burst(b.x,b.y,6,'jade'); vibe('right');
+        continue;
+      }
+    }
+    if(b.bounced&&S.boss&&overlaps({x:b.x-b.r,y:b.y-b.r,w:b.r*2,h:b.r*2},S.boss)){
+      S.boss.hp-=(b.dmg||CONFIG.bulletDamage)*CONFIG.shieldBack; S.boss.hit=.12;
+      burst(b.x,b.y,8,'jade'); S.bullets.splice(i,1); continue;
+    }
     if(b.trail!==undefined){
       b.trail-=dt;
       if(b.trail<=0){S.bullets.splice(i,1);continue;}
-      if(S.shieldOn>0){                           // 거울 — 방벽에 닿은 탄은 되돌아간다
-        const dx=b.x-S.px, dy=b.y-(S.py-6), R=heroR()*CONFIG.shieldR;
-        if(dx*dx+dy*dy < (R+b.r)*(R+b.r) && !b.bounced){
-          const a=Math.atan2(dy,dx), sp=Math.max(240,Math.hypot(b.vx||0,b.vy||0));
-          b.vx=Math.cos(a)*sp; b.vy=Math.sin(a)*sp;
-          b.x=S.px+Math.cos(a)*(R+b.r+2); b.y=(S.py-6)+Math.sin(a)*(R+b.r+2);
-          b.bounced=1; b.foe=1;                    // 되돌아간 탄은 보스를 친다
-          burst(b.x,b.y,6,'jade'); vibe('right');
-          continue;
-        }
-      }
       if(S.invuln<=0&&!b.bounced&&Math.hypot(b.x-S.px,b.y-(S.py-6))<b.r+14){hurt(b.dmg||CONFIG.bulletDamage);if(S.screen!=='play')return;}
-      if(b.bounced&&S.boss&&overlaps({x:b.x-b.r,y:b.y-b.r,w:b.r*2,h:b.r*2},S.boss)){
-        S.boss.hp-=(b.dmg||CONFIG.bulletDamage)*CONFIG.shieldBack; S.boss.hit=.12;
-        burst(b.x,b.y,8,'jade'); b.hold=-1; continue;
-      }
       continue;
     }
     if(b.hold>0){ b.hold-=dt; if(b.hold<=0){b.vx*=1.5;b.vy*=1.5;} continue; }
@@ -4711,7 +4717,7 @@ function updateBullets(dt){
         continue;
       }
     }
-    if(Math.hypot(b.x-S.px,b.y-(S.py-6))<b.r+14){
+    if(!b.bounced&&Math.hypot(b.x-S.px,b.y-(S.py-6))<b.r+14){   // 되쏜 탄은 나를 안 친다
       if(b.k==='ice'){                             // 얼음탄 — 피해 대신 경직
         S.bullets.splice(i,1);
         S.stunT=CONFIG.iceStun*diffSpd(); S.shake=Math.max(S.shake,10); vibe('hurt');
@@ -6753,6 +6759,9 @@ function update(dt){
   if(!S||S.screen!=='play')return;
   S.btnGlow=Math.max(0,S.btnGlow-dt*3);
   S.walkT=Math.max(0,(S.walkT||0)-dt);            // 구보씨 — 멈추면 이내 식는다
+  if(S.comboPend && S.bricks.some(b=>b&&!b.quiz&&!isSolid(b))){   // 미뤄 둔 자람 연속
+    const p=S.comboPend; S.comboPend=null; comboBlast(p.pct,p.big,p.c);
+  }
   if(S.shieldSec>0){                              // 거울 — 열 번 세고 한 번 선다
     S.shieldT=(S.shieldT||0)-dt;
     if(S.shieldT<=0){ S.shieldT=CONFIG.shieldEvery; S.shieldOn=S.shieldSec; vibe('open'); }
@@ -6782,6 +6791,7 @@ function update(dt){
   if(S.alert){ S.alert.t+=dt; S.alert.shown=(S.alert.shown||0)+dt; }
   if(S.alertMsg){S.alertMsg.t-=dt;if(S.alertMsg.t<=0)S.alertMsg=null;}
   if(S.growPop){S.growPop.t-=dt;if(S.growPop.t<=0)S.growPop=null;}
+  if(S.shout){S.shout.t-=dt;if(S.shout.t<=0)S.shout=null;}
   if(S.kindMsg){S.kindMsg.t-=dt;if(S.kindMsg.t<=0)S.kindMsg=null;}
   if(S.bossCry){S.bossCry.t-=dt;if(S.bossCry.t<=0)S.bossCry=null;}
 
@@ -9164,6 +9174,16 @@ function drawHazards(){
 }
 /* 뜻을 맞혔을 때 · 연속이 끊겼을 때 화면 가운데에 잠깐 뜬다 */
 function drawGrowPop(){
+  if(S.shout){                                   // 자람 연속 — 한마디 외친다
+    const s=S.shout, k=Math.min(1,s.t*2.5);
+    const grew=Math.max(0,1-(s.max-s.t)*6);      // 크게 나왔다 제 크기로 앉는다
+    ctx.save(); ctx.globalAlpha=k; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.font=`700 ${Math.round((s.big?88:68)*(1+0.3*grew))}px 'Gowun Batang',serif`;
+    ctx.fillStyle=s.big?'#FFF6D8':C['--gold'];
+    ctx.shadowColor=s.big?'#FFE9A8':'#E5B24F'; ctx.shadowBlur=30;
+    ctx.fillText(s.text,VW/2,CEIL_Y+470);
+    ctx.restore();
+  }
   const g=S.growPop; if(!g)return;
   const k=Math.min(1,g.t*2.2), rise=(1-Math.min(1,g.t/1.5))*26;
   ctx.save(); ctx.globalAlpha=k; ctx.textAlign='center'; ctx.textBaseline='middle';
