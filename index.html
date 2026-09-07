@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>어휘의 구덩이 · 수능 국어 필수 어휘</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#05080F">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="어휘">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
@@ -424,9 +430,8 @@ canvas{display:block;width:100%;height:100%}
       가라앉은 낱말을 건져 올려라.<br>
       <b>왼쪽</b> 이동 · <b>오른쪽</b> 조준 · <b>버튼</b> 발사<br>
       경보가 울리면 뜻에 맞는 낱말을 먼저 깨뜨려라.
-      <div style="margin-top:1.1em;font-size:.78em;line-height:1.6;color:var(--jade);opacity:.85">
-        브라우저에서 <b>홈 화면에 바로가기</b>를 만들어 두세요.<br>
-        <span style="color:var(--stone-deep)">그러지 않으면 한동안 안 들어올 때 기록이 지워질 수 있습니다.</span>
+      <div style="margin-top:1.1em;font-size:.78em;line-height:1.6;color:var(--stone-deep)">
+        한동안 안 들어오면 기록이 지워질 수 있습니다.
       </div>
       <div id="buildTag" style="margin-top:1.4em;font-size:.7em;letter-spacing:.1em;
            color:rgba(158,143,110,.55)"></div>
@@ -440,6 +445,17 @@ canvas{display:block;width:100%;height:100%}
       <button class="btn ghost" id="btnChar">인물</button>
       <button class="btn ghost" id="btnBook">기억</button>
       <button class="btn ghost" id="btnVibe">진동</button>
+      <button class="btn ghost" id="btnInstall" style="display:none">바탕화면에 두기</button>
+    </div>
+  </div>
+
+  <div class="veil" id="vInstall">
+    <div class="eyebrow">바탕화면에 두기</div>
+    <h2>홈 화면에 <em>추가</em></h2>
+    <div id="instBody" style="font-size:.9em;line-height:2;text-align:center;color:var(--stone)"></div>
+    <div class="row">
+      <button class="btn gold" id="instClose">닫기</button>
+      <button class="btn ghost" id="instLater">나중에</button>
     </div>
   </div>
 
@@ -786,7 +802,8 @@ const CONFIG = {
   inkGain:1.60,              // 들어오는 먹을 통째로 이만큼 곱한다
 
   /* 심연(회차)마다 붙는 값 */
-  abyssStep:0.10,        // 심연 한 단마다 하강·보스 체력·보스 공격이 오른다
+  abyssStep:0.10,        // 심연 한 단마다 하강·보스 공격이 오른다
+  bossHpStep:0.20,       // 보스 체력은 따로 — 한 단에 20%씩
   abyssInkBase:1.00,     // 심연에 들어서면 먹이 이만큼 더
   abyssInkStep:0.30,     // 심연 한 단마다 먹이 더 오른다
   abyssMaxRung:7,        // 계약은 일곱 단까지. 그 위는 숫자만 오른다
@@ -1718,17 +1735,14 @@ const PACTS = [
 ];
 const depth   = ()=>(S&&S.depth)||0;              // 이번 판의 심연 깊이
 const pactOn  = k=>depth()>=k;                    // 그 계약이 걸려 있는가
-const abyssHard = ()=>1+CONFIG.abyssStep*depth();     // 하강·보스에 곱한다
+const abyssHard = ()=>1+CONFIG.abyssStep*depth();     // 하강·보스 공격에 곱한다
+const bossHpHard= ()=>1+CONFIG.bossHpStep*depth();    // 보스 체력에만 곱한다
+const bossHpAt  =d=>1+CONFIG.bossHpStep*d;
 const inkMulAt   =d=>d>0 ? 1+CONFIG.abyssInkBase+CONFIG.abyssInkStep*d : 1;
 const hardAt     =d=>1+CONFIG.abyssStep*d;
 const abyssInkMul=()=>inkMulAt(depth());
-const p2On    = id=>!!(META.p2&&META.p2[id]) && META.char===id;   // 두 번째 재주
-const p2Open  = id=>{
-  const c=CHARS.find(x=>x.id===id); if(!c) return false;
-  if(c.p2Abyss) return (META.abyss||0)>=c.p2Abyss;
-  const i=CHARS.findIndex(x=>x.id===id);
-  return i>=0 && (META.abyss||0)>i;
-};
+const p2On    = id=>(p2Open(id)||!!(META.p2&&META.p2[id])) && META.char===id;  // 두 번째 재주
+const p2Open  = id=>backDone(id);       // 뒷세계 조각을 다 들으면 새 모습이 열린다
 
 const CHARS = [
   {id:'none', name:'이름 없는 자', work:'구덩이로 내려온 채자인',
@@ -1757,6 +1771,11 @@ const CHARS = [
        +'10초마다 석판이 모두 2초간 멈춘다',
    floor:30, cost:300, color:'#E5B24F',
    p2:'동백꽃 아래', p2desc:'멈춤이 끝나는 순간, 멈춰 있던 <b>석판 전부</b>가 위력의 100%로 한 번에 맞는다'},
+  {id:'utturi', name:'우투리', work:'아기장수 우투리',
+   skill:'광폭',
+   desc:'20초마다 3초간 겨드랑이의 날개가 펴진다<br>그동안 이동·구슬 수·위력이 모두 <b>두 배</b>',
+   floor:0, abyss:3, p2Abyss:4, cost:600, color:'#E2593F',
+   p2:'용마(龍馬)', p2desc:'60초마다 용마가 울며 <b>모든 석판</b>을 친다<br>그 석판 체력의 50%'},
   {id:'kimcheomji', name:'김첨지', work:'운수 좋은 날',
    skill:'차징샷 · 인력거',
    desc:'발사를 <b>누르고 있으면</b> 힘이 실린다. 1초마다 한 배씩, 다섯 배까지<br>'
@@ -1769,11 +1788,7 @@ const CHARS = [
    desc:'10초마다 겨눈 쪽으로 빛줄기를 내지른다<br>줄기에 닿는 석판이 모두 한꺼번에 상한다',
    floor:40, cost:480, color:'#8E7BD8',
    p2:'천사마', p2desc:'장성검이 <b>세 갈래</b>로 갈라진다<br>지나간 자리에 3초간 불길이 남아 석판을 태운다'},
-  {id:'utturi', name:'우투리', work:'아기장수 우투리',
-   skill:'광폭',
-   desc:'20초마다 3초간 겨드랑이의 날개가 펴진다<br>그동안 이동·구슬 수·위력이 모두 <b>두 배</b>',
-   floor:0, abyss:3, p2Abyss:4, cost:600, color:'#E2593F',
-   p2:'용마(龍馬)', p2desc:'60초마다 용마가 울며 <b>모든 석판</b>을 친다<br>그 석판 체력의 50%'},
+  
 ];
 const charDef=id=>CHARS.find(c=>c.id===id)||CHARS[0];
 
@@ -3531,7 +3546,7 @@ function bossOf(stage){
 function spawnBoss(){
   const n=Math.floor(S.stage/CONFIG.bossEvery),d=bossOf(S.stage);
   const step=n-1;                        // 몇 번째 보스인가 (5층=0 … 50층=9)
-  const hp=Math.round((CONFIG.bossHpBase+step*CONFIG.bossHpPerBoss)*abyssHard()
+  const hp=Math.round((CONFIG.bossHpBase+step*CONFIG.bossHpPerBoss)*bossHpHard()
            *(S.stage>=CONFIG.hardFrom?CONFIG.hardMul:1)*(d.hpMul||1));
   S.bossStep=step;
   S.bossDmg=Math.round(CONFIG.bulletDamage*(1+CONFIG.bossDmgPerBoss*step)*diffBoss()
@@ -3759,7 +3774,7 @@ function eachBoss(fn){
 /* 쌍혼 — 작은 혼 둘을 한자리에 세운다 */
 function spawnTwins(){
   const n=Math.ceil(S.stage/CONFIG.bossEvery), step=Math.max(0,n-2);
-  const hp=Math.round((CONFIG.bossHpBase+step*CONFIG.bossHpPerBoss)*CONFIG.twinHp*abyssHard()
+  const hp=Math.round((CONFIG.bossHpBase+step*CONFIG.bossHpPerBoss)*CONFIG.twinHp*bossHpHard()
            *(S.stage>=CONFIG.hardFrom?CONFIG.hardMul:1));
   S.bossStep=step;
   S.bossDmg=Math.round(CONFIG.bulletDamage*(1+CONFIG.bossDmgPerBoss*step)*diffBoss());
@@ -6308,6 +6323,9 @@ function runEnd(won){
   if(newInk) META.bestInk=gained;
   let opened=0;
   const opened2 = frontDone(META.char) && !backDone(META.char);
+  /* 뒷이야기를 다 들었으면 새 모습이 저절로 열린다 — 먹을 치르지 않는다 */
+  const p2New = !!charDef(META.char).p2 && p2Open(META.char) && !(META.p2&&META.p2[META.char]);
+  if(p2New){ META.p2=META.p2||{}; META.p2[META.char]=1; }
   META.world=undefined; saveMeta();                   // 다음 판에 다시 묻는다
   if(won){
     /* 고른 깊이를 끝까지 내려갔을 때만 다음 심연이 열린다 */
@@ -6336,12 +6354,11 @@ function runEnd(won){
     btn.textContent='먹을 벼리러 간다';
   }else{ btn.classList.remove('glow'); btn.textContent='묵귀에게'; }
   renderLoadout('endLoad');
-  el('inkGain').innerHTML = won
-    ? `먹 <b>+${gained}</b>`
-       +(opened2?`<br><span style="font-size:.6em;color:#E2593F">${charDef(META.char).name}의 뒷이야기가 열렸다</span>`:'')
-       +(opened?`<br><span style="font-size:.6em;color:var(--jade)">심연 ${opened}이 열렸다`
-        +(CHARS[opened-1]?` · ${CHARS[opened-1].name}의 <b>${CHARS[opened-1].p2}</b>`:'')+`</span>`:'')
-    : `먹 <b>+${gained}</b>`;
+  el('inkGain').innerHTML = `먹 <b>+${gained}</b>`
+    +(opened2?`<br><span style="font-size:.6em;color:#E2593F">${charDef(META.char).name}의 뒷이야기가 열렸다</span>`:'')
+    +(p2New ?`<br><span style="font-size:.6em;color:var(--gold)">${charDef(META.char).name}의 새 모습이 열렸다`
+      +` · <b>${charDef(META.char).p2}</b></span>`:'')
+    +(opened ?`<br><span style="font-size:.6em;color:var(--jade)">심연 ${opened}이 열렸다</span>`:'');
   /* 심연을 처음 끝까지 내려갔으면, 정산에 앞서 바닥에서 들은 말이 나온다 */
   const d0=S.depth||0;
   const t = (won && !(META.tale&&META.tale[d0])) ? taleFor(d0) : null;   // 처음 한 번만
@@ -6498,24 +6515,19 @@ function renderChars(){
     if(act){ d.onclick=act; d.querySelector('.cp').onclick=e=>{ e.stopPropagation(); act(); }; }
     /* 두 번째 재주 — 심연을 그만큼 깨야 열린다 */
     if(c.p2 && own){
-      const has=!!(META.p2&&META.p2[c.id]), open=p2Open(c.id),
-            rung=c.p2Abyss||(CHARS.findIndex(x=>x.id===c.id)+1);
-      const buy=!has&&open&&META.ink>=CONFIG.p2Cost;
+      const open=p2Open(c.id);                       // META.p2 는 '알렸다' 표시일 뿐이다
+      const has=open||!!(META.p2&&META.p2[c.id]);
+      const rd=memRead(c.id,'back'), tt=memTotal(c.id,'back');
       const p=document.createElement('div');
-      p.className='chr p2'+(has?' own':(buy?' buy':' lock'));
+      p.className='chr p2'+(has?' own':' lock');
       p.innerHTML=`<div class="cm" style="background:${c.color};opacity:${has?1:.35}">二</div>
         <div class="ci">
           <div class="cn">${c.p2}</div>
           <div class="cw">${c.name}의 두 번째 재주</div>
           <div class="cs">${c.p2desc}</div>
         </div>
-        <button class="cp ${has?'own':(buy?'':'no')}">${
-          has?'익혔다':(open?`${CONFIG.p2Cost} 먹으로<br>익히기`:`심연 ${rung}<br>완주 필요`)}</button>`;
-      if(buy){
-        const go=()=>{ META.ink-=CONFIG.p2Cost; META.p2=META.p2||{}; META.p2[c.id]=1;
-                       saveMeta(); vibe('right'); renderChars(); };
-        p.onclick=go; p.querySelector('.cp').onclick=e=>{ e.stopPropagation(); go(); };
-      }
+        <button class="cp ${has?'own':'no'}">${
+          has?'익혔다':`뒷이야기<br>${rd} / ${tt}`}</button>`;
       list.appendChild(p);
     }
     list.appendChild(d);
@@ -6699,7 +6711,8 @@ function renderAbyssPick(){
   note.innerHTML = cur===0
     ? '<span style="color:var(--stone-deep)">계약 없음<br>여느 때와 같이 내려간다</span>'
     : PACTS.filter(x=>x.n<=cur).map(x=>`<b style="color:#E2593F">${x.name}</b> — ${x.text}`).join('<br>')
-      + `<br><br><span style="color:var(--jade)">하강 · 보스 <b>+${Math.round((hardAt(cur)-1)*100)}%</b>`
+      + `<br><br><span style="color:var(--jade)">보스 체력 <b>+${Math.round((bossHpAt(cur)-1)*100)}%</b>`
+      + ` · 하강 · 보스 공격 <b>+${Math.round((hardAt(cur)-1)*100)}%</b>`
       + ` · 먹 <b>×${inkMulAt(cur).toFixed(1)}</b></span>`;
 }
 /* 앞뒤가 다 열려 있으면 어느 쪽을 걸을지 먼저 묻는다 */
@@ -6750,6 +6763,47 @@ el('btnAbyss').onclick=()=>{
   redWash(()=>{ renderAbyssPick(); show('vAbyss'); });
 };
 el('btnAbyssGo').onclick=()=>beginRun();
+/* ── 바탕화면에 두기 ─────────────────────────────────────
+   어느 브라우저인지 따지지 않는다. 아이폰이냐 아니냐만 갈라
+   그 방식대로 알려 준다. 크롬을 쓰라는 말은 하지 않는다. */
+let instPrompt=null;
+const isStandalone=()=> matchMedia('(display-mode: standalone)').matches
+                      || navigator.standalone===true;
+const isIOS=()=> /iPad|iPhone|iPod/.test(navigator.userAgent)
+              || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); instPrompt=e; });
+addEventListener('appinstalled', ()=>{ instPrompt=null; refreshInstallBtn(); });
+
+function refreshInstallBtn(){
+  const b=el('btnInstall'); if(!b)return;
+  b.style.display = isStandalone() ? 'none' : '';
+}
+function showInstall(){
+  if(instPrompt){ const p=instPrompt; instPrompt=null; p.prompt(); return; }   // 폰이 직접 묻는다
+  el('instBody').innerHTML = isIOS()
+    ? `<b>하나</b> · 화면 아래 가운데 <b style="color:var(--gold)">⬆</b> 를 누른다<br>
+       <b>둘</b> · 쭉 내려서 「홈 화면에 추가」<br>
+       <b>셋</b> · 오른쪽 위 「추가」
+       <div style="margin-top:1.5em;font-size:.8em;line-height:1.7;color:var(--stone-deep)">
+         지금까지 한 기록은 이 브라우저에 남습니다.<br>
+         홈 화면에서 열면 처음부터 시작합니다.
+       </div>`
+    : `<b>하나</b> · 브라우저 메뉴 <b style="color:var(--gold)">⋮</b> 또는 <b style="color:var(--gold)">☰</b> 를 누른다<br>
+       <b>둘</b> · 「홈 화면에 추가」를 누른다`;
+  show('vInstall');
+}
+function maybeOfferInstall(){                       // 세 번째 들어왔을 때 한 번
+  if(isStandalone())return;
+  META.visits=(META.visits||0)+1;
+  const ok = META.visits>=3 && Date.now() > (META.instSnooze||0);
+  saveMeta();
+  if(ok) setTimeout(showInstall,900);
+}
+el('btnInstall').onclick=showInstall;
+el('instClose').onclick=()=>{ show('vTitle'); refreshTitle(); };
+el('instLater').onclick=()=>{ META.instSnooze=Date.now()+14*864e5; saveMeta();
+                              show('vTitle'); refreshTitle(); };
+
 el('btnAbyssBack').onclick=()=>{ show('vTitle'); refreshTitle(); };
 el('btnWorldBack').onclick=()=>{ META.world=undefined; show('vTitle'); refreshTitle(); };
 el('btnRetry')?.addEventListener('click',()=>{settleSavedRun();newRun();show(null);});
@@ -9598,11 +9652,13 @@ function loop(now){
   try{update(dt);draw();}catch(err){console.error('게임 루프 오류:',err);}
   requestAnimationFrame(loop);
 }
-const BUILD='c41-2';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c42';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
-if(META.sawIntro) show('vTitle'); else showIntro();
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+refreshInstallBtn();
+if(META.sawIntro){ show('vTitle'); maybeOfferInstall(); } else showIntro();
 requestAnimationFrame(loop);
 </script>
 </body>
