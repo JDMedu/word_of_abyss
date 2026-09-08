@@ -10125,13 +10125,7 @@ GUIDE.pro=[
    조각 <b>${SHARD_COST}개</b>를 모으면 캐릭터의 <b>세 번째 면모</b>를 하나 엽니다.<br>
    어느 캐릭터든 좋아하는 쪽부터 열 수 있습니다.<br>
    먹은 따로 나오지 않습니다. 조각만 쌓입니다.`}];
-GUIDE.chars.push(
- {h:'세 번째 면모',t:`캐릭터마다 세 번째 면모가 하나씩 더 있습니다.<br>
-   앞의 둘은 저절로 걸리는 재주지만, 세 번째는 <b>직접 터뜨리는 기술</b>입니다.<br>
-   발사 버튼 왼쪽에 단추가 하나 더 생깁니다.`},
- {h:'터뜨리는 기술',t:`석판을 <b>${AC_NEED}개</b> 깨면 단추가 가득 찹니다. 눌러서 터뜨립니다.<br>
-   판을 시작할 때 이미 한 번 차 있습니다.<br>
-   먹으로는 못 삽니다. <b>복선의 조각 ${SHARD_COST}개</b>로 엽니다.`});
+/* 세 번째 면모 안내는 액티브 뭉치 끝에서 붙인다 — AC_NEED 가 거기서 태어난다 */
 
 
 /* ══════════════════════════════════════════════════════════
@@ -10381,6 +10375,14 @@ startRunNow=function(){ _startRunNow2(); if(S){ S.ac=AC_NEED; S.acBuff=0; S.bolt
 const _drawControls=drawControls;
 drawControls=function(){ drawAc6(); drawAcFx(); _drawControls(); drawActive(); };
 
+GUIDE.chars.push(
+ {h:'세 번째 면모',t:`캐릭터마다 세 번째 면모가 하나씩 더 있습니다.<br>
+   앞의 둘은 저절로 걸리는 재주지만, 세 번째는 <b>직접 터뜨리는 기술</b>입니다.<br>
+   발사 버튼 왼쪽에 단추가 하나 더 생깁니다.`},
+ {h:'터뜨리는 기술',t:`석판을 <b>${AC_NEED}개</b> 깨면 단추가 가득 찹니다. 눌러서 터뜨립니다.<br>
+   판을 시작할 때 이미 한 번 차 있습니다.<br>
+   먹으로는 못 삽니다. <b>복선의 조각 ${SHARD_COST}개</b>로 엽니다.`});
+
 cv.addEventListener('pointerdown',e=>{
   if(S?.screen!=='play')return;
   const r=cv.getBoundingClientRect();
@@ -10390,7 +10392,7 @@ cv.addEventListener('pointerdown',e=>{
   }
 },true);
 
-const BUILD='c49';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c50';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
