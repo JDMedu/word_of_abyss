@@ -149,6 +149,9 @@ canvas{display:block;width:100%;height:100%}
 .chr.p2.own{cursor:default}
 .chr.buy{cursor:pointer;background:rgba(229,178,79,.09);border-color:rgba(229,178,79,.4)}
 .chr.lock{opacity:.4}
+/* 익혔지만 꺼 둔 것 — 흐려지지 않는다. 글씨만 식는다 */
+.chr .cp.off{color:var(--stone-deep);border-color:rgba(222,211,184,.22);background:transparent}
+.chr.off .cn{color:var(--stone-deep)}
 .chr .cm{width:2.6em;height:2.6em;border-radius:50%;flex:none;display:flex;
   align-items:center;justify-content:center;font-family:var(--font-carve);
   font-weight:700;font-size:1.1em;color:#05080F}
@@ -189,6 +192,14 @@ canvas{display:block;width:100%;height:100%}
 #memGo{margin-top:1.2em;font-size:.7em;letter-spacing:.3em;color:var(--stone-deep);
   animation:talkBlink 1.6s ease-in-out infinite}
 /* ── 복선 ── */
+#vHelp{justify-content:flex-start;padding-top:12%}
+#helpList{width:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;
+  display:flex;flex-direction:column;gap:.45em;padding-bottom:1em}
+.helpItem{padding:.85em 1em;border-radius:8px;background:rgba(222,211,184,.05);
+  border:1px solid rgba(222,211,184,.16);text-align:left;cursor:pointer;
+  display:flex;align-items:center;gap:.8em}
+.helpItem .hn{font-family:var(--font-carve);font-size:1em;color:var(--paper);flex:1}
+.helpItem .ha{color:var(--stone-deep);font-size:.8em}
 #vPro{justify-content:flex-start;padding-top:12%}
 #proTabs{display:flex;gap:.4em;flex-wrap:wrap;justify-content:center;margin:.6em 0 1em}
 #proTabs .btn{padding:.45em .9em;font-size:.72em}
@@ -485,6 +496,8 @@ canvas{display:block;width:100%;height:100%}
       <button class="btn ghost" id="btnPro">복선</button>
       <button class="btn ghost" id="btnVibe">진동</button>
       <button class="btn ghost" id="btnInstall" style="display:none">바탕화면에 두기</button>
+      <button class="btn ghost" id="btnHelp">게임 설명</button>
+      <button class="btn ghost" id="btnHaste">급한 걸음</button>
     </div>
   </div>
 
@@ -670,6 +683,13 @@ canvas{display:block;width:100%;height:100%}
       </div>
     </div>
     <button class="btn ghost" id="btnAdmBack">돌아간다</button>
+  </div>
+
+  <div class="veil" id="vHelp">
+    <div class="eyebrow">게임 설명</div>
+    <h2>무엇이든 <em>다시 본다</em></h2>
+    <div id="helpList"></div>
+    <div class="row"><button class="btn gold" id="helpBack">돌아간다</button></div>
   </div>
 
   <div class="veil" id="vPro">
@@ -2364,7 +2384,25 @@ const abyssMul   =()=>abyssHard()*(pactOn(6)?CONFIG.abyssTide:1);   // 거센 �
 const descentSpd =()=>descentBase(S.stage)*S.descentMul*abyssMul()
                         *(gimOn('overload')?CONFIG.overloadDescent:1)   // 과부하 — 세 배
                         *(1+(S.scaleUp||0))                             // 역린 — 깰수록 빨라진다
-                        *(easeOn(S.stage)?CONFIG.easeDescent:1);        // 16층부터 숨통
+                        *(easeOn(S.stage)?CONFIG.easeDescent:1)         // 16층부터 숨통
+                        *HASTE_FALL[hasteNow()];                        // 급한 걸음
+/* ── 급한 걸음 ──────────────────────────────────────────
+   대장간을 벼른 만큼, 앞 구간이 조급해진다. 20층까지만.
+   석판이 빨리 내려오고, 카드·뜻 맞히기를 몰아서 한다 */
+function hasteLv(){
+  if(META.hasteOff) return 0;
+  const cap=UPGRADES.reduce((a,u)=>a+u.cap,0);
+  const got=UPGRADES.reduce((a,u)=>a+Math.min(lvOf(u.id),u.cap),0);
+  const p = (got/Math.max(1,cap))*0.5
+          + Math.min(1,(META.best||0)/CONFIG.maxFloor)*0.3
+          + Math.min(1,(META.abyss||0)/7)*0.2;
+  return p<0.25?0 : p<0.45?1 : p<0.68?2 : 3;
+}
+const HASTE_FALL=[1,1.25,1.5,1.8], HASTE_EVERY=[2,3,3,4];
+/* 심연에서는 걸리지 않는다. 계약이 이미 판을 조인다 */
+const hasteNow =()=>(S && (S.depth||0)<=0 && S.stage<=20) ? hasteLv() : 0;
+const cardEveryNow=()=>HASTE_EVERY[hasteNow()];
+const quizTotal =()=>Math.max(CONFIG.quizPerFloor, cardEveryNow());
 const isBossStage=n=>n%CONFIG.bossEvery===0;
 const ZONE_MUL=[1,2,3,4,6];
 const zoneMul    =f=>ZONE_MUL[Math.min(4,Math.floor((f-1)/CONFIG.chapterLen))];
@@ -5255,7 +5293,7 @@ function stageClear(){
     S.alertMsg={text:`무결 — 자람 +${CONFIG.growClean}`,t:1.8,ok:true};
   }
   /* 카드는 두 층에 한 번 — 층이 짧아진 만큼 고르는 자리도 줄인다 */
-  if(S.stage % CONFIG.cardEvery !== 0){ nextStage(); return; }
+  if(S.stage % cardEveryNow() !== 0){ nextStage(); return; }
   startQuiz(false);          // 복습 화면 없이 바로 뜻 맞히기로
 }
 
@@ -5269,6 +5307,7 @@ function cardN(){                                  // 한 번에 보는 카드 �
   return Math.max(2, CONFIG.cardBase+(S.cardBonus||0)-((S.quizShort||0)?1:0));
 }
 function quizDone(){
+  S.quizPool=[];                                   // 물어본 몫은 비운다
   const hit=S.quizHit||0;
   S.quizShort=(hit===0)?1:0;                       // 하나도 못 맞히면 볼 카드가 한 장 적다
   const times=Math.max(1,hit);                     // 못 맞혀도 한 번은 고른다
@@ -5282,9 +5321,10 @@ function quizDone(){
 function askQuiz(){
   const afterBoss=S.quizAfterBoss;
   S.screen='quiz';dropTouches();
+  const near=(S.quizPool||[]).concat(S.clearedThisStage||[]);
   const pool=afterBoss?(S.learnedWords.length?S.learnedWords:WORDS)
-                      :(S.clearedThisStage.length?S.clearedThisStage:WORDS);
-  const turn=(S.quizN||0)+1, total=CONFIG.quizPerFloor;
+                      :(near.length?near:WORDS);
+  const turn=(S.quizN||0)+1, total=quizTotal();
   el('qzEyebrow').textContent=(afterBoss?'혼을 잠재웠다 · 지금까지 건진 낱말에서':'뜻을 맞힌 만큼 고른다')
     +`  ·  ${turn} / ${total}`;
   let ans=pickWord(new Set(), CONFIG.weakQuizRate);
@@ -6580,14 +6620,14 @@ function renderChars(){
       const use =open&&!(META.p2off&&META.p2off[c.id]);
       const rd=memRead(c.id,'back'), tt=memTotal(c.id,'back');
       const p=document.createElement('div');
-      p.className='chr p2'+(use?' own':' lock');
-      p.innerHTML=`<div class="cm" style="background:${c.color};opacity:${use?1:.35}">二</div>
+      p.className='chr p2'+(open?(use?' own':' own off'):' lock');
+      p.innerHTML=`<div class="cm" style="background:${c.color};opacity:${open?1:.35}">二</div>
         <div class="ci">
           <div class="cn">${c.p2}</div>
           <div class="cw">${c.name}의 두 번째 면모</div>
           <div class="cs">${c.p2desc}</div>
         </div>
-        <button class="cp ${use?'own':'no'}">${
+        <button class="cp ${use?'own':(open?'off':'no')}">${
           open?(use?'익혔다':'쓰지 않는다'):`뒷이야기<br>${rd} / ${tt}`}</button>`;
       if(open){
         const tog=()=>{ META.p2off=META.p2off||{};
@@ -6603,14 +6643,14 @@ function renderChars(){
       const use=open&&!(META.p3off&&META.p3off[c.id]);
       const shard=proShards(), can=!open&&shard>=SHARD_COST;
       const p=document.createElement('div');
-      p.className='chr p2'+(use?' own':(can?' buy':' lock'));
-      p.innerHTML=`<div class="cm" style="background:${c.color};opacity:${use?1:.35}">三</div>
+      p.className='chr p2'+(open?(use?' own':' own off'):(can?' buy':' lock'));
+      p.innerHTML=`<div class="cm" style="background:${c.color};opacity:${open?1:.35}">三</div>
         <div class="ci">
           <div class="cn">${a.name}</div>
           <div class="cw">${c.name}의 세 번째 면모 · 터뜨리는 기술 · 석판 ${AC_NEED}개</div>
           <div class="cs">${a.desc}</div>
         </div>
-        <button class="cp ${use?'own':(can?'':'no')}">${
+        <button class="cp ${use?'own':(open?'off':(can?'':'no'))}">${
           open?(use?'익혔다':'쓰지 않는다')
              :`복선의 조각<br>${Math.min(shard,SHARD_COST)} / ${SHARD_COST}`}</button>`;
       const act = open
@@ -10110,6 +10150,8 @@ nextStage=function(){
     if((S.gearSlots||[]).length===0) pMax('bare',S.stage);
     if((S.ballSlots||[]).length===1) pMax('solo',S.stage);
     pMax('gearN',(S.gearSlots||[]).length);
+    S.quizPool=(S.quizPool||[]).concat(S.clearedThisStage||[]);   // 몰아 물을 몫
+    if(S.quizPool.length>40) S.quizPool=S.quizPool.slice(-40);
     META.used=META.used||{b:{},g:{}};              // 지녀 본 구슬·문방을 적어 둔다
     for(const x of (S.ballSlots||[])) if(x.def&&!x.def.evo) META.used.b[x.def.id]=1;
     for(const x of (S.gearSlots||[])) if(x.def&&!x.def.evo) META.used.g[x.def.id]=1;
@@ -10394,7 +10436,13 @@ breakBrick=function(b,ball){
   return _breakBrick2(b,ball);
 };
 const _startRunNow2=startRunNow;
-startRunNow=function(){ _startRunNow2(); if(S){ S.ac=AC_NEED; S.acBuff=0; S.bolt=null; } };
+startRunNow=function(){ _startRunNow2();
+  if(S){ S.ac=AC_NEED; S.acBuff=0; S.bolt=null; S.quizPool=[]; }
+  const h=hasteLv();
+  if(h>0&&S) setTimeout(()=>{ if(S) S.alertMsg={
+    text:`급한 걸음 ${h}단 — 20층까지 석판이 빨리 내려오고 ${HASTE_EVERY[h]}층마다 몰아서 고른다`,
+    t:3.2, ok:true}; }, 1200);
+};
 const _drawControls=drawControls;
 drawControls=function(){ drawAc6(); drawAcFx(); _drawControls(); drawActive(); };
 
@@ -10406,6 +10454,43 @@ GUIDE.chars.push(
    판을 시작할 때 이미 한 번 차 있습니다.<br>
    먹으로는 못 삽니다. <b>복선의 조각 ${SHARD_COST}개</b>로 엽니다.`});
 
+/* ── 게임 설명 — 본 안내를 다시 본다 ── */
+const HELP=[
+ ['start','첫걸음 — 조작과 목표'],['alert','뜻 맞히기'],['grow','자람과 먹'],
+ ['card','카드 고르기'],['kinds','구슬의 갈래'],['slots','구슬 자리'],
+ ['quiz','층 넘김 복습'],['body','몸돌'],['boss','보스'],['status','상태이상'],
+ ['fuse','융합'],['forge','먹과 대장간'],['recap','다시 정리'],
+ ['memory','기억'],['chars','인물과 면모'],['pro','복선'],['abyss','심연']
+];
+function guideShow(k){                       // 본 것이어도 다시 띄운다
+  if(!GUIDE[k])return;
+  gdQ.push(k);
+  if(!gdPages) gdNext();
+}
+function renderHelp(){
+  const box=el('helpList'); box.innerHTML='';
+  for(const [k,name] of HELP){
+    if(!GUIDE[k])continue;
+    const d=document.createElement('div');
+    d.className='helpItem';
+    d.innerHTML=`<div class="hn">${name}</div><div class="ha">${GUIDE[k].length}장</div>`;
+    d.onclick=()=>guideShow(k);
+    box.appendChild(d);
+  }
+}
+el('btnHelp').onclick=()=>{ renderHelp(); show('vHelp'); };
+el('helpBack').onclick=()=>{ show('vTitle'); refreshTitle(); };
+
+/* ── 급한 걸음 끄고 켜기 ── */
+function refreshHaste(){
+  const b=el('btnHaste'); if(!b)return;
+  const h=hasteLv();
+  b.textContent = META.hasteOff ? '급한 걸음 · 끔' : (h>0?`급한 걸음 · ${h}단`:'급한 걸음 · 아직');
+  b.classList.toggle('on', !META.hasteOff && h>0);
+}
+el('btnHaste').onclick=()=>{ META.hasteOff=META.hasteOff?0:1; saveMeta(); vibe('open'); refreshHaste(); };
+refreshHaste();
+
 cv.addEventListener('pointerdown',e=>{
   if(S?.screen!=='play')return;
   const r=cv.getBoundingClientRect();
@@ -10415,12 +10500,12 @@ cv.addEventListener('pointerdown',e=>{
   }
 },true);
 
-const BUILD='c54';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c56';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
-refreshInstallBtn();
+refreshInstallBtn(); refreshHaste();
 if(META.sawIntro){ show('vTitle'); maybeOfferInstall(); } else showIntro();
 requestAnimationFrame(loop);
 </script>
