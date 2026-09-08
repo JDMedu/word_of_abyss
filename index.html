@@ -30,6 +30,11 @@ canvas{display:block;width:100%;height:100%}
 .veil{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;
   background:linear-gradient(180deg,rgba(5,8,15,.94),rgba(5,8,15,.98));backdrop-filter:blur(3px);padding:6%;z-index:10}
 .veil.on{display:flex;animation:rise .26s cubic-bezier(.2,.8,.3,1)}
+/* 내용이 길어지면 스크롤한다 — 단추가 화면 밖으로 밀리지 않게 */
+#vEnd{justify-content:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding-top:9%;padding-bottom:9%}
+#vEnd>*{flex-shrink:0}
+#vEnd #btnToShop{margin-top:1.2em;position:sticky;bottom:0}
 @keyframes rise{from{opacity:0;transform:translateY(1.5%)}to{opacity:1;transform:none}}
 .eyebrow{font-size:.75em;letter-spacing:.38em;text-indent:.38em;color:var(--stone-deep);font-weight:500;margin-bottom:1.1em;text-align:center}
 .veil h2{font-family:var(--font-carve);font-weight:700;font-size:1.95em;margin-bottom:.7em;text-align:center}
@@ -802,6 +807,7 @@ const CONFIG = {
   bossHpBase:400, bossHpPerBoss:400,     // 방벽이 열린 뒤에도 버티도록 두껍게
   bossBulletSpeed:290, bossCycleBase:1.9,
   bossDmgPerBoss:0.075,   // 보스 한 번째마다 탄 피해 +7.5%
+  deepBossFrom:35, deepBossDmg:0.8,      // 35층부터는 보스 탄이 20% 무르다
   bossSpdPerBoss:0.050,   // 탄 속도 +5%
   bossCycPerBoss:0.026,   // 공격 주기 -2.6%
   bossRagePerBoss:0.6,    // 격노가 이만큼씩 길어진다(초)
@@ -826,7 +832,7 @@ const CONFIG = {
   telegraphSec:0.8,
   quizRoomN:5,           // 문답의 방 — 문제 수
   sweepEvery:3.2, sweepSpeed:210, sweepGap:3,   // 훑는 빛 — 주기 · 빠르기 · 트인 칸 수
-  vortexTurn:5.2,        // 소용돌이 — 초당 이만큼(라디안)까지 방향이 제멋대로 튄다
+  vortexTurn:15.6,       // 소용돌이 — 초당 이만큼(라디안)까지 방향이 제멋대로 튄다
   rotGapFrom:500, rotGapTo:680,   // 회전 빛줄기의 틈 — 이 거리 고리 안은 안전하다      // 큰 공격이 예고되는 시간
   /* 분노 — 조건을 만족하면 사나워진다 */
   rageSec:8.0,           // 분노 지속(초)
@@ -1115,8 +1121,8 @@ const BOSSES = [
    patterns:['spiral','fan'], p2:['spiral','fan','ring'],
    cry:'먼 훗날 당신이 찾으실까요?',
    repeat:3, trait:'세 소절 — 뜻을 세 번 맞혀야 방벽이 열린다',
-   tome:{id:'muwi',icon:'☴',name:'먼 후일',text:'발사 간격이 거의 없다. 대신 위력이 절반',
-         set:t=>{t.noCool=true;t.dmgMul=.5;}}},
+   tome:{id:'muwi',icon:'☴',name:'먼 후일',text:'발사 간격이 절반. 대신 위력도 절반',
+         set:t=>{t.cdMul=0.5;t.dmgMul=.5;}}},
 
   {ho:'자전', name:'정지용', color:'#52BFA0', move:'teleport',
    lines:{meet:'넓은 벌 동쪽 끝으로 옛이야기 지즐대는 실개천이 있었소. 여기엔 없구려.',
@@ -1788,6 +1794,7 @@ const bossHpHard= ()=>1+CONFIG.bossHpStep*depth();    // 보스 체력에만 곱
 const bossHpAt  =d=>1+CONFIG.bossHpStep*d;
 const inkMulAt   =d=>d>0 ? 1+CONFIG.abyssInkBase+CONFIG.abyssInkStep*d : 1;
 const hardAt     =d=>1+CONFIG.abyssStep*d;
+const deepEase   =()=>(S&&S.stage>=CONFIG.deepBossFrom)?CONFIG.deepBossDmg:1;
 const abyssInkMul=()=>inkMulAt(depth());
 const p2On    = id=>(p2Open(id)||!!(META.p2&&META.p2[id]))
                     && !(META.p2off&&META.p2off[id]) && META.char===id;   // 두 번째 재주
@@ -1846,14 +1853,16 @@ const SAVE_KEY='vocab-pit-save-v1';
 let META={ink:0, up:{}, best:0, bestInk:0, abyss:0, runs:0, totalWords:0, lastBall:null, weak:{}, cleared:{}, met:{}, chars:{none:1}, char:'none', tip:{},
   mem:{}, deep:{}, shopVisits:0, p2:{}, depth:0, tale:{}, world:undefined,
   ord:{}, ordN:0, plan:null, admin:null};
-let saveOK=true;
+let saveOK=true, metaLoaded=false;
 function loadMeta(){
   try{
     const raw=localStorage.getItem(SAVE_KEY);
     if(raw) Object.assign(META, JSON.parse(raw));
   }catch(e){ saveOK=false; console.warn('저장소를 쓸 수 없습니다:',e); }
+  finally{ metaLoaded=true; }              // 읽기를 시도한 뒤에야 쓸 수 있다
 }
 function saveMeta(){
+  if(!metaLoaded) return;                  // 읽기 전에 쓰면 기록을 덮어쓴다
   try{ localStorage.setItem(SAVE_KEY, JSON.stringify(META)); }
   catch(e){ saveOK=false; }
 }
@@ -2448,7 +2457,6 @@ function recalc(){
   const wantRate=S.rateMul/S.ax['취'];                                // 취
   S.rateMul    = Math.max(CONFIG.rateFloor, wantRate);
   S.fastMul    = Math.max(1, CONFIG.rateFloor/Math.max(1e-6,wantRate));  // 넘친 몫은 속도로
-  if(t.noCool) S.rateMul=0.19;
   const fl=gearLv('flint'), f=GEARDEF('flint');
   S.accel      = CONFIG.bounceAccel * (fl?f.accel[fl]:1);
   S.accelCap   = CONFIG.bounceCap + (fl?f.cap[fl]:0);
@@ -3601,7 +3609,7 @@ function spawnBoss(){
            *(S.stage>=CONFIG.hardFrom?CONFIG.hardMul:1)*(d.hpMul||1));
   S.bossStep=step;
   S.bossDmg=Math.round(CONFIG.bulletDamage*(1+CONFIG.bossDmgPerBoss*step)*diffBoss()
-                       *abyssHard());
+                       *abyssHard()*deepEase());
   S.bossSpd=(1+CONFIG.bossSpdPerBoss*step)*(1+(diffBoss()-1)*CONFIG.diffSpeedShare);
   const bw=d.bw||320, bh=d.bh||190;
   S.boss={def:d,x:VW/2-bw/2,y:250,w:bw,h:bh,hp,maxHp:hp,hit:0,
@@ -3828,7 +3836,7 @@ function spawnTwins(){
   const hp=Math.round((CONFIG.bossHpBase+step*CONFIG.bossHpPerBoss)*CONFIG.twinHp*bossHpHard()
            *(S.stage>=CONFIG.hardFrom?CONFIG.hardMul:1));
   S.bossStep=step;
-  S.bossDmg=Math.round(CONFIG.bulletDamage*(1+CONFIG.bossDmgPerBoss*step)*diffBoss());
+  S.bossDmg=Math.round(CONFIG.bulletDamage*(1+CONFIG.bossDmgPerBoss*step)*diffBoss()*deepEase());
   S.bossSpd=(1+CONFIG.bossSpdPerBoss*step)*(1+(diffBoss()-1)*CONFIG.diffSpeedShare);
   const pool=BOSSES.slice().sort(()=>Math.random()-.5).slice(0,2);
   S.twins=pool.map((d,i)=>{
@@ -3844,7 +3852,7 @@ function spawnTwins(){
 function spawnGhost(){
   const step=Math.max(0,Math.ceil(S.stage/CONFIG.bossEvery)-2);
   S.bossStep=step;
-  S.bossDmg=Math.round(CONFIG.bulletDamage*(1+CONFIG.bossDmgPerBoss*step)*diffBoss());
+  S.bossDmg=Math.round(CONFIG.bulletDamage*(1+CONFIG.bossDmgPerBoss*step)*diffBoss()*deepEase());
   S.bossSpd=(1+CONFIG.bossSpdPerBoss*step)*(1+(diffBoss()-1)*CONFIG.diffSpeedShare);
   const d=BOSSES[Math.floor(Math.random()*BOSSES.length)];
   S.ghost={def:d,x:VW/2-160,y:250,w:320,h:190,hp:1e9,maxHp:2e9,hit:0,
@@ -4336,8 +4344,8 @@ function bossShoot(kind){
     const w=Math.round(cell()*3.2), h=Math.round(cell()*1.6);
     S.blobs=S.blobs||[];
     S.blobs.push({x:Math.max(WALL_L+8,Math.min(WALL_R-8-w, S.px-w/2)),
-      y:CEIL_Y+30, w, h, hp:Math.round((10+floorHp(S.stage))*4), maxHp:Math.round((10+floorHp(S.stage))*4),
-      v:52, hit:0, dmg:Math.round((S.bossDmg||CONFIG.bulletDamage)*2.0)});
+      y:CEIL_Y+30, w, h, hp:Math.round((10+floorHp(S.stage))*5.5), maxHp:Math.round((10+floorHp(S.stage))*5.5),
+      v:64, hit:0, dmg:Math.round((S.bossDmg||CONFIG.bulletDamage)*2.8)});
     S.alertMsg={text:'먹덩이가 떨어진다',t:1.4,ok:false};
   }
   else if(kind==='ring'){
@@ -9991,8 +9999,14 @@ const PRO=[
  {id:'mx1', tab:'물건', name:'만렙',    hint:'구슬 하나를 끝까지 키운다', now:()=>pc().maxed||0, goal:()=>1},
  {id:'mx3', tab:'물건', name:'세 만렙', hint:'한 판에 구슬 셋을 모두 끝까지', now:()=>pc().maxed3||0, goal:()=>1},
  {id:'g5',  tab:'물건', name:'문방 다섯',hint:'한 판에 문방 다섯을 지닌다', now:()=>pc().gearN||0, goal:()=>5},
- {id:'bare',tab:'물건', name:'맨손',    hint:'문방 없이 20층까지', now:()=>pc().bare||0, goal:()=>20},
- {id:'solo',tab:'물건', name:'한 구슬', hint:'구슬 하나로 20층까지', now:()=>pc().solo||0, goal:()=>20},
+ {id:'ballH',tab:'물건',name:'구슬 절반', hint:'구슬 절반을 지녀 본다',
+   now:()=>usedBalls(), goal:()=>Math.ceil(pickableBalls()/2)},
+ {id:'ballA',tab:'물건',name:'모든 구슬', hint:'모든 구슬을 지녀 본다',
+   now:()=>usedBalls(), goal:()=>pickableBalls()},
+ {id:'gearH',tab:'물건',name:'문방 절반', hint:'문방 절반을 지녀 본다',
+   now:()=>usedGears(), goal:()=>Math.ceil(pickableGears()/2)},
+ {id:'gearA',tab:'물건',name:'모든 문방', hint:'모든 문방을 지녀 본다',
+   now:()=>usedGears(), goal:()=>pickableGears()},
  {id:'forg',tab:'물건', name:'벼림',    hint:'대장간 강화를 전부 끝까지',
    now:()=>UPGRADES.filter(u=>lvOf(u.id)>=u.cap).length, goal:()=>UPGRADES.length},
  /* ── 석판 ── */
@@ -10010,13 +10024,19 @@ const PRO=[
    now:()=>CHARS.filter(c=>backDone(c.id)).length, goal:()=>1},
  {id:'back3',tab:'사람',name:'세 사람의 뒷이야기', hint:'세 인물의 뒷이야기를 다 듣는다',
    now:()=>CHARS.filter(c=>backDone(c.id)).length, goal:()=>3},
- {id:'ab1', tab:'사람', name:'심연 하나',hint:'심연 1단을 완주한다', now:()=>META.abyss||0, goal:()=>1},
- {id:'ab3', tab:'사람', name:'심연 셋',  hint:'심연 3단을 완주한다', now:()=>META.abyss||0, goal:()=>3},
- {id:'ab5', tab:'사람', name:'심연 다섯',hint:'심연 5단을 완주한다', now:()=>META.abyss||0, goal:()=>5},
- {id:'ab7', tab:'사람', name:'심연 일곱',hint:'심연 7단을 완주한다', now:()=>META.abyss||0, goal:()=>7},
- {id:'runs10',tab:'사람',name:'열 번',   hint:'열 번 내려간다', now:()=>META.runs||0, goal:()=>10},
- {id:'runs50',tab:'사람',name:'쉰 번',   hint:'쉰 번 내려간다', now:()=>META.runs||0, goal:()=>50}
+ ...[1,2,3,4,5,6,7].map(n=>({
+   id:'ab'+n, tab:'사람', name:`심연 ${['','하나','둘','셋','넷','다섯','여섯','일곱'][n]}`,
+   hint:`심연 ${n}단을 완주한다`,
+   now:()=>((META.abyss||0)>=n?1:0), goal:()=>1})),
+ ...[10,20,30,40,50].map(n=>({
+   id:'runs'+n, tab:'사람', name:`${n}번 내려가다`,
+   hint:`${n}번 내려간다`, now:()=>META.runs||0, goal:()=>n}))
 ];
+/* 카드로 만날 수 있는 것만 센다 — 융합·진화로만 나오는 것은 뺀다 */
+const pickableBalls=()=>BALLS.filter(b=>!b.evo).length;
+const pickableGears=()=>GEARS.filter(g=>!g.evo).length;
+const usedBalls=()=>Object.keys((META.used&&META.used.b)||{}).length;
+const usedGears=()=>Object.keys((META.used&&META.used.g)||{}).length;
 const wonChars=()=>CHARS.filter(c=>(pc()['won_'+c.id]||0)>0).length;
 
 const proDone   =p=>!!(META.pdone&&META.pdone[p.id]);
@@ -10090,6 +10110,9 @@ nextStage=function(){
     if((S.gearSlots||[]).length===0) pMax('bare',S.stage);
     if((S.ballSlots||[]).length===1) pMax('solo',S.stage);
     pMax('gearN',(S.gearSlots||[]).length);
+    META.used=META.used||{b:{},g:{}};              // 지녀 본 구슬·문방을 적어 둔다
+    for(const x of (S.ballSlots||[])) if(x.def&&!x.def.evo) META.used.b[x.def.id]=1;
+    for(const x of (S.gearSlots||[])) if(x.def&&!x.def.evo) META.used.g[x.def.id]=1;
     const mx=maxBallLv();
     if((S.ballSlots||[]).some(b=>b.lv>=mx)) pMax('maxed',1);
     if((S.ballSlots||[]).length>=3&&S.ballSlots.every(b=>b.lv>=mx)) pMax('maxed3',1);
@@ -10392,7 +10415,7 @@ cv.addEventListener('pointerdown',e=>{
   }
 },true);
 
-const BUILD='c50';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c54';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
