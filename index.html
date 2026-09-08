@@ -131,7 +131,10 @@ canvas{display:block;width:100%;height:100%}
 #talkGo{margin-top:1.1em;font-size:.72em;letter-spacing:.3em;color:var(--stone-deep);
   animation:talkBlink 1.6s ease-in-out infinite}
 @keyframes talkBlink{0%,100%{opacity:.35}50%{opacity:.9}}
-#charList{display:flex;flex-direction:column;gap:.55em;width:100%;max-height:62vh;overflow-y:auto}
+#charList{display:flex;flex-direction:column;gap:0;width:100%;max-height:62vh;overflow-y:auto}
+.chrGrp{display:flex;flex-direction:column;gap:.5em;padding:1.2em 0;
+  border-top:1px solid rgba(222,211,184,.20)}
+.chrGrp:first-child{border-top:0;padding-top:.2em}
 .chr{display:flex;align-items:center;gap:.9em;padding:.8em 1em;border-radius:8px;
   background:rgba(222,211,184,.05);border:1px solid rgba(222,211,184,.16)}
 .chr.own{cursor:pointer;border-color:rgba(222,211,184,.34)}
@@ -3967,14 +3970,17 @@ function charTick(dt){
   if(c.id==='kwon'){                       // 맴돌이 — 곁을 도는 작은 석판 셋
     const want=p2On('kwon')?9:3;                     // 아홉 켤레
     if(!S.orbs) S.orbs=Array.from({length:want},(_,i)=>({a:i*Math.PI*2/want,r:130,hitT:0,x:0,y:0}));
+    const free=(S.orbFree||0)>0;                     // 구두를 벗다 — 궤도를 벗어난다
     for(const o of S.orbs){
-      o.a+=dt*2.2; o.hitT=Math.max(0,o.hitT-dt);
-      o.x=S.px+Math.cos(o.a)*o.r; o.y=S.py+Math.sin(o.a)*o.r*.7;
+      o.a+=dt*(free?4.4:2.2); o.hitT=Math.max(0,o.hitT-dt);
+      const rr=free?o.r*2.9:o.r;
+      o.x=S.px+Math.cos(o.a)*rr; o.y=S.py+Math.sin(o.a)*rr*.7;
       if(o.hitT>0) continue;
       for(let i=S.bricks.length-1;i>=0;i--){
         const b=S.bricks[i]; if(!b||b.quiz)continue;
         if(o.x>b.x-14&&o.x<b.x+b.w+14&&o.y>b.y-14&&o.y<b.y+b.h+14){
-          chip(b,Math.max(1,Math.round((S.ballDamage||1)*CONFIG.orbMul)),'gold'); o.hitT=0.35;
+          chip(b,Math.max(1,Math.round((S.ballDamage||1)*CONFIG.orbMul*(free?4:1))),'gold');
+          o.hitT=free?0.18:0.35;
           if(S.screen!=='play')return; break;
         }
       }
@@ -6211,6 +6217,7 @@ function nextStage(){
   S.gimT=0; S.quizDone=0; S.echoes=[]; S.scaleUp=0;
   S.twins=null; S.ghost=null; S.floorHurt=0;
   S.orbs=null; S.soupN=0; S.fires=[]; S.flowerHit=0;   // 층이 바뀌면 되돌아온다
+  S.whirl=null; S.clones=null; S.baton=null; S.cross=null; S.bolt=null; S.orbFree=0;
   if(!(S.gim&&S.gim.id==='tide')) S.tideUp=0;
   loadLessonFor(S.stage);            // 층이 바뀌면 회차도 바뀐다
   saveRun();
@@ -6540,6 +6547,7 @@ function renderChars(){
     const unlocked=c.abyss ? (META.abyss||0)>=c.abyss : META.best>=c.floor;
     const cur=META.char===c.id;
     const can=!own&&unlocked&&META.ink>=c.cost;
+    const grp=document.createElement('div'); grp.className='chrGrp';
     const d=document.createElement('div');
     d.className='chr'+(cur?' on':'')+(own?' own':(can?' buy':(unlocked?'':' lock')));
     const price=own?(cur?'쓰는 중':'고르기')
@@ -6557,6 +6565,7 @@ function renderChars(){
               : (can ? ()=>{ META.ink-=c.cost; META.chars[c.id]=1; META.char=c.id;
                              saveMeta(); vibe('right'); renderChars(); } : null);
     if(act){ d.onclick=act; d.querySelector('.cp').onclick=e=>{ e.stopPropagation(); act(); }; }
+    grp.appendChild(d);                              // 인물이 맨 위에 온다
     /* 두 번째 면모 — 뒷이야기를 다 들으면 열린다. 켜고 끌 수 있다 */
     if(c.p2 && own){
       const open=p2Open(c.id)||!!(META.p2&&META.p2[c.id]);
@@ -6578,7 +6587,7 @@ function renderChars(){
           saveMeta(); vibe('open'); renderChars(); };
         p.onclick=tog; p.querySelector('.cp').onclick=e=>{ e.stopPropagation(); tog(); };
       }
-      list.appendChild(p);
+      grp.appendChild(p);
     }
     /* 세 번째 면모 — 복선의 조각 다섯. 두 번째와 상관없다 */
     if(own && typeof acDef==='function' && acDef(c.id)){
@@ -6590,7 +6599,7 @@ function renderChars(){
       p.innerHTML=`<div class="cm" style="background:${c.color};opacity:${use?1:.35}">三</div>
         <div class="ci">
           <div class="cn">${a.name}</div>
-          <div class="cw">${c.name}의 세 번째 면모 · 석판 ${AC_NEED}개를 깨면 찬다</div>
+          <div class="cw">${c.name}의 세 번째 면모 · 터뜨리는 기술 · 석판 ${AC_NEED}개</div>
           <div class="cs">${a.desc}</div>
         </div>
         <button class="cp ${use?'own':(can?'':'no')}">${
@@ -6603,9 +6612,9 @@ function renderChars(){
         : (can ? ()=>{ META.p3=META.p3||{}; META.p3[c.id]=1;
                        saveMeta(); vibe('right'); renderChars(); refreshTitle(); } : null);
       if(act){ p.onclick=act; p.querySelector('.cp').onclick=e=>{ e.stopPropagation(); act(); }; }
-      list.appendChild(p);
+      grp.appendChild(p);
     }
-    list.appendChild(d);
+    list.appendChild(grp);
   }
 }
 el('btnChar').onclick=()=>{ renderChars(); show('vChar'); };
@@ -9841,17 +9850,33 @@ abyss:[
              몇 단계까지 갈지는 직접 고릅니다.`}]
 };
 
-let gdPages=null, gdI=0, gdBack=null, gdScreen=null;
+let gdPages=null, gdI=0, gdBack=null, gdScreen=null, gdQ=[];
 const guideSeen=k=>!!(META.tip&&META.tip[k]);
+/* 여럿이 한꺼번에 불려도 줄을 세운다. 덮어쓰면 돌아갈 자리를 잃는다 */
 function guide(k){
   if(!GUIDE[k]||guideSeen(k))return false;
   META.tip=META.tip||{}; META.tip[k]=1; saveMeta();
-  const v=document.querySelector('.veil.on');
-  gdBack=v?v.id:null; gdScreen=S?S.screen:null;
-  gdPages=GUIDE[k]; gdI=0;
-  if(S)S.screen='guide';
-  gdDraw(); show('vGuide');
+  gdQ.push(k);
+  if(!gdPages) gdNext();
   return true;
+}
+function gdNext(){
+  const k=gdQ.shift();
+  if(!k){                                     // 줄이 끝났다 — 있던 자리로 돌아간다
+    gdPages=null;
+    if(S) S.screen=gdScreen||'play';
+    if(gdBack) show(gdBack); else show(null);
+    gdBack=null; gdScreen=null;
+    return;
+  }
+  if(!gdPages){                               // 처음 뜰 때만 돌아갈 자리를 적어 둔다
+    const v=document.querySelector('.veil.on');
+    gdBack=(v&&v.id!=='vGuide')?v.id:null;    // 안내 자신은 돌아갈 자리가 아니다
+    gdScreen=(S&&S.screen!=='guide')?S.screen:null;
+    if(S) S.screen='guide';
+  }
+  gdPages=GUIDE[k]; gdI=0;
+  gdDraw(); show('vGuide');
 }
 function gdDraw(){
   const p=gdPages[gdI];
@@ -9863,12 +9888,9 @@ function gdDraw(){
   el('gdGo').textContent=(gdI===gdPages.length-1)?'알겠다':'눌러서 넘긴다';
 }
 el('vGuide').onclick=()=>{
-  if(!gdPages)return;
+  if(!gdPages){ show(gdBack||null); return; }   // 빈 안내가 화면을 막지 않게
   if(gdI<gdPages.length-1){ gdI++; gdDraw(); return; }
-  gdPages=null;
-  if(S&&gdScreen)S.screen=gdScreen;
-  if(gdBack)show(gdBack); else show(null);
-  gdBack=null; gdScreen=null;
+  gdNext();
 };
 
 /* 원래 함수는 건드리지 않고 겉만 감싼다.
@@ -10105,7 +10127,10 @@ GUIDE.pro=[
    먹은 따로 나오지 않습니다. 조각만 쌓입니다.`}];
 GUIDE.chars.push(
  {h:'세 번째 면모',t:`캐릭터마다 세 번째 면모가 하나씩 더 있습니다.<br>
-   앞의 둘과 달리 <b>구슬을 던지는 방식 자체가 달라집니다.</b><br>
+   앞의 둘은 저절로 걸리는 재주지만, 세 번째는 <b>직접 터뜨리는 기술</b>입니다.<br>
+   발사 버튼 왼쪽에 단추가 하나 더 생깁니다.`},
+ {h:'터뜨리는 기술',t:`석판을 <b>${AC_NEED}개</b> 깨면 단추가 가득 찹니다. 눌러서 터뜨립니다.<br>
+   판을 시작할 때 이미 한 번 차 있습니다.<br>
    먹으로는 못 삽니다. <b>복선의 조각 ${SHARD_COST}개</b>로 엽니다.`});
 
 
@@ -10118,11 +10143,11 @@ const BTN_A={x:VW-172-152, y:1188, r:56};
 const ACTIVE={
  none:        {name:'구슬 회오리', desc:'채자인을 중심으로 구슬이 회오리처럼 뿜어져 나간다<br>3초간 바깥으로 돌아 나가며 화면을 훑는다'},
  kwon:        {name:'구두를 벗다', desc:'맴돌이가 궤도를 벗어나 8초간 날뛴다<br>부딪힐 때마다 위력의 150%'},
- gildong:     {name:'활빈당',      desc:'분신 여덟이 5초간 저마다 쏜다<br>사라지며 저마다 터진다'},
+ gildong:     {name:'율도국',      desc:'분신 여덟이 5초간 저마다 쏜다<br>사라지며 저마다 터진다'},
  chunhyang:   {name:'어사출또',    desc:'육모방망이가 위에서 내려와 세로 다섯 줄을 훑는다<br>위력의 200%'},
- jeomsun:     {name:'먹구덩이',    desc:'화면 한가운데에 지름 세 배의 먹웅덩이가 10초간 남는다<br>잠긴 석판은 중독과 출혈에 걸린 채 갉힌다'},
+ jeomsun:     {name:'감자밭',    desc:'화면 한가운데에 지름 세 배의 먹웅덩이가 10초간 남는다<br>잠긴 석판은 중독과 출혈에 걸린 채 갉힌다'},
  utturi:      {name:'용마의 번개', desc:'2초간 0.2초마다 무작위 석판에 벼락<br>한 번에 그 석판 체력의 60%'},
- kimcheomji:  {name:'설렁탕',      desc:'기력을 최대치의 20% 되찾고<br>12초간 위력이 두 배가 된다'},
+ kimcheomji:  {name:'막걸리',      desc:'기력을 최대치의 20% 되찾고<br>12초간 위력이 두 배가 된다'},
  yuchungryeol:{name:'장성검 · 십자',desc:'가로와 세로로 한 번씩 크게 벤다<br>그 안의 석판은 체력과 상관없이 부서진다'}
 };
 const acDef  = id=>ACTIVE[id]||null;
@@ -10132,19 +10157,145 @@ const offP3  = id=>!!(META.p3off&&META.p3off[id]);
 const p3On   = id=>p3Open(id)&&!offP3(id)&&META.char===id;
 const acReady=()=>S&&(S.ac||0)>=AC_NEED;
 
-/* 아직 손대지 않은 여섯은 눌러도 조용하다 */
+/* ── 나머지 여섯 ───────────────────────────────────────── */
+function acFire(id){
+  const P=()=>Math.max(1,S.ballDamage||1);
+  if(id==='none'){                                   // 구슬 회오리
+    S.whirl={t:3.0, next:0, a:Math.atan2(S.aimY,S.aimX)};
+  }else if(id==='kwon'){                             // 구두를 벗다
+    if(!S.orbs) S.orbs=[];
+    while(S.orbs.length<9) S.orbs.push({a:Math.random()*7,r:130,hitT:0,x:0,y:0});
+    S.orbFree=8.0;
+  }else if(id==='gildong'){                          // 활빈당
+    const list=[];
+    for(let k=0;k<8;k++){
+      list.push({x:WALL_L+(WALL_R-WALL_L)*(k+0.5)/8,
+                 y:S.py-40-((k%2)?90:0), fire:0.2+k*0.05});
+    }
+    S.clones={t:5.0, list};
+  }else if(id==='chunhyang'){                        // 어사출또
+    const c=cell(), n=5, mid=Math.max(WALL_L+c*n/2, Math.min(WALL_R-c*n/2, S.px));
+    S.baton={t:0.7, x0:mid-c*n/2, x1:mid+c*n/2, hit:false};
+  }else if(id==='jeomsun'){                          // 먹구덩이
+    S.pools.push({x:VW/2, y:(CEIL_Y+DANGER_Y)/2, r:CONFIG.inkPoolR*3,
+                  t:10*(S.statusMul||1), pct:CONFIG.poolPct[3], mine:true, frz:false});
+    for(const b of S.bricks){ if(!b||b.quiz||isSolid(b))continue;
+      b.bleedN=(b.bleedN||0)+5; b.poiN=(b.poiN||0)+5;
+      b.bleedT=Math.max(b.bleedT||0,8); b.poiT=Math.max(b.poiT||0,8); }
+  }else if(id==='yuchungryeol'){                     // 장성검 · 십자
+    const ys=S.bricks.filter(b=>b&&!b.quiz).map(b=>b.y+b.h/2).sort((a,b)=>a-b);
+    const cy=ys.length?ys[Math.floor(ys.length/2)]:(CEIL_Y+DANGER_Y)/2;
+    S.cross={t:0.75, cx:S.px, cy, hit:false,
+             hw:cell()*1.5, hh:rowStep()};           // 세로 세 칸 · 가로 두 줄
+  }else return false;
+  return true;
+}
+function ac6Tick(dt){
+  /* 회오리 — 0.06초마다 두 발이 돌아 나간다 */
+  if(S.whirl){
+    const w=S.whirl; w.t-=dt; w.next-=dt;
+    if(w.next<=0){
+      w.next=0.06; w.a+=0.55;
+      for(let k=0;k<2;k++)
+        spawnBallAt(w.a+k*Math.PI, S.cyc++, S.px, S.py, false, 0.6);
+    }
+    if(w.t<=0) S.whirl=null;
+  }
+  /* 구두를 벗다 */
+  if((S.orbFree||0)>0){
+    S.orbFree-=dt;
+    if(S.orbFree<=0){ S.orbFree=0; if(!p2On('kwon')) S.orbs=S.orbs.slice(0,3); }
+  }
+  /* 활빈당 */
+  if(S.clones){
+    const cl=S.clones; cl.t-=dt;
+    for(const c of cl.list){
+      c.fire-=dt;
+      if(c.fire<=0 && cl.t>0){
+        c.fire=0.45;
+        spawnBallAt(-Math.PI/2+(Math.random()-.5)*1.1, S.cyc++, c.x, c.y, false, 0.5);
+      }
+    }
+    if(cl.t<=0){
+      for(const c of cl.list){ bodyBoom(c.x,c.y,2); if(S.screen!=='play')break; }
+      S.clones=null;
+    }
+  }
+  /* 어사출또 — 내려오다 한 번 훑는다 */
+  if(S.baton){
+    const t=S.baton; t.t-=dt;
+    if(!t.hit && t.t<=0.42){
+      t.hit=true;
+      for(let i=S.bricks.length-1;i>=0;i--){
+        const b=S.bricks[i]; if(!b||b.quiz||isSolid(b))continue;
+        const c=b.x+b.w/2; if(c<t.x0||c>t.x1)continue;
+        chip(b, Math.max(1,Math.ceil((b.maxHp||b.hp)*0.9)), 'gold');
+        if(S.screen!=='play')return;
+      }
+      S.shake=Math.max(S.shake,18);
+    }
+    if(t.t<=0) S.baton=null;
+  }
+  /* 장성검 — 선이 먼저 뜨고 그다음 벤다 */
+  if(S.cross){
+    const x=S.cross; x.t-=dt;
+    if(!x.hit && x.t<=0.4){
+      x.hit=true;
+      for(let i=S.bricks.length-1;i>=0;i--){
+        const b=S.bricks[i]; if(!b||b.quiz||isSolid(b))continue;
+        const cx=b.x+b.w/2, cy=b.y+b.h/2;
+        if(Math.abs(cx-x.cx)<=x.hw || Math.abs(cy-x.cy)<=x.hh){
+          breakBrick(b); if(S.screen!=='play')return;
+        }
+      }
+      S.shake=Math.max(S.shake,22);
+    }
+    if(x.t<=0) S.cross=null;
+  }
+}
+function drawAc6(){
+  if(S.clones){                                      // 분신 여덟
+    ctx.save(); ctx.globalAlpha=Math.min(1,S.clones.t*2)*0.75;
+    ctx.fillStyle='rgba(30,40,60,.9)'; ctx.strokeStyle=C['--jade']; ctx.lineWidth=3;
+    for(const c of S.clones.list){
+      ctx.beginPath();ctx.arc(c.x,c.y,heroR()*0.85,0,7);ctx.fill();ctx.stroke();
+    }
+    ctx.restore();
+  }
+  if(S.baton){                                       // 육모방망이가 내려온다
+    const t=S.baton, k=Math.max(0,Math.min(1,(0.7-t.t)/0.42));
+    ctx.save(); ctx.globalAlpha=(t.t>0.42?0.5:0.85)*Math.min(1,t.t*3);
+    const g=ctx.createLinearGradient(0,CEIL_Y,0,CEIL_Y+(DANGER_Y-CEIL_Y)*k);
+    g.addColorStop(0,'rgba(229,178,79,0)'); g.addColorStop(1,'rgba(255,232,170,.9)');
+    ctx.fillStyle=g; ctx.fillRect(t.x0,CEIL_Y,t.x1-t.x0,(DANGER_Y-CEIL_Y)*k);
+    ctx.strokeStyle=C['--gold']; ctx.lineWidth=4;
+    ctx.beginPath();ctx.moveTo(t.x0,CEIL_Y);ctx.lineTo(t.x0,CEIL_Y+(DANGER_Y-CEIL_Y)*k);
+    ctx.moveTo(t.x1,CEIL_Y);ctx.lineTo(t.x1,CEIL_Y+(DANGER_Y-CEIL_Y)*k);ctx.stroke();
+    ctx.restore();
+  }
+  if(S.cross){                                       // 장성검 십자
+    const x=S.cross, warn=x.t>0.4;
+    ctx.save();
+    ctx.globalAlpha=warn?0.55:Math.min(1,x.t*2.5);
+    ctx.fillStyle=warn?'rgba(226,89,63,.35)':'rgba(255,240,200,.85)';
+    ctx.shadowColor='#E2593F'; ctx.shadowBlur=warn?10:34;
+    ctx.fillRect(x.cx-x.hw,0,x.hw*2,VH);
+    ctx.fillRect(0,x.cy-x.hh,VW,x.hh*2);
+    ctx.restore();
+  }
+}
+
 function useActive(){
   if(!acReady()||!p3On(META.char))return;
   const id=META.char;
   if(id==='kimcheomji'){
     S.energy=Math.min(S.energyMax,S.energy+S.energyMax*0.2);
-    S.acBuff=12; S.shout={text:'설렁탕',big:false,t:1.6,max:1.6};
+    S.acBuff=12; S.shout={text:'막걸리',big:false,t:1.6,max:1.6};
   }else if(id==='utturi'){
     S.bolt={left:10, next:0}; S.shout={text:'용마의 번개',big:false,t:1.6,max:1.6};
-  }else{
-    S.alertMsg={text:`${acDef(id).name} — 아직 벼르는 중이다`,t:1.6,ok:false};
-    return;                                   // 안 만든 것은 충전을 쓰지 않는다
-  }
+  }else if(acFire(id)){
+    S.shout={text:acDef(id).name,big:false,t:1.6,max:1.6};
+  }else return;
   S.ac=0;
   const cd=CHARS.find(x=>x.id===id);
   S.acFx={t:1.0,max:1.0,col:(cd&&cd.color)||'#E5B24F'};   // 테두리가 타오른다
@@ -10156,6 +10307,7 @@ function useActive(){
 function acTick(dt){
   if(S.acFx){ S.acFx.t-=dt; if(S.acFx.t<=0) S.acFx=null; }
   if(S.acBuff>0) S.acBuff=Math.max(0,S.acBuff-dt);
+  ac6Tick(dt);
   const b=S.bolt; if(!b)return;
   b.next-=dt;
   if(b.next<=0){
@@ -10227,7 +10379,7 @@ breakBrick=function(b,ball){
 const _startRunNow2=startRunNow;
 startRunNow=function(){ _startRunNow2(); if(S){ S.ac=AC_NEED; S.acBuff=0; S.bolt=null; } };
 const _drawControls=drawControls;
-drawControls=function(){ drawAcFx(); _drawControls(); drawActive(); };
+drawControls=function(){ drawAc6(); drawAcFx(); _drawControls(); drawActive(); };
 
 cv.addEventListener('pointerdown',e=>{
   if(S?.screen!=='play')return;
@@ -10238,7 +10390,7 @@ cv.addEventListener('pointerdown',e=>{
   }
 },true);
 
-const BUILD='c46';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c49';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
