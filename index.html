@@ -10506,146 +10506,140 @@ cv.addEventListener('pointerdown',e=>{
 
 
 /* ══════════════════════════════════════════════════════════
-   보스가 스러지는 순간 — 멈춤 · 갈라짐 · 부서짐 · 사라짐
+   보스가 스러진다 — 멈춤 · 반전 · 잿빛 · 먹으로 흘러내림 · 스러지다
+   보스마다 다른 몸(ART)을 그대로 쓴다. 네모로 부수지 않는다.
    ══════════════════════════════════════════════════════════ */
-const FALL_DUR=2.0;
+const FALL_END=2.25, MELT_N=10;
 function startBossFall(B){
-  const cx=B.x+B.w/2, cy=B.y+B.h/2;
-  const col=(B.def&&B.def.color)||'#E5B24F';
-  const cols=6, rows=4, frag=[];
-  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
-    const fw=B.w/cols, fh=B.h/rows;
-    const fx=B.x+c*fw, fy=B.y+r*fh;
-    const a=Math.atan2(fy+fh/2-cy, fx+fw/2-cx)+(Math.random()-.5)*0.5;
-    const sp=180+Math.random()*260;
-    frag.push({x:fx,y:fy,w:fw,h:fh,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-140,
-               rot:(Math.random()-.5)*5, a:0});
+  S.bossFall={
+    t0:performance.now(), B,
+    col:(B.def&&B.def.color)||'#E5B24F',
+    cx:B.x+B.w/2, cy:B.y+B.h/2,
+    poolY:Math.min(DANGER_Y-60, B.y+B.h+300),
+    drips:Array.from({length:9},(_,i)=>({
+      x:B.x+B.w*(0.08+0.84*Math.random()), w:6+Math.random()*16,
+      d:0.34+Math.random()*0.3, v:260+Math.random()*420})),
+    rung:0
+  };
+}
+/* 보스의 진짜 몸을 그린다. 고유한 몸이 없으면 옛 도형으로 */
+function fallBody(B,col,white){
+  const art=bossArt(B);
+  const k=0.001;
+  ctx.save();
+  if(white && ctx.filter!==undefined) ctx.filter='brightness(0) invert(1)';
+  if(art){ art(B,k,col); }
+  else {
+    ctx.fillStyle=white?'#fff':col;
+    shapePath(bossShape(B),B.x,B.y,B.w,B.h,0); ctx.fill();
   }
-  const dust=[];
-  for(let i=0;i<44;i++)
-    dust.push({x:cx+(Math.random()-.5)*B.w, y:cy+(Math.random()-.5)*B.h,
-               v:70+Math.random()*190, r:2+Math.random()*4.5, ph:Math.random()});
-  S.bossFall={t0:performance.now(), cx, cy, col, x:B.x, y:B.y, w:B.w, h:B.h,
-              frag, dust, cracks:Array.from({length:9},()=>Math.random()*7),
-              rung:[0.34,0.52,0.72], flashed:0};
+  ctx.filter='none';
+  ctx.restore();
 }
 function drawBossFall(){
   const F=S&&S.bossFall; if(!F)return;
   const e=(performance.now()-F.t0)/1000;
-  if(e>=FALL_DUR+0.4){ S.bossFall=null; return; }
-  if(S.shake>0) S.shake=Math.max(0,S.shake-0.7);      // 판이 멈춰 있어 여기서 식힌다
-  const k=e/FALL_DUR;
+  if(e>=FALL_END){ S.bossFall=null; return; }
+  if(S.shake>0) S.shake=Math.max(0,S.shake-0.9);
+  const B=F.B, col=F.col;
   ctx.save();
 
-  /* 둘레가 어두워진다 — 눈이 가운데로 몰린다 */
-  if(e<1.5){
-    const vg=ctx.createRadialGradient(F.cx,F.cy,60,F.cx,F.cy,VH*0.75);
-    vg.addColorStop(0,'rgba(0,0,0,0)');
-    vg.addColorStop(1,`rgba(0,0,0,${0.55*Math.min(1,e*5)*(1-Math.max(0,(e-1.0)/0.5))})`);
-    ctx.fillStyle=vg; ctx.fillRect(0,0,VW,VH);
-  }
+  /* ── ① 0 ~ 0.15 · 히트스톱. 아무것도 움직이지 않는다 ── */
+  if(e<0.15){ fallBody(B,col,true); }
 
-  /* ① 0.00~0.30 — 하얗게 굳는다 */
-  if(e<0.32){
-    ctx.globalAlpha=1;
-    ctx.fillStyle=`rgba(255,255,255,${0.55+0.35*Math.sin(e*60)})`;
-    ctx.fillRect(F.x,F.y,F.w,F.h);
-  }
-
-  /* ② 0.30~0.75 — 금이 가고 빛이 샌다 */
-  if(e>=0.28&&e<0.80){
-    const p=(e-0.28)/0.52;
-    ctx.save(); ctx.beginPath(); ctx.rect(F.x,F.y,F.w,F.h); ctx.clip();
-    ctx.globalAlpha=1;
-    ctx.fillStyle='rgba(250,250,250,.92)'; ctx.fillRect(F.x,F.y,F.w,F.h);
-    ctx.strokeStyle=F.col; ctx.shadowColor=F.col; ctx.shadowBlur=26;
-    ctx.lineCap='round';
-    for(const a of F.cracks){
-      ctx.lineWidth=3+9*p;
-      ctx.beginPath(); ctx.moveTo(F.cx,F.cy);
-      ctx.lineTo(F.cx+Math.cos(a)*F.w*p*1.1, F.cy+Math.sin(a)*F.h*p*1.4);
-      ctx.stroke();
-    }
-    ctx.restore();
-  }
-
-  /* 충격파 — 세 겹이 시차를 두고 퍼진다 */
-  for(const r0 of F.rung){
-    const p=(e-r0)/0.75; if(p<0||p>1)continue;
-    ctx.globalAlpha=(1-p)*0.85;
-    ctx.strokeStyle=F.col; ctx.shadowColor=F.col; ctx.shadowBlur=30;
-    ctx.lineWidth=16*(1-p)+2;
-    ctx.beginPath(); ctx.arc(F.cx,F.cy,40+p*760,0,7); ctx.stroke();
-  }
-  ctx.shadowBlur=0; ctx.globalAlpha=1;
-
-  /* ③ 0.75~ — 조각이 흩어져 떨어진다 */
-  if(e>=0.76){
-    const p=e-0.76;
+  /* ── ② 0.15 ~ 0.19 · 화면 색이 뒤집힌다 ── */
+  else if(e<0.19){
+    fallBody(B,col,true);
     ctx.save();
-    for(const f of F.frag){
-      const fx=f.x+f.vx*p, fy=f.y+f.vy*p+520*p*p;
-      const al=Math.max(0,1-p/0.9);
-      if(al<=0)continue;
-      ctx.globalAlpha=al;
-      ctx.translate(fx+f.w/2,fy+f.h/2); ctx.rotate(f.rot*p);
-      ctx.fillStyle='rgba(245,245,245,.9)';
-      ctx.fillRect(-f.w/2,-f.h/2,f.w,f.h);
-      ctx.strokeStyle=F.col; ctx.lineWidth=2.5; ctx.strokeRect(-f.w/2,-f.h/2,f.w,f.h);
-      ctx.setTransform(1,0,0,1,0,0);
+    ctx.globalCompositeOperation='difference';
+    ctx.fillStyle='#fff'; ctx.fillRect(0,0,VW,VH);
+    ctx.restore();
+    if(!F.rung){ F.rung=1; vibe('active'); }
+  }
+
+  /* ── ③ 0.19 ~ · 먹이 새고, 몸이 흘러내린다 ── */
+  else {
+    const p=Math.max(0,Math.min(1,(e-0.32)/0.72));      // 흘러내리는 진행
+    const ease=p*p;
+    if(p<=0){ fallBody(B,col,false); }
+    else{
+      for(let i=0;i<MELT_N;i++){
+        const bh=B.h/MELT_N, by=B.y+bh*i;
+        const d=Math.max(0,Math.min(1, ease*1.7 - i*0.055));
+        if(d>=1)continue;
+        const off=d*d*(F.poolY-by)*1.05;
+        const sy=1+d*3.2;
+        ctx.save();
+        ctx.globalAlpha=Math.max(0,1-d*1.05);
+        ctx.translate(0,off);
+        ctx.translate(0,by); ctx.scale(1,sy); ctx.translate(0,-by);
+        ctx.beginPath(); ctx.rect(B.x-60,by,B.w+120,bh+1); ctx.clip();
+        fallBody(B,col,false);
+        ctx.restore();
+      }
+      /* 먹 방울이 아래로 늘어져 떨어진다 */
+      ctx.globalAlpha=Math.max(0,1-p*1.2)*0.9;
+      ctx.fillStyle=col;
+      for(const d of F.drips){
+        const q=Math.max(0,(p-d.d)/(1-d.d)); if(q<=0)continue;
+        const y=B.y+B.h+q*d.v*1.6, len=26+q*150;
+        ctx.beginPath();
+        ctx.ellipse(d.x, y, d.w*(1-q*0.4), len, 0, 0, 7); ctx.fill();
+      }
+      ctx.globalAlpha=1;
     }
+    /* 바닥에 고였다가 마른다 */
+    if(e>0.75){
+      const q=Math.min(1,(e-0.75)/0.5), dry=Math.max(0,1-(e-1.45)/0.65);
+      ctx.globalAlpha=0.8*dry;
+      const g=ctx.createRadialGradient(F.cx,F.poolY,4,F.cx,F.poolY,B.w*0.75*q);
+      g.addColorStop(0,col); g.addColorStop(0.55,'rgba(10,12,18,.85)');
+      g.addColorStop(1,'rgba(10,12,18,0)');
+      ctx.fillStyle=g;
+      ctx.beginPath(); ctx.ellipse(F.cx,F.poolY,B.w*0.78*q,B.h*0.26*q,0,0,7); ctx.fill();
+      ctx.globalAlpha=1;
+    }
+  }
+
+  /* ── 잿빛 · 색이 빠졌다 돌아온다 ── */
+  if(e>0.19&&e<1.95){
+    const g=Math.min(1,(e-0.19)/0.20)*Math.max(0,1-Math.max(0,(e-1.55)/0.4));
+    ctx.save();
+    ctx.globalCompositeOperation='saturation';
+    ctx.globalAlpha=g*0.95; ctx.fillStyle='hsl(0,0%,50%)';
+    ctx.fillRect(0,0,VW,VH);
     ctx.restore();
   }
 
-  /* 하얀 섬광 — 갈라질 때 한 번, 부서질 때 한 번 */
-  for(const [at,dur,al] of [[0.30,0.22,0.55],[0.76,0.30,0.85]]){
-    const p=(e-at)/dur; if(p<0||p>1)continue;
-    ctx.globalAlpha=(1-p)*al; ctx.fillStyle='#fff'; ctx.fillRect(0,0,VW,VH);
-  }
-
-  /* ④ 1.15~ — 금빛이 위로 솟아 사라진다 */
-  if(e>=1.1){
-    const p=(e-1.1)/0.9;
-    ctx.globalAlpha=Math.max(0,1-p);
-    ctx.fillStyle=F.col; ctx.shadowColor=F.col; ctx.shadowBlur=18;
-    for(const d of F.dust){
-      const q=(p+d.ph)%1;
-      ctx.globalAlpha=Math.max(0,(1-p))*(1-q)*0.95;
-      ctx.beginPath();
-      ctx.arc(d.x+Math.sin(q*7+d.ph*9)*16, d.y-d.v*q*2.4, d.r*(1-q*0.6),0,7);
-      ctx.fill();
+  /* ── 「스러지다」 · 획을 긋듯 왼쪽에서 드러난다 ── */
+  if(e>0.55){
+    const w=Math.min(1,(e-0.55)/0.32);
+    const fade=Math.max(0,1-Math.max(0,(e-1.75)/0.4));
+    ctx.save();
+    ctx.globalAlpha=fade;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.font=`700 108px 'Gowun Batang',serif`;
+    const ty=F.cy;
+    ctx.beginPath(); ctx.rect(VW/2-330, ty-90, 660*w, 180); ctx.clip();
+    ctx.shadowColor=col; ctx.shadowBlur=34;
+    ctx.fillStyle=col;   ctx.fillText('스러지다',VW/2+3,ty+3);
+    ctx.shadowBlur=12;
+    ctx.fillStyle='#F3EDDF'; ctx.fillText('스러지다',VW/2,ty);
+    ctx.restore();
+    /* 획 끝에 붓끝처럼 빛이 남는다 */
+    if(w<1){
+      ctx.save(); ctx.globalAlpha=fade*0.9;
+      ctx.fillStyle='#fff'; ctx.shadowColor=col; ctx.shadowBlur=26;
+      ctx.fillRect(VW/2-330+660*w-3, ty-72, 5, 144);
+      ctx.restore();
     }
-    ctx.shadowBlur=0;
-    /* 빛기둥이 한 번 섰다 스러진다 */
-    const bp=Math.min(1,p*1.4);
-    ctx.globalAlpha=Math.max(0,1-bp)*0.75;
-    const g=ctx.createLinearGradient(0,F.cy-VH,0,F.cy+80);
-    g.addColorStop(0,'rgba(255,255,255,0)');
-    g.addColorStop(1,F.col);
-    ctx.fillStyle=g;
-    const bw2=(F.w*0.42)*(1-bp*0.55);
-    ctx.fillRect(F.cx-bw2,F.cy-VH,bw2*2,VH+80);
-  }
-
-  /* 화면 테두리가 보스 색으로 탄다 */
-  if(e>=0.76&&e<1.9){
-    const p=(e-0.76)/1.14, ease=(1-p)*(1-p);
-    ctx.strokeStyle=F.col; ctx.shadowColor=F.col;
-    for(const [lw,bl,al] of [[46,26,.28],[22,44,.5],[9,66,.85]]){
-      ctx.globalAlpha=ease*al; ctx.lineWidth=lw; ctx.shadowBlur=bl;
-      ctx.strokeRect(lw/2,lw/2,VW-lw,VH-lw);
-    }
-    ctx.shadowBlur=0;
   }
   ctx.restore();
-
-  /* 두 번째 진동 */
-  if(!F.flashed&&e>=0.76){ F.flashed=1; vibe('active'); }
 }
 const _draw=draw;
 draw=function(){ _draw(); drawBossFall(); };
 
-const BUILD='c57';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c58';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
