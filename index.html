@@ -2403,6 +2403,8 @@ const HASTE_FALL=[1,1.25,1.5,1.8], HASTE_EVERY=[2,3,3,4];
 const hasteNow =()=>(S && (S.depth||0)<=0 && S.stage<=20) ? hasteLv() : 0;
 const cardEveryNow=()=>HASTE_EVERY[hasteNow()];
 const quizTotal =()=>Math.max(CONFIG.quizPerFloor, cardEveryNow());
+/* 25층부터 다섯 층마다 보스가 한 뼘씩 커진다 — 크기만 */
+const bossScale=f=>f>=40?1.25:f>=35?1.20:f>=30?1.15:f>=25?1.10:1;
 const isBossStage=n=>n%CONFIG.bossEvery===0;
 const ZONE_MUL=[1,2,3,4,6];
 const zoneMul    =f=>ZONE_MUL[Math.min(4,Math.floor((f-1)/CONFIG.chapterLen))];
@@ -3649,7 +3651,8 @@ function spawnBoss(){
   S.bossDmg=Math.round(CONFIG.bulletDamage*(1+CONFIG.bossDmgPerBoss*step)*diffBoss()
                        *abyssHard()*deepEase());
   S.bossSpd=(1+CONFIG.bossSpdPerBoss*step)*(1+(diffBoss()-1)*CONFIG.diffSpeedShare);
-  const bw=d.bw||320, bh=d.bh||190;
+  const sc=bossScale(S.stage);                    // 깊을수록 몸집이 커진다
+  const bw=Math.round((d.bw||320)*sc), bh=Math.round((d.bh||190)*sc);
   S.boss={def:d,x:VW/2-bw/2,y:250,w:bw,h:bh,hp,maxHp:hp,hit:0,
           t:0,cycle:CONFIG.bossCycleBase*(1-CONFIG.bossCycPerBoss*(n-1))/diffBoss(),atkT:1.6,pi:0,rep:0,spiralA:0,phase2:false,
           vuln:0,quizT:3.0,tpT:2.4,homeX:VW/2,stun:0,
@@ -4875,8 +4878,9 @@ function defeatBoss(){
   for(let i=S.bricks.length-1;i>=0;i--) if(S.bricks[i].quiz) S.bricks.splice(i,1);
   S.alert=null;
   const def=B.def;
-  S.boss=null;S.bullets=[];S.sweeps=[];S.shake=22;S.screen='clearing';vibe('boss');
-  setTimeout(()=>{ if(!S)return; sayBoss(def,'win',()=>startQuiz(true)); },900);
+  startBossFall(B);                               // 멈춤 · 갈라짐 · 부서짐 · 사라짐
+  S.boss=null;S.bullets=[];S.sweeps=[];S.shake=30;S.screen='clearing';vibe('active');
+  setTimeout(()=>{ if(!S)return; sayBoss(def,'win',()=>startQuiz(true)); },2050);
 }
 
 /* ---------- 화면 ---------- */
@@ -10500,7 +10504,148 @@ cv.addEventListener('pointerdown',e=>{
   }
 },true);
 
-const BUILD='c56';                       // 배포한 파일을 눈으로 확인하는 표시
+
+/* ══════════════════════════════════════════════════════════
+   보스가 스러지는 순간 — 멈춤 · 갈라짐 · 부서짐 · 사라짐
+   ══════════════════════════════════════════════════════════ */
+const FALL_DUR=2.0;
+function startBossFall(B){
+  const cx=B.x+B.w/2, cy=B.y+B.h/2;
+  const col=(B.def&&B.def.color)||'#E5B24F';
+  const cols=6, rows=4, frag=[];
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+    const fw=B.w/cols, fh=B.h/rows;
+    const fx=B.x+c*fw, fy=B.y+r*fh;
+    const a=Math.atan2(fy+fh/2-cy, fx+fw/2-cx)+(Math.random()-.5)*0.5;
+    const sp=180+Math.random()*260;
+    frag.push({x:fx,y:fy,w:fw,h:fh,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-140,
+               rot:(Math.random()-.5)*5, a:0});
+  }
+  const dust=[];
+  for(let i=0;i<44;i++)
+    dust.push({x:cx+(Math.random()-.5)*B.w, y:cy+(Math.random()-.5)*B.h,
+               v:70+Math.random()*190, r:2+Math.random()*4.5, ph:Math.random()});
+  S.bossFall={t0:performance.now(), cx, cy, col, x:B.x, y:B.y, w:B.w, h:B.h,
+              frag, dust, cracks:Array.from({length:9},()=>Math.random()*7),
+              rung:[0.34,0.52,0.72], flashed:0};
+}
+function drawBossFall(){
+  const F=S&&S.bossFall; if(!F)return;
+  const e=(performance.now()-F.t0)/1000;
+  if(e>=FALL_DUR+0.4){ S.bossFall=null; return; }
+  if(S.shake>0) S.shake=Math.max(0,S.shake-0.7);      // 판이 멈춰 있어 여기서 식힌다
+  const k=e/FALL_DUR;
+  ctx.save();
+
+  /* 둘레가 어두워진다 — 눈이 가운데로 몰린다 */
+  if(e<1.5){
+    const vg=ctx.createRadialGradient(F.cx,F.cy,60,F.cx,F.cy,VH*0.75);
+    vg.addColorStop(0,'rgba(0,0,0,0)');
+    vg.addColorStop(1,`rgba(0,0,0,${0.55*Math.min(1,e*5)*(1-Math.max(0,(e-1.0)/0.5))})`);
+    ctx.fillStyle=vg; ctx.fillRect(0,0,VW,VH);
+  }
+
+  /* ① 0.00~0.30 — 하얗게 굳는다 */
+  if(e<0.32){
+    ctx.globalAlpha=1;
+    ctx.fillStyle=`rgba(255,255,255,${0.55+0.35*Math.sin(e*60)})`;
+    ctx.fillRect(F.x,F.y,F.w,F.h);
+  }
+
+  /* ② 0.30~0.75 — 금이 가고 빛이 샌다 */
+  if(e>=0.28&&e<0.80){
+    const p=(e-0.28)/0.52;
+    ctx.save(); ctx.beginPath(); ctx.rect(F.x,F.y,F.w,F.h); ctx.clip();
+    ctx.globalAlpha=1;
+    ctx.fillStyle='rgba(250,250,250,.92)'; ctx.fillRect(F.x,F.y,F.w,F.h);
+    ctx.strokeStyle=F.col; ctx.shadowColor=F.col; ctx.shadowBlur=26;
+    ctx.lineCap='round';
+    for(const a of F.cracks){
+      ctx.lineWidth=3+9*p;
+      ctx.beginPath(); ctx.moveTo(F.cx,F.cy);
+      ctx.lineTo(F.cx+Math.cos(a)*F.w*p*1.1, F.cy+Math.sin(a)*F.h*p*1.4);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  /* 충격파 — 세 겹이 시차를 두고 퍼진다 */
+  for(const r0 of F.rung){
+    const p=(e-r0)/0.75; if(p<0||p>1)continue;
+    ctx.globalAlpha=(1-p)*0.85;
+    ctx.strokeStyle=F.col; ctx.shadowColor=F.col; ctx.shadowBlur=30;
+    ctx.lineWidth=16*(1-p)+2;
+    ctx.beginPath(); ctx.arc(F.cx,F.cy,40+p*760,0,7); ctx.stroke();
+  }
+  ctx.shadowBlur=0; ctx.globalAlpha=1;
+
+  /* ③ 0.75~ — 조각이 흩어져 떨어진다 */
+  if(e>=0.76){
+    const p=e-0.76;
+    ctx.save();
+    for(const f of F.frag){
+      const fx=f.x+f.vx*p, fy=f.y+f.vy*p+520*p*p;
+      const al=Math.max(0,1-p/0.9);
+      if(al<=0)continue;
+      ctx.globalAlpha=al;
+      ctx.translate(fx+f.w/2,fy+f.h/2); ctx.rotate(f.rot*p);
+      ctx.fillStyle='rgba(245,245,245,.9)';
+      ctx.fillRect(-f.w/2,-f.h/2,f.w,f.h);
+      ctx.strokeStyle=F.col; ctx.lineWidth=2.5; ctx.strokeRect(-f.w/2,-f.h/2,f.w,f.h);
+      ctx.setTransform(1,0,0,1,0,0);
+    }
+    ctx.restore();
+  }
+
+  /* 하얀 섬광 — 갈라질 때 한 번, 부서질 때 한 번 */
+  for(const [at,dur,al] of [[0.30,0.22,0.55],[0.76,0.30,0.85]]){
+    const p=(e-at)/dur; if(p<0||p>1)continue;
+    ctx.globalAlpha=(1-p)*al; ctx.fillStyle='#fff'; ctx.fillRect(0,0,VW,VH);
+  }
+
+  /* ④ 1.15~ — 금빛이 위로 솟아 사라진다 */
+  if(e>=1.1){
+    const p=(e-1.1)/0.9;
+    ctx.globalAlpha=Math.max(0,1-p);
+    ctx.fillStyle=F.col; ctx.shadowColor=F.col; ctx.shadowBlur=18;
+    for(const d of F.dust){
+      const q=(p+d.ph)%1;
+      ctx.globalAlpha=Math.max(0,(1-p))*(1-q)*0.95;
+      ctx.beginPath();
+      ctx.arc(d.x+Math.sin(q*7+d.ph*9)*16, d.y-d.v*q*2.4, d.r*(1-q*0.6),0,7);
+      ctx.fill();
+    }
+    ctx.shadowBlur=0;
+    /* 빛기둥이 한 번 섰다 스러진다 */
+    const bp=Math.min(1,p*1.4);
+    ctx.globalAlpha=Math.max(0,1-bp)*0.75;
+    const g=ctx.createLinearGradient(0,F.cy-VH,0,F.cy+80);
+    g.addColorStop(0,'rgba(255,255,255,0)');
+    g.addColorStop(1,F.col);
+    ctx.fillStyle=g;
+    const bw2=(F.w*0.42)*(1-bp*0.55);
+    ctx.fillRect(F.cx-bw2,F.cy-VH,bw2*2,VH+80);
+  }
+
+  /* 화면 테두리가 보스 색으로 탄다 */
+  if(e>=0.76&&e<1.9){
+    const p=(e-0.76)/1.14, ease=(1-p)*(1-p);
+    ctx.strokeStyle=F.col; ctx.shadowColor=F.col;
+    for(const [lw,bl,al] of [[46,26,.28],[22,44,.5],[9,66,.85]]){
+      ctx.globalAlpha=ease*al; ctx.lineWidth=lw; ctx.shadowBlur=bl;
+      ctx.strokeRect(lw/2,lw/2,VW-lw,VH-lw);
+    }
+    ctx.shadowBlur=0;
+  }
+  ctx.restore();
+
+  /* 두 번째 진동 */
+  if(!F.flashed&&e>=0.76){ F.flashed=1; vibe('active'); }
+}
+const _draw=draw;
+draw=function(){ _draw(); drawBossFall(); };
+
+const BUILD='c57';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
