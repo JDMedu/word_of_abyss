@@ -828,6 +828,7 @@ const CONFIG = {
   bossBulletSpeed:290, bossCycleBase:1.9,
   bossDmgPerBoss:0.075,   // 보스 한 번째마다 탄 피해 +7.5%
   deepBossFrom:35, deepBossDmg:0.8,      // 35층부터는 보스 탄이 20% 무르다
+  freezeMax:2.5,                         // 한 석판이 얼어 있을 수 있는 한계(초)
   bossSpdPerBoss:0.050,   // 탄 속도 +5%
   bossCycPerBoss:0.026,   // 공격 주기 -2.6%
   bossRagePerBoss:0.6,    // 격노가 이만큼씩 길어진다(초)
@@ -2389,8 +2390,8 @@ const descentSpd =()=>descentBase(S.stage)*S.descentMul*abyssMul()
 /* ── 급한 걸음 ──────────────────────────────────────────
    대장간을 벼른 만큼, 앞 구간이 조급해진다. 20층까지만.
    석판이 빨리 내려오고, 카드·뜻 맞히기를 몰아서 한다 */
-function hasteLv(){
-  if(META.hasteOff) return 0;
+/* 여태 벼린 만큼 몇 단까지 열렸는가 */
+function hasteMax(){
   const cap=UPGRADES.reduce((a,u)=>a+u.cap,0);
   const got=UPGRADES.reduce((a,u)=>a+Math.min(lvOf(u.id),u.cap),0);
   const p = (got/Math.max(1,cap))*0.5
@@ -2398,9 +2399,21 @@ function hasteLv(){
           + Math.min(1,(META.abyss||0)/7)*0.2;
   return p<0.25?0 : p<0.45?1 : p<0.68?2 : 3;
 }
-const HASTE_FALL=[1,1.25,1.5,1.8], HASTE_EVERY=[2,3,3,4];
-/* 심연에서는 걸리지 않는다. 계약이 이미 판을 조인다 */
-const hasteNow =()=>(S && (S.depth||0)<=0 && S.stage<=20) ? hasteLv() : 0;
+/* 그중 몇 단을 쓰기로 했는가 — 안 정했으면 열린 만큼 다 쓴다 */
+function hasteLv(){
+  const mx=hasteMax();
+  const set=(META.hasteSet!==undefined&&META.hasteSet!==null)
+            ? META.hasteSet : (META.hasteOff?0:mx);
+  return Math.max(0,Math.min(mx,set));
+}
+const HASTE_FALL=[1,1.25,1.5,1.8], HASTE_EVERY=[2,3,3,4],
+      HASTE_TO=[0,20,25,30];            // 단마다 여기까지만 걸린다
+/* 심연에서도 걸린다 */
+const hasteNow =()=>{
+  if(!S) return 0;
+  const h=hasteLv();
+  return (h>0 && S.stage<=HASTE_TO[h]) ? h : 0;
+};
 const cardEveryNow=()=>HASTE_EVERY[hasteNow()];
 const quizTotal =()=>Math.max(CONFIG.quizPerFloor, cardEveryNow());
 /* 25층부터 다섯 층마다 보스가 한 뼘씩 커진다 — 크기만 */
@@ -2580,7 +2593,8 @@ function hurt(amount){
 function roomForNewRow(){
   let minY=Infinity;
   /* 경보 줄은 자리를 막지 않는다. 뒤에서 새 줄이 계속 내려와 쌓인다 */
-  for(const b of S.bricks) if(!b.quiz && b.y<minY) minY=b.y;
+  /* 얼어붙은 석판은 멈춰 있을 뿐이다. 뒷줄을 막지 않는다 */
+  for(const b of S.bricks) if(!b.quiz && !(b.freeze>0) && b.y<minY) minY=b.y;
   if(gimOn('rise')){                              // 역류 — 아래에서 새 줄이 난다
     let maxY=-Infinity;
     for(const b of S.bricks) if(!b.quiz) maxY=Math.max(maxY,b.y);
@@ -7055,7 +7069,8 @@ function update(dt){
     }
     for(let i=S.bricks.length-1;i>=0;i--){
       const b=S.bricks[i];if(!b)continue;
-      // 서리: 얼어 있는 동안은 내려오지 않는다
+      // 서리: 얼어 있는 동안은 내려오지 않는다 — 겹쳐 걸려도 한계가 있다
+      if(b.freeze>CONFIG.freezeMax) b.freeze=CONFIG.freezeMax;
       if(b.freeze>0) b.freeze=Math.max(0,b.freeze-dt);
       else{
         /* 경보가 걸려 있으면 뒤따르는 줄도 경보와 같은 속도로 내려온다 */
@@ -10444,7 +10459,7 @@ startRunNow=function(){ _startRunNow2();
   if(S){ S.ac=AC_NEED; S.acBuff=0; S.bolt=null; S.quizPool=[]; }
   const h=hasteLv();
   if(h>0&&S) setTimeout(()=>{ if(S) S.alertMsg={
-    text:`급한 걸음 ${h}단 — 20층까지 석판이 빨리 내려오고 ${HASTE_EVERY[h]}층마다 몰아서 고른다`,
+    text:`급한 걸음 ${h}단 — ${HASTE_TO[h]}층까지 석판이 빨리 내려오고 ${HASTE_EVERY[h]}층마다 몰아서 고른다`,
     t:3.2, ok:true}; }, 1200);
 };
 const _drawControls=drawControls;
@@ -10488,11 +10503,20 @@ el('helpBack').onclick=()=>{ show('vTitle'); refreshTitle(); };
 /* ── 급한 걸음 끄고 켜기 ── */
 function refreshHaste(){
   const b=el('btnHaste'); if(!b)return;
-  const h=hasteLv();
-  b.textContent = META.hasteOff ? '급한 걸음 · 끔' : (h>0?`급한 걸음 · ${h}단`:'급한 걸음 · 아직');
-  b.classList.toggle('on', !META.hasteOff && h>0);
+  const mx=hasteMax(), h=hasteLv();
+  b.textContent = mx<=0 ? '급한 걸음 · 아직'
+                : h<=0  ? `급한 걸음 · 끔 (${mx}단까지)`
+                :         `급한 걸음 · ${h}단 / ${mx}단`;
+  b.classList.toggle('on', h>0);
 }
-el('btnHaste').onclick=()=>{ META.hasteOff=META.hasteOff?0:1; saveMeta(); vibe('open'); refreshHaste(); };
+/* 누를 때마다 한 단씩 내려가고, 끄고 나면 다시 맨 위로 */
+el('btnHaste').onclick=()=>{
+  const mx=hasteMax(); if(mx<=0){ vibe('wrong'); return; }
+  const cur=hasteLv();
+  META.hasteSet = (cur-1<0) ? mx : cur-1;
+  META.hasteOff = 0;
+  saveMeta(); vibe('open'); refreshHaste();
+};
 refreshHaste();
 
 cv.addEventListener('pointerdown',e=>{
@@ -10684,7 +10708,7 @@ function drawBossFall(){
 const _draw=draw;
 draw=function(){ _draw(); drawBossFall(); };
 
-const BUILD='c60';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c62';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
