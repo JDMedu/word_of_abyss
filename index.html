@@ -76,6 +76,13 @@ canvas{display:block;width:100%;height:100%}
 .taleIn{animation:taleIn .8s ease-out}
 @keyframes taleIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 .row{display:flex;gap:.7em;flex-wrap:wrap;justify-content:center}
+/* 제목 화면 — 늘어난 단추가 잘리지 않게 */
+#vTitle{justify-content:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding-top:9%;padding-bottom:9%}
+#vTitle>*{flex-shrink:0}
+#vTitle .row{gap:.5em}
+#vTitle .row .btn{padding:.62em 1.0em;font-size:.82em;letter-spacing:.06em}
+#vTitle .row .btn.gold{padding:.8em 1.4em;font-size:.95em}
 #reviewList{display:flex;flex-direction:column;gap:.5em;width:100%;max-height:44vh;overflow-y:auto;margin-bottom:1.2em}
 .rvRow{padding:.62em .9em;background:rgba(222,211,184,.07);border-left:3px solid var(--jade);border-radius:0 6px 6px 0}
 .rvHead{display:flex;align-items:baseline;gap:.6em;margin-bottom:.22em}
@@ -494,7 +501,6 @@ canvas{display:block;width:100%;height:100%}
       <button class="btn ghost" id="btnChar">인물</button>
       <button class="btn ghost" id="btnBook">기억</button>
       <button class="btn ghost" id="btnPro">복선</button>
-      <button class="btn ghost" id="btnVibe">진동</button>
       <button class="btn ghost" id="btnInstall" style="display:none">바탕화면에 두기</button>
       <button class="btn ghost" id="btnHelp">게임 설명</button>
       <button class="btn ghost" id="btnHaste">급한 걸음</button>
@@ -6868,12 +6874,12 @@ el('btnBook').onclick=()=>{ bookId=META.char; bookDeep=deepOpen(META.char); rend
 el('btnBookBack').onclick=()=>{ refreshTitle(); show('vTitle'); };
 
 function refreshVibeBtn(){
-  const b=el('btnVibe');
+  const b=el('btnVibe'); if(!b) return;
   if(!('vibrate' in navigator)){ b.style.display='none'; return; }
   b.textContent = META.vibeOff ? '진동 꺼짐' : '진동 켜짐';
   b.style.opacity = META.vibeOff ? .5 : 1;
 }
-el('btnVibe').onclick=()=>{
+if(el('btnVibe')) el('btnVibe').onclick=()=>{
   META.vibeOff=!META.vibeOff; saveMeta(); refreshVibeBtn();
   if(!META.vibeOff) vibe('right');
 };
@@ -10892,7 +10898,7 @@ refreshTitle=function(){
     `<div><b>${G.ink}</b>${G.stage}층에 흘린 먹</div>`;
 };
 
-const BUILD='c68';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c69';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
