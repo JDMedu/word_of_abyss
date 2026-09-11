@@ -681,14 +681,6 @@ canvas{display:block;width:100%;height:100%}
         <button class="btn gold" id="btnAdmSave">저장</button>
         <button class="btn ghost" id="btnAdmClear">지정 해제</button>
       </div>
-    </div>
-    <button class="btn ghost" id="btnAdmBack">돌아간다</button>
-  </div>
-
-  <div class="veil" id="vHelp">
-    <div class="eyebrow">게임 설명</div>
-    <h2>무엇이든 <em>다시 본다</em></h2>
-    <div id="helpList">
       <div style="margin-top:1.2em;border-top:1px solid rgba(222,211,184,.18);padding-top:1em">
         <div style="font-size:.75em;letter-spacing:.2em;color:var(--stone-deep);margin-bottom:.6em">시험</div>
         <div class="row">
@@ -699,6 +691,13 @@ canvas{display:block;width:100%;height:100%}
         </div>
       </div>
     </div>
+    <button class="btn ghost" id="btnAdmBack">돌아간다</button>
+  </div>
+
+  <div class="veil" id="vHelp">
+    <div class="eyebrow">게임 설명</div>
+    <h2>무엇이든 <em>다시 본다</em></h2>
+    <div id="helpList"></div>
     <div class="row"><button class="btn gold" id="helpBack">돌아간다</button></div>
   </div>
 
@@ -10886,7 +10885,7 @@ refreshTitle=function(){
     `<div><b>${G.ink}</b>${G.stage}층에 흘린 먹</div>`;
 };
 
-const BUILD='c66';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c67';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
