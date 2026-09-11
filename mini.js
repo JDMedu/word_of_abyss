@@ -7,10 +7,10 @@ const MINI={
   hitCost:5,         // 부딪히면 깎이는 기력
   brake:0.40,        // 부딪히면 속도가 이만큼으로 떨어진다
   brakeBack:3.0,     // 원래 속도로 돌아오는 데 걸리는 시간
-  hitTime:5.6,       // 부딪히면 이만큼(초) 뒤로 떠밀린다
+  hitTime:5.4,       // 부딪히면 이만큼(초) 뒤로 떠밀린다
   invuln:0.9,        // 부딪힌 뒤 잠깐 무적
   heal:8,            // 옥빛 구슬이 돌려주는 기력
-  clean:43,          // 한 번도 안 부딪히면 이쯤에 빠져나간다(초)
+  clean:38.6,          // 한 번도 안 부딪히면 이쯤에 빠져나간다(초)
 };
 let MG=null, mT=0, mHold=false;
 
@@ -61,7 +61,7 @@ function miniTick(dt){
   MG.shake=Math.max(0,MG.shake-dt*60);
   if(MG.brake>0) MG.brake=Math.max(0,MG.brake-dt);
   /* 시간이 갈수록 빨라지고, 부딪히면 뚝 떨어졌다 돌아온다 */
-  const ramp=1+ (MG.t/MINI.dur)*1.15;
+  const ramp=0.80+ Math.pow(MG.t/MINI.dur,1.25)*1.55;   // 처음엔 순하게
   const b=MG.brake>0 ? MINI.brake+(1-MINI.brake)*(1-MG.brake/MINI.brakeBack) : 1;
   MG.spd=ramp*b;
   MG.prog+=MG.spd*dt/MINI.clean;
@@ -87,35 +87,43 @@ function miniDraw(){
     ctx.restore();
   }
 }
-/* ── 위쪽 표시 — 남은 길과 남은 시간 ─────────────────── */
+/* ── 위쪽 표시 — 가운데 남은 길, 오른쪽 속도, 왼쪽 기력 ── */
 function miniHud(){
-  const y=120, w=VW-160;
-  ctx.save();
-  ctx.textAlign='left'; ctx.textBaseline='alphabetic';
-  ctx.font=`600 24px 'IBM Plex Sans KR',sans-serif`;
-  ctx.fillStyle='rgba(222,211,184,.75)';
-  ctx.fillText('남은 길',80,y-16);
-  ctx.fillStyle='rgba(255,255,255,.10)';
-  roundRect(80,y,w,14,7); ctx.fill();
-  ctx.fillStyle=C['--jade']; ctx.shadowColor=C['--jade']; ctx.shadowBlur=14;
-  roundRect(80,y,Math.max(6,w*Math.min(1,MG.prog)),14,7); ctx.fill();
-  ctx.shadowBlur=0;
   const urgent=MG.left<10;
-  ctx.textAlign='right';
-  ctx.font=`700 54px 'Gowun Batang',serif`;
+  ctx.save();
+  ctx.textBaseline='alphabetic';
+  const bw=420, bx=VW/2-bw/2, by=126;
+  ctx.textAlign='center';
+  ctx.font=`600 22px 'IBM Plex Sans KR',sans-serif`;
+  ctx.fillStyle='rgba(222,211,184,.7)';
+  ctx.fillText('남은 길',VW/2,by-46);
+  ctx.fillStyle='rgba(255,255,255,.10)'; roundRect(bx,by-30,bw,16,8); ctx.fill();
+  const left=Math.max(0,1-MG.prog);
+  ctx.fillStyle=C['--jade']; ctx.shadowColor=C['--jade']; ctx.shadowBlur=14;
+  roundRect(bx+bw*(1-left),by-30,Math.max(6,bw*left),16,8); ctx.fill();
+  ctx.shadowBlur=0;
+  ctx.font=`700 56px 'Gowun Batang',serif`;
   ctx.fillStyle=urgent?'#E2453A':C['--gold'];
   if(urgent){ ctx.shadowColor='#E2453A'; ctx.shadowBlur=18+10*Math.sin(MG.t*12); }
-  ctx.fillText(MG.left.toFixed(1),VW-80,y-10);
+  ctx.fillText(MG.left.toFixed(1),VW/2,by+44);
   ctx.shadowBlur=0;
+  ctx.textAlign='right';
   ctx.font=`600 20px 'IBM Plex Sans KR',sans-serif`;
   ctx.fillStyle='rgba(222,211,184,.55)';
-  ctx.fillText(`부딪힘 ${MG.hits}`,VW-80,y+34);
-  /* 기력 */
+  ctx.fillText('속도',VW-80,by-46);
+  ctx.font=`700 42px 'Gowun Batang',serif`;
+  ctx.fillStyle=MG.brake>0?'#E2453A':C['--paper'];
+  ctx.fillText('×'+MG.spd.toFixed(2),VW-80,by-6);
+  ctx.font=`600 19px 'IBM Plex Sans KR',sans-serif`;
+  ctx.fillStyle='rgba(222,211,184,.45)';
+  ctx.fillText(`부딪힘 ${MG.hits}`,VW-80,by+24);
   ctx.textAlign='left';
-  ctx.fillStyle='rgba(255,255,255,.10)'; roundRect(80,y+30,w*0.5,10,5); ctx.fill();
+  ctx.font=`600 20px 'IBM Plex Sans KR',sans-serif`;
+  ctx.fillStyle='rgba(222,211,184,.55)';
+  ctx.fillText('기력',80,by-46);
+  ctx.fillStyle='rgba(255,255,255,.10)'; roundRect(80,by-30,190,16,8); ctx.fill();
   ctx.fillStyle=S.energy<=20?'#E2453A':C['--paper'];
-  roundRect(80,y+30,Math.max(4,w*0.5*Math.max(0,S.energy/S.energyMax)),10,5); ctx.fill();
-  /* 그만둔다 */
+  roundRect(80,by-30,Math.max(5,190*Math.max(0,S.energy/S.energyMax)),16,8); ctx.fill();
   if(MG.t>10){
     ctx.globalAlpha=.55; ctx.textAlign='center';
     ctx.font=`600 22px 'IBM Plex Sans KR',sans-serif`;
@@ -125,20 +133,51 @@ function miniHud(){
     roundRect(VW/2-90,VH-92,180,46,10); ctx.stroke();
   }
   ctx.restore();
+  miniPad();
+}
+/* ── 미니게임 전용 조이스틱 ─────────────────────────── */
+function miniPad(){
+  if(MG.kind==='cave')return;
+  const hx=190, hy=VH-230, R=110;
+  const on=mStick.id!==null;
+  const cx=on?mStick.ox:hx, cy=on?mStick.oy:hy;
+  ctx.save();
+  ctx.globalAlpha=on?.55:.30;
+  ctx.strokeStyle=C['--paper']; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.arc(cx,cy,R,0,7); ctx.stroke();
+  ctx.globalAlpha=on?.9:.45;
+  ctx.fillStyle=C['--paper'];
+  const a=mAxis();
+  ctx.beginPath(); ctx.arc(cx+a.x*R, cy+(MG.kind==='fall'?a.y*R:0), 34,0,7); ctx.fill();
+  if(!on){
+    ctx.globalAlpha=.5; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.font=`600 20px 'IBM Plex Sans KR',sans-serif`;
+    ctx.fillStyle=C['--paper'];
+    ctx.fillText(MG.kind==='fall'?'끌어서 피한다':'끌어서 좌우',cx,cy+R+30);
+  }
+  if(MG.kind==='run'){
+    ctx.globalAlpha=.35; ctx.strokeStyle=C['--gold']; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.arc(VW-190,VH-230,96,0,7); ctx.stroke();
+    ctx.globalAlpha=.65; ctx.fillStyle=C['--gold'];
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.font=`700 30px 'Gowun Batang',serif`;
+    ctx.fillText('뛴다',VW-190,VH-230);
+  }
+  ctx.restore();
 }
 
 /* ══════════════════════════════════════════════════════════
    ① 동굴 비행 — 누르면 오르고 놓으면 떨어진다
    ══════════════════════════════════════════════════════════ */
 const CAVE={
-  px:VW*0.30, grav:2100, thrust:-3400, vmax:1500,
+  px:VW*0.30, grav:1250, thrust:-2050, vmax:820,   // 훨씬 무겁고 느리게
   step:46,                     // 지형 한 칸의 가로 폭
-  base:900, speed:520,         // 기본 흐름 속도(가로)
+  base:900, speed:395,         // 기본 흐름 속도(가로)
 };
 let cv2=null;
 function caveInit(){
   cv2={ y:VH*0.5, vy:0, ox:0, seg:[], rocks:[], pills:[], gates:[], guns:[], shots:[], ang:0, trail:[] };
-  let x=0, mid=VH*0.5, gap=620;
+  let x=0, mid=VH*0.5, gap=700;
   for(let i=0;i<60;i++){ cv2.seg.push(caveSeg(x,mid,gap)); x+=CAVE.step;
     mid+=(Math.random()-.5)*40; gap-=1; }
   cv2.nx=x;
@@ -150,7 +189,7 @@ function caveSeg(x,mid,gap){
 function caveGen(){
   const s=cv2.seg[cv2.seg.length-1];
   const p=MG.prog;
-  const gap=Math.max(230, 620-390*p);                 // 갈수록 좁아진다
+  const gap=Math.max(280, 700-420*p);                 // 갈수록 좁아진다
   const wob=(0.9+2.4*p);
   let mid=s.mid+(Math.random()-.5)*46*wob;
   cv2.seg.push(caveSeg(cv2.nx, mid, gap+(Math.random()-.5)*40));
@@ -189,7 +228,7 @@ function caveTick(dt){
   cv2.vy += (mHold?CAVE.thrust:CAVE.grav)*dt;
   cv2.vy = Math.max(-CAVE.vmax, Math.min(CAVE.vmax, cv2.vy));
   cv2.y += cv2.vy*dt;
-  cv2.ang = Math.max(-0.5,Math.min(0.5, cv2.vy/1600));
+  cv2.ang = Math.max(-0.5,Math.min(0.5, cv2.vy/1000));
   cv2.trail.push({x:CAVE.px, y:cv2.y}); if(cv2.trail.length>16) cv2.trail.shift();
   /* 벽 */
   const g=caveAt(CAVE.px);
@@ -348,6 +387,13 @@ function drawSeonbi(x,y,ang,blink){
 }
 
 /* ── 조작 — 미니게임일 때만 가로챈다 ─────────────────── */
+let mStick={id:null, ox:0, oy:0, x:0, y:0};
+const mAxis=()=>{
+  if(mStick.id===null) return {x:0,y:0};
+  const R=110;
+  return {x:Math.max(-1,Math.min(1,(mStick.x-mStick.ox)/R)),
+          y:Math.max(-1,Math.min(1,(mStick.y-mStick.oy)/R))};
+};
 (function(){
   const V=e=>{ const r=cv.getBoundingClientRect();
     return {x:(e.clientX-r.left)/r.width*VW, y:(e.clientY-r.top)/r.height*VH}; };
@@ -356,10 +402,17 @@ function drawSeonbi(x,y,ang,blink){
     e.stopPropagation();
     const p=V(e);
     if(MG.t>10 && Math.abs(p.x-VW/2)<100 && p.y>VH-100 && p.y<VH-40){ miniEnd('quit'); return; }
-    if(MG.kind==='run' && W3 && W3.onFloor){ W3.vy=T3.jump; W3.onFloor=false; vibe('charged'); }
-    mHold=true;
+    if(MG.kind==='cave'){ mHold=true; return; }
+    if(p.x<VW/2){ mStick.id=e.pointerId; mStick.ox=p.x; mStick.oy=p.y; mStick.x=p.x; mStick.y=p.y; }
+    else if(MG.kind==='run' && W3 && W3.onFloor){ W3.vy=T3.jump; W3.onFloor=false; vibe('charged'); }
   },true);
-  const up=e=>{ if(!MG||S.screen!=='mini')return; e.stopPropagation(); mHold=false; };
+  cv.addEventListener('pointermove',e=>{
+    if(!MG||S.screen!=='mini')return;
+    if(mStick.id===e.pointerId){ const p=V(e); mStick.x=p.x; mStick.y=p.y; e.stopPropagation(); }
+  },true);
+  const up=e=>{ if(!MG||S.screen!=='mini')return; e.stopPropagation();
+    if(mStick.id===e.pointerId) mStick.id=null;
+    mHold=false; };
   cv.addEventListener('pointerup',up,true);
   cv.addEventListener('pointercancel',up,true);
 })();
@@ -392,12 +445,15 @@ const T3={
   grav:3400, jump:-1500,
 };
 let W3=null;
-const p3=(x,y,z)=>{ const s=T3.F/Math.max(24,z);
-  return {x:VW/2+(x-W3.cx)*s, y:VH*0.52+(y-W3.cy)*s, s}; };
+const curZ=z=>W3.run ? Math.sin((z+W3.rolled)*0.0013+W3.seed)*T3.W*1.7
+                        + Math.sin((z+W3.rolled)*0.0004+W3.seed*2)*T3.W*1.1 : 0;
+const p3=(x,y,z)=>{ const s=T3.F/Math.max(24,z), off=curZ(z)-curZ(T3.ZC);
+  return {x:VW/2+(x+off-W3.cx)*s, y:VH*0.52+(y-W3.cy)*s, s}; };
 
 function t3Init(run){
   W3={ run, cx:0, cy:run?T3.W-70:0, vx:0, vy:0, onFloor:true,
-       z0:0, obs:[], nextZ:T3.FAR, ang:0, lean:0, jumpHeld:false };
+       z0:0, obs:[], nextZ:T3.FAR, ang:0, lean:0, jumpHeld:false,
+       seed:Math.random()*7, rolled:0 };
   for(let z=T3.ring; z<T3.FAR; z+=T3.ring) W3.obs.push({kind:'ring',z});
 }
 function t3Gen(){
@@ -411,6 +467,8 @@ function t3Gen(){
       if(Math.random()<0.45)
         W3.obs.push({kind:'wall', z, x:(Math.random()-.5)*T3.W*1.1,
                      w:70+Math.random()*90, h:T3.W*2, hit:false});   // 기둥 — 옆으로 피한다
+      else if(Math.random()<0.42)
+        W3.obs.push({kind:'pit', z, len:T3.ring*(0.7+0.6*p), hit:false});   // 길이 끊겼다
       else
         W3.obs.push({kind:'hurdle', z, x:(Math.random()-.5)*T3.W*0.9,
                      w:120+Math.random()*160, hh:70+Math.random()*60, hit:false}); // 턱 — 뛰어넘는다
@@ -437,7 +495,7 @@ function t3Gen(){
 function t3Tick(dt){
   const flow=T3.base*MG.spd;
   /* 움직임 */
-  const L=padVec(PAD_L,S.lx,S.ly,S.touchL!=null);
+  const L=mAxis();
   W3.cx=Math.max(-T3.W+40,Math.min(T3.W-40, W3.cx+L.x*T3.move*dt));
   W3.lean+=((L.x)-W3.lean)*Math.min(1,dt*9);
   if(W3.run){
@@ -467,6 +525,7 @@ function t3Tick(dt){
       }else if(t3Block(o)) miniHit();
     }
   }
+  W3.rolled+=flow*dt;                      // 길이 흘러간 만큼 곡선도 흐른다
   W3.nextZ-=flow*dt;                       // 먼 끝도 같이 다가온다
   let guard=0;
   while(W3.nextZ<=T3.FAR && guard++<12) t3Gen();   // 한 칸 지날 때마다 새로 깐다
@@ -485,6 +544,7 @@ function t3Block(o){
                      return Math.hypot(x,y) > r-R; }
     case 'wall':   return Math.abs(x-o.x)<o.w+R;
     case 'hurdle': return Math.abs(x-o.x)<o.w+R && (T3.W-70-y)<o.hh;
+    case 'pit':    return W3.onFloor;                     // 발이 땅에 있으면 빠진다
   }
   return false;
 }
@@ -558,6 +618,15 @@ function t3Draw(){
     }else if(o.kind==='wall'){
       const a=p3(o.x-o.w,-T3.W,o.z), b=p3(o.x+o.w,T3.W,o.z);
       ctx.fillRect(a.x,a.y,b.x-a.x,b.y-a.y); ctx.strokeRect(a.x,a.y,b.x-a.x,b.y-a.y);
+    }else if(o.kind==='pit'){
+      const a=p3(-T3.W,T3.W,o.z), b=p3(T3.W,T3.W,o.z);
+      const c=p3(-T3.W,T3.W,o.z+o.len), d=p3(T3.W,T3.W,o.z+o.len);
+      ctx.beginPath();
+      ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.lineTo(d.x,d.y); ctx.lineTo(c.x,c.y);
+      ctx.closePath();
+      ctx.fillStyle='rgba(0,0,0,.92)'; ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(d.x,d.y);
+      ctx.moveTo(b.x,b.y); ctx.lineTo(c.x,c.y); ctx.lineWidth=lw*0.6; ctx.stroke();
     }else if(o.kind==='hurdle'){
       const a=p3(o.x-o.w,T3.W-70-o.hh,o.z), b=p3(o.x+o.w,T3.W,o.z);
       ctx.fillRect(a.x,a.y,b.x-a.x,b.y-a.y); ctx.strokeRect(a.x,a.y,b.x-a.x,b.y-a.y);
@@ -570,50 +639,79 @@ function t3Draw(){
   if(W3.run) drawSeonbiBack(me.x, me.y, me.s, W3.lean, MG.inv>0, !W3.onFloor);
   else       drawSeonbiDown(me.x, me.y, me.s, W3.lean, MG.inv>0);
 }
-/* 뒤에서 본 선비 — 질주 */
+/* 뒤에서 본 선비 — 질주. 가늘고 길게 */
 function drawSeonbiBack(x,y,s,lean,blink,air){
-  const t=performance.now()/1000, K=s*1.5;
-  ctx.save(); ctx.translate(x,y); ctx.scale(K,K); ctx.rotate(lean*0.22);
+  const t=performance.now()/1000, K=s*0.62;
+  const run=Math.sin(t*15), run2=Math.sin(t*15+Math.PI);
+  ctx.save(); ctx.translate(x,y); ctx.scale(K,K); ctx.rotate(lean*0.26);
   if(blink) ctx.globalAlpha=.4+.35*Math.sin(t*40);
   const line='rgba(243,237,223,.95)';
   ctx.lineJoin='round'; ctx.lineCap='round';
-  const sw=air?0:Math.sin(t*13)*5;
-  ctx.strokeStyle='rgba(243,237,223,.5)'; ctx.lineWidth=3; ctx.shadowColor='#F3EDDF'; ctx.shadowBlur=10;
-  for(const sx of [-1,1]){                       // 옷자락
-    ctx.beginPath(); ctx.moveTo(sx*14,6);
-    ctx.quadraticCurveTo(sx*(26+Math.abs(sw)),26, sx*(18+sw),46);
+  ctx.shadowColor='#F3EDDF';
+
+  /* 길게 끌리는 도포 자락 — 뒤로 흐른다 */
+  ctx.strokeStyle='rgba(243,237,223,.42)'; ctx.lineWidth=3; ctx.shadowBlur=12;
+  for(let k=0;k<3;k++){
+    const sx=k===2?0:(k?1:-1), w=10+k*7;
+    ctx.beginPath(); ctx.moveTo(sx*9,4);
+    ctx.quadraticCurveTo(sx*(16+w), 30+Math.sin(t*11+k)*6, sx*(10+w*0.5), 62+k*8);
     ctx.stroke();
   }
-  ctx.strokeStyle=line; ctx.lineWidth=4; ctx.fillStyle='rgba(12,18,28,.92)';
-  ctx.beginPath();                                // 등
-  ctx.moveTo(-19,-12); ctx.quadraticCurveTo(0,-19,19,-12);
-  ctx.quadraticCurveTo(23,12,16,30); ctx.quadraticCurveTo(0,37,-16,30);
-  ctx.quadraticCurveTo(-23,12,-19,-12); ctx.closePath(); ctx.fill(); ctx.stroke();
-  ctx.strokeStyle='rgba(229,178,79,.9)'; ctx.lineWidth=3;
-  ctx.beginPath(); ctx.moveTo(-18,8); ctx.quadraticCurveTo(0,13,18,8); ctx.stroke();
+  /* 다리 — 달린다 */
+  ctx.strokeStyle=line; ctx.lineWidth=4.5; ctx.shadowBlur=8;
+  for(const [sx,ph] of [[-1,run],[1,run2]]){
+    const knee=air? -8 : ph*12;
+    ctx.beginPath(); ctx.moveTo(sx*5,18);
+    ctx.quadraticCurveTo(sx*8, 32+knee, sx*(6+ph*7), 48+(air?-10:0));
+    ctx.stroke();
+  }
+  /* 몸통 — 좁고 길게 */
+  ctx.strokeStyle=line; ctx.lineWidth=4; ctx.fillStyle='rgba(12,18,28,.94)';
+  ctx.shadowBlur=12;
+  ctx.beginPath();
+  ctx.moveTo(-12,-14);
+  ctx.quadraticCurveTo(0,-18,12,-14);          // 어깨 — 좁게
+  ctx.lineTo(9,20);                            // 허리까지 가늘게
+  ctx.quadraticCurveTo(0,24,-9,20);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  /* 허리띠 */
+  ctx.strokeStyle='rgba(229,178,79,.95)'; ctx.lineWidth=2.6;
+  ctx.beginPath(); ctx.moveTo(-10,6); ctx.quadraticCurveTo(0,9,10,6); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(2,8);
+  ctx.quadraticCurveTo(6,22+Math.sin(t*9)*4, 3,34); ctx.stroke();   // 띠 끝
+  /* 팔 */
   ctx.strokeStyle=line; ctx.lineWidth=4;
-  for(const sx of [-1,1]){                        // 팔
-    ctx.beginPath(); ctx.moveTo(sx*17,-6);
-    ctx.quadraticCurveTo(sx*30, air?-16:(6+sw*sx), sx*24, air?-30:(20+sw*sx));
+  for(const [sx,ph] of [[-1,run2],[1,run]]){
+    ctx.beginPath(); ctx.moveTo(sx*11,-9);
+    if(air) ctx.quadraticCurveTo(sx*22,-22, sx*18,-34);
+    else    ctx.quadraticCurveTo(sx*19,-2+ph*8, sx*13, 12+ph*10);
     ctx.stroke();
   }
-  ctx.fillStyle='#F3EDDF'; ctx.shadowBlur=14;
-  ctx.beginPath(); ctx.arc(0,-24,11,0,7); ctx.fill(); ctx.shadowBlur=10;
-  ctx.strokeStyle=line; ctx.fillStyle='rgba(8,14,22,.95)';
-  ctx.beginPath(); ctx.ellipse(0,-34,28,8,0,0,7); ctx.fill(); ctx.stroke();
-  ctx.beginPath(); ctx.rect(-10,-52,20,18); ctx.fill(); ctx.stroke();
-  ctx.beginPath(); ctx.ellipse(0,-52,10,3.4,0,0,7); ctx.stroke();
-  ctx.strokeStyle='rgba(229,178,79,.85)'; ctx.lineWidth=2.5;
+  /* 목과 머리 */
+  ctx.strokeStyle=line; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(0,-15); ctx.lineTo(0,-20); ctx.stroke();
+  ctx.fillStyle='#F3EDDF'; ctx.shadowBlur=16;
+  ctx.beginPath(); ctx.arc(0,-27,8.5,0,7); ctx.fill();
+  /* 갓 — 넓고 얇게 */
+  ctx.shadowBlur=13; ctx.strokeStyle=line; ctx.lineWidth=3.4;
+  ctx.fillStyle='rgba(8,14,22,.95)';
+  ctx.beginPath(); ctx.ellipse(0,-35,26,6.5,0,0,7); ctx.fill(); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-8,-35); ctx.lineTo(-7,-50); ctx.lineTo(7,-50); ctx.lineTo(8,-35);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(0,-50,7.2,2.6,0,0,7); ctx.stroke();
+  /* 갓끈 — 길게 흩날린다 */
+  ctx.strokeStyle='rgba(229,178,79,.85)'; ctx.lineWidth=2.2; ctx.shadowBlur=8;
   for(const sx of [-1,1]){
-    ctx.beginPath(); ctx.moveTo(sx*22,-32);
-    ctx.quadraticCurveTo(sx*30,-16+Math.sin(t*10+sx)*6, sx*24,0+Math.sin(t*8)*5);
+    ctx.beginPath(); ctx.moveTo(sx*20,-33);
+    ctx.quadraticCurveTo(sx*30,-14+Math.sin(t*12+sx)*8, sx*22, 8+Math.sin(t*9+sx)*7);
     ctx.stroke();
   }
   ctx.restore();
 }
 /* 위에서 내려다본 선비 — 낙하 */
 function drawSeonbiDown(x,y,s,lean,blink){
-  const t=performance.now()/1000, K=s*1.6;
+  const t=performance.now()/1000, K=s*0.80;
   ctx.save(); ctx.translate(x,y); ctx.scale(K,K);
   if(blink) ctx.globalAlpha=.4+.35*Math.sin(t*40);
   const line='rgba(243,237,223,.95)';
