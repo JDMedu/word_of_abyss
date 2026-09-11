@@ -3452,6 +3452,23 @@ function hitBoss(ball){
   burst(ball.x,ball.y,4,'gold');
   if(B.hp<=0)defeatBoss();
 }
+/* 구슬이 아닌 것(맴돌이·면모)이 보스를 칠 때 쓰는 문 */
+function hitBossFlat(dmg,x,y){
+  const B=S.boss; if(!B||B.ghost)return;
+  if(B.stun>0){ burst(x,y,3,'stone'); return; }
+  const open=B.vuln>0;
+  let cut=CONFIG.bossShieldCut;
+  if(B.rage>0) cut-=CONFIG.rageShieldCut;
+  if(B.open>0) cut=0;
+  let mul=open?CONFIG.bossVulnMul:(1-cut);
+  if(B.open>0) mul*=CONFIG.bossOpenMul;
+  if(B.small) mul*=2;
+  const dv=Math.max(1,Math.round(dmg*mul));
+  B.hp-=dv; B.hit=.14;
+  popNum(x,y-14,dv,open); burst(x,y,4,'gold');
+  if(B.hp<=0) defeatBoss();
+}
+const bossPct=p=>(S.boss?Math.max(1,Math.round((S.boss.maxHp||1)*p)):0);
 function reflect(ball,b){
   const cx=Math.max(b.x,Math.min(ball.x,b.x+b.w));
   const cy=Math.max(b.y,Math.min(ball.y,b.y+b.h));
@@ -4039,6 +4056,12 @@ function charTick(dt){
       const rr=free?o.r*2.9:o.r;
       o.x=S.px+Math.cos(o.a)*rr; o.y=S.py+Math.sin(o.a)*rr*.7;
       if(o.hitT>0) continue;
+      if(S.boss&&!S.boss.ghost&&o.x>S.boss.x-14&&o.x<S.boss.x+S.boss.w+14
+         &&o.y>S.boss.y-14&&o.y<S.boss.y+S.boss.h+14){
+        hitBossFlat(Math.max(1,Math.round((S.ballDamage||1)*CONFIG.orbMul*(free?4:1))),o.x,o.y);
+        o.hitT=free?0.18:0.35;
+        if(S.screen!=='play')return; continue;
+      }
       for(let i=S.bricks.length-1;i>=0;i--){
         const b=S.bricks[i]; if(!b||b.quiz)continue;
         if(o.x>b.x-14&&o.x<b.x+b.w+14&&o.y>b.y-14&&o.y<b.y+b.h+14){
@@ -10260,6 +10283,7 @@ function acFire(id){
     for(const b of S.bricks){ if(!b||b.quiz||isSolid(b))continue;
       b.bleedN=(b.bleedN||0)+5; b.poiN=(b.poiN||0)+5;
       b.bleedT=Math.max(b.bleedT||0,8); b.poiT=Math.max(b.poiT||0,8); }
+    if(S.boss) hitBossFlat(bossPct(0.10), S.boss.x+S.boss.w/2, S.boss.y+S.boss.h/2);
   }else if(id==='yuchungryeol'){                     // 장성검 · 십자
     const ys=S.bricks.filter(b=>b&&!b.quiz).map(b=>b.y+b.h/2).sort((a,b)=>a-b);
     const cy=ys.length?ys[Math.floor(ys.length/2)]:(CEIL_Y+DANGER_Y)/2;
@@ -10295,7 +10319,11 @@ function ac6Tick(dt){
       }
     }
     if(cl.t<=0){
-      for(const c of cl.list){ bodyBoom(c.x,c.y,2); if(S.screen!=='play')break; }
+      for(const c of cl.list){
+        bodyBoom(c.x,c.y,2);
+        if(S.boss) hitBossFlat(bossPct(0.015), c.x, c.y);
+        if(S.screen!=='play')break;
+      }
       S.clones=null;
     }
   }
@@ -10310,6 +10338,9 @@ function ac6Tick(dt){
         chip(b, Math.max(1,Math.ceil((b.maxHp||b.hp)*0.9)), 'gold');
         if(S.screen!=='play')return;
       }
+      if(S.boss&&S.boss.x<t.x1&&S.boss.x+S.boss.w>t.x0)
+        hitBossFlat(bossPct(0.08), Math.max(t.x0,Math.min(t.x1,S.boss.x+S.boss.w/2)),
+                                   S.boss.y+S.boss.h/2);
       S.shake=Math.max(S.shake,18);
     }
     if(t.t<=0) S.baton=null;
@@ -10326,6 +10357,10 @@ function ac6Tick(dt){
           breakBrick(b); if(S.screen!=='play')return;
         }
       }
+      const B=S.boss;
+      if(B&&(Math.abs(B.x+B.w/2-x.cx)<=x.hw+B.w/2
+            ||Math.abs(B.y+B.h/2-x.cy)<=x.hh+B.h/2))
+        hitBossFlat(bossPct(0.15), x.cx, B.y+B.h/2);
       S.shake=Math.max(S.shake,22);
     }
     if(x.t<=0) S.cross=null;
@@ -10390,6 +10425,9 @@ function acTick(dt){
   b.next-=dt;
   if(b.next<=0){
     b.next=0.2; b.left--;
+    if(S.boss&&!S.boss.ghost)
+      hitBossFlat(bossPct(0.02), S.boss.x+S.boss.w*(0.2+Math.random()*0.6),
+                                 S.boss.y+S.boss.h*0.5);
     const t=S.bricks.filter(x=>x&&!x.quiz&&!isSolid(x));
     if(t.length){
       const q=t[Math.floor(Math.random()*t.length)];
@@ -10447,8 +10485,8 @@ function drawActive(){
 
 const _update2=update;
 update=function(dt){ if(S&&S.screen==='play') acTick(dt); return _update2(dt); };
-const _chip2=chip;
-chip=function(b,amt,col){ return _chip2(b,(S&&S.acBuff>0)?amt*2:amt,col); };
+const _dmgOf=dmgOf;                          // 막걸리 — 구슬 위력만 두 배 (보스도)
+dmgOf=function(ball){ return _dmgOf(ball)*((S&&S.acBuff>0)?2:1); };
 const _breakBrick2=breakBrick;
 breakBrick=function(b,ball){
   if(b&&!b.quiz&&!isSolid(b)&&S&&p3On(META.char)&&(S.ac||0)<AC_NEED) S.ac=(S.ac||0)+1;
@@ -10708,7 +10746,7 @@ function drawBossFall(){
 const _draw=draw;
 draw=function(){ _draw(); drawBossFall(); };
 
-const BUILD='c62';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c63';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
