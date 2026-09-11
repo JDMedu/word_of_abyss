@@ -75,7 +75,7 @@ function miniDraw(){
   if(MG.shake>0){ const s=MG.shake;
     ctx.translate((Math.random()-.5)*s,(Math.random()-.5)*s); }
   ctx.fillStyle='#05080F'; ctx.fillRect(-60,-60,VW+120,VH+120);
-  if(MG.kind==='cave') caveDraw(); else t3Draw();
+  if(MG.kind==='cave') caveDraw(); else if(MG.kind==='run') roadDraw(); else t3Draw();
   ctx.restore();
   miniHud();
   if(MG.fx>0){                                   // 부딪힌 순간 테두리가 붉게
@@ -251,7 +251,7 @@ function caveTick(dt){
   for(let i=cv2.pills.length-1;i>=0;i--){
     const q=cv2.pills[i];
     if(q.x<cv2.ox-80){ cv2.pills.splice(i,1); continue; }
-    q.ph+=dt*1.7;
+    q.ph+=dt*0.90;
     const sx=q.x-cv2.ox, cy=q.y+Math.sin(q.ph)*q.sw;
     if(Math.abs(sx-CAVE.px)<22+14 && Math.abs(cy-cv2.y)<q.h/2+22) miniHit();
   }
@@ -465,12 +465,12 @@ const CAVE_CH=[
  }},
  {name:'문의 방', seg:40, min:0.12, step(i,st,p){
     st.gap=Math.max(430,620-120*p); st.mid+=(VH*0.5-st.mid)*0.2;
-    if(i===3||i===9||i===15) cvGate(st.x, Math.max(210,330-110*p), 1.5+1.2*p, i*0.7);
+    if(i===3||i===9||i===15) cvGate(st.x, Math.max(210,330-110*p), 0.80+0.45*p, i*0.7);
  }},
  {name:'포대', seg:40, min:0.18, step(i,st,p){
     st.gap=Math.max(400,560-100*p); st.mid+=(VH*0.5-st.mid)*0.2;
-    if(i===2||i===8||i===14) cvGun(st.x, true,  0.2, 1.3-0.4*p);
-    if(i===5||i===11||i===17) cvGun(st.x, false, 0.6, 1.3-0.4*p);
+    if(i===2||i===8||i===14) cvGun(st.x, true,  0.2, 2.0-0.4*p);
+    if(i===5||i===11||i===17) cvGun(st.x, false, 0.6, 2.0-0.4*p);
  }},
  {name:'돌밭', seg:36, min:0.10, step(i,st,p){
     st.gap=Math.max(430,620-120*p); st.mid+=(Math.random()-.5)*18;
@@ -507,14 +507,14 @@ const CH3={
              [{kind:'plate',hx:0,hy:0,hr}]];
   }},
   {name:'가위', min:0.08, rows:p=>{
-     const w=34+22*p;
-     return [[{kind:'bar',vert:false,o:0,w,sp:1.1+0.9*p}],[],
-             [{kind:'bar',vert:true, o:0,w,sp:-(1.1+0.9*p)}],[],
-             [{kind:'bar',vert:false,o:0,w,sp:1.4+0.9*p},
-              {kind:'bar',vert:true, o:0,w,sp:-(1.4+0.9*p)}]];
+     const w=34+22*p, v=0.58+0.36*p;
+     return [[{kind:'bar',vert:false,o:0,w,sp:v}],[],
+             [{kind:'bar',vert:true, o:0,w,sp:-v}],[],
+             [{kind:'bar',vert:false,o:0,w,sp:v*1.15},
+              {kind:'bar',vert:true, o:0,w,sp:-v*1.15}]];
   }},
   {name:'회전실', min:0.15, rows:p=>{
-     const arm=26+16*p, sp=0.9+1.1*p;
+     const arm=26+16*p, sp=0.46+0.46*p;
      return [[{kind:'cross',a:0,       arm,sp}],[],
              [{kind:'cross',a:Math.PI/6,arm,sp:-sp}],[],
              [{kind:'cross',a:Math.PI/3,arm,sp}]];
@@ -537,9 +537,9 @@ const CH3={
      const hr=Math.max(125,200-60*p);
      const hx=(R()-.5)*T3.W*0.7, hy=(R()-.5)*T3.W*0.7;
      return [[{kind:'plate',hx,hy,hr}],
-             [{kind:'cross',a:R()*7,arm:20+12*p,sp:1.8}],
+             [{kind:'cross',a:R()*7,arm:20+12*p,sp:0.95}],
              [{kind:'plate',hx,hy,hr}],
-             [{kind:'bar',vert:R()<.5,o:0,w:28+18*p,sp:2.2}],
+             [{kind:'bar',vert:R()<.5,o:0,w:28+18*p,sp:1.05}],
              [{kind:'plate',hx,hy,hr}]];
   }},
  ],
@@ -618,7 +618,7 @@ const T3={
   ring:170,         // 사각 테 간격
   base:820,         // 기본 다가오는 속도
   move:760,         // 좌우(상하) 움직임 속도
-  grav:3400, jump:-1500,
+  grav:7000, jump:-1900,   // 한 번 뛰면 세 칸 남짓 — 스카이로드처럼 딱딱하게
   road:185,         // 띠 반폭 — 이 밖으로 나가면 허공이다
 };
 /* 스카이로드의 타일 — 색마다 성질이 다르다 */
@@ -630,8 +630,7 @@ const TILE={
   give :{c:'#F3EDDF', n:'보급'},
 };
 let W3=null;
-const curZ=z=>W3.run ? Math.sin((z+W3.rolled)*0.0013+W3.seed)*T3.W*1.7
-                        + Math.sin((z+W3.rolled)*0.0004+W3.seed*2)*T3.W*1.1 : 0;
+const curZ=z=>0;                       // 스카이로드는 곧게 뻗는다
 const p3=(x,y,z)=>{ const s=T3.F/Math.max(24,z), off=curZ(z)-curZ(T3.ZC);
   return {x:VW/2+(x+off-W3.cx)*s, y:VH*0.52+(y-W3.cy)*s, s}; };
 
@@ -640,8 +639,9 @@ function t3Init(run){
        z0:0, obs:[], nextZ:T3.FAR, ang:0, lean:0, jumpHeld:false,
        seed:Math.random()*7, rolled:0, rest:0,
        chQ:[], chRest:0, restAfter:3, used:{}, chName:'', slot:0,
-       slipT:0, boostT:0, slowT:0, drift:0 };
-  for(let z=T3.ring; z<T3.FAR; z+=T3.ring) W3.obs.push({kind:'ring',z});
+       slipT:0, boostT:0, slowT:0, drift:0, rowQ:[], restLeft:0 };
+  if(run){ W3.nextZ=T3.ring; while(W3.nextZ<T3.FAR) roadGen(); }
+  else for(let z=T3.ring; z<T3.FAR; z+=T3.ring) W3.obs.push({kind:'ring',z});
 }
 function pick3Chunk(){
   const p=MG.prog, pool=CH3[W3.run?'run':'fall']
@@ -678,26 +678,18 @@ function t3Tick(dt){
   const L=mAxis();
   const steer=(W3.run&&W3.slipT>0)?0:L.x;             // 미끄럼 — 조향이 안 먹는다
   if(W3.run&&W3.slipT>0) W3.drift=W3.drift||0; else W3.drift=steer;
-  const lim=W3.run?T3.road+70:T3.W-40;
+  const lim=W3.run?LANEW*LANES/2+30:T3.W-40;
   W3.cx=Math.max(-lim,Math.min(lim, W3.cx+(W3.run?W3.drift:steer)*T3.move*dt));
   W3.lean+=((L.x)-W3.lean)*Math.min(1,dt*9);
-  if(W3.run){
-    W3.vy+=T3.grav*dt; W3.cy+=W3.vy*dt;
-    const floor=T3.W-70;
-    if(W3.cy>=floor){ W3.cy=floor; W3.vy=0; W3.onFloor=true; }
-    else W3.onFloor=false;
-  }else{
+  if(!W3.run){
     W3.cy=Math.max(-T3.W+40,Math.min(T3.W-40, W3.cy+L.y*T3.move*dt));
   }
   W3.ang+=dt;
-  if(W3.run){
+  if(W3.run){ roadTick(dt); }
+  if(false){
     if(W3.slipT>0) W3.slipT=Math.max(0,W3.slipT-dt);
     if(W3.boostT>0) W3.boostT=Math.max(0,W3.boostT-dt);
     if(W3.slowT>0) W3.slowT=Math.max(0,W3.slowT-dt);
-    if(Math.abs(W3.cx)>T3.road-26 && W3.onFloor){     // 띠 밖 — 허공이다
-      miniHit();
-      W3.cx=Math.max(-T3.road+60,Math.min(T3.road-60,W3.cx*0.4));
-    }
   }
   /* 다가온다 */
   for(let i=W3.obs.length-1;i>=0;i--){
@@ -706,7 +698,7 @@ function t3Tick(dt){
     if(o.z<-120){ W3.obs.splice(i,1); continue; }
     if(o.kind==='bar')   o.o=Math.sin(W3.ang*o.sp)*T3.W*0.62;
     if(o.kind==='cross') o.a+=o.sp*dt;
-    if(o.kind==='iris')  o.ph+=dt*1.9;
+    if(o.kind==='iris')  o.ph+=dt*1.00;
     if(!o.hit && o.z<=T3.ZC && o.z>T3.ZC-flow*dt-10){
       o.hit=true;
       if(o.kind==='gem'){
@@ -720,7 +712,7 @@ function t3Tick(dt){
   W3.rolled+=flow*dt;                      // 길이 흘러간 만큼 곡선도 흐른다
   W3.nextZ-=flow*dt;                       // 먼 끝도 같이 다가온다
   let guard=0;
-  while(W3.nextZ<=T3.FAR && guard++<12) t3Gen();   // 한 칸 지날 때마다 새로 깐다
+  while(W3.nextZ<=T3.FAR && guard++<14){ W3.run?roadGen():t3Gen(); }
 }
 function t3Block(o){
   const x=W3.cx, y=W3.cy, R=46;
@@ -1002,20 +994,143 @@ function drawSeonbiDown(x,y,s,lean,blink){
   ctx.restore();
 }
 
-/* ── 동굴의 움직이는 기믹 — 문과 포 ─────────────────── */
-function caveGimmick(){
-  const g=cv2.seg[cv2.seg.length-1], p=MG.prog;
-  /* 여닫는 문 — 위아래에서 뻗어 나와 길을 막았다 연다 */
-  if(p>0.18 && Math.random()<0.018+0.026*p){
-    cv2.gates.push({x:g.x, ph:Math.random()*7, sp:1.5+1.3*p,
-                    open:Math.max(150,300-150*p)});
+/* ══════════════════════════════════════════════════════════
+   질주 — 스카이로드. 한 줄이 일곱 칸인 격자. 곡선 없이 곧게 뻗는다
+     .  허공     #  보통     =  반 블록   X  전체 블록
+     >  빠름     ~  끈적     /  미끄럼    !  불      +  보급
+   ══════════════════════════════════════════════════════════ */
+const LANES=7, LANEW=78, BLKH=88;
+const laneX=i=>(i-(LANES-1)/2)*LANEW;
+const laneOf=x=>Math.max(0,Math.min(LANES-1,Math.round(x/LANEW+(LANES-1)/2)));
+const CELL={ '#':{h:0,tt:null}, '=':{h:1,tt:null}, 'X':{h:2,tt:null},
+             '>':{h:0,tt:'boost'}, '~':{h:0,tt:'slow'}, '/':{h:0,tt:'slip'},
+             '!':{h:0,tt:'burn'},  '+':{h:0,tt:'give'} };
+const rowOf=str=>str.split('').map(c=>CELL[c]||null);
+
+const ROAD_CH=[
+ {name:'쉼', min:0, rest:true, rows:()=>['##+####','#######','#######']},
+ {name:'세 갈래', min:0.0, rows:()=>[
+   '#######','##.#.##','#..#..#','#..#..#','#..#..#','##.#.##','#######']},
+ {name:'한쪽으로', min:0.0, rows:()=>{const s=Math.random()<.5;
+   return s?['#######','####...','###....','##.....','##....+','###....','#######']
+           :['#######','...####','....###','.....##','+....##','....###','#######'];}},
+ {name:'벽 넘기', min:0.05, rows:()=>[
+   '#######','###X###','#######','##X#X##','#######','#X###X#','#######']},
+ {name:'징검다리', min:0.10, rows:()=>[
+   '#######','..###..','.......','..###..','.......','..###..','#######']},
+ {name:'계단', min:0.12, rows:()=>[
+   '#######','###=###','###X###','###X###','###=###','#######','#######']},
+ {name:'불길', min:0.16, rows:()=>[
+   '#######','##!!!##','#!...!#','#.....#','#!...!#','##!!!##','#######']},
+ {name:'좁은 길', min:0.20, rows:()=>{const s=Math.random()<.5;
+   return s?['#######','..####.','...###.','....##.','...>##.','...###.','#######']
+           :['#######','.####..','.###...','.##....','.##>...','.###...','#######'];}},
+ {name:'엇갈림', min:0.24, rows:()=>[
+   '#######','X.X.X.X','#######','.X.X.X.','#######','X.X.X.X','#######']},
+ {name:'미끄럼', min:0.30, rows:()=>[
+   '#######','///////','///////','//...//','///////','###X###','#######']},
+ {name:'좁은 다리', min:0.34, rows:()=>[
+   '#######','..###..','...#...','...#...','...+...','...#...','..###..','#######']},
+ {name:'다섯 벽', min:0.40, rows:()=>[
+   '#######','##XXX##','#######','##XXX##','#######','##XXX##','#######']},
+ {name:'낭떠러지', min:0.48, rows:()=>[
+   '#######','###>###','.......','.......','###.###','.......','###+###','#######']},
+ {name:'지옥', min:0.55, rows:()=>[
+   '#######','!#...#!','.#.X.#.','!#...#!','..X.X..','!#...#!','###+###','#######']},
+];
+
+function pickRoadChunk(){
+  const p=MG.prog;
+  if(W3.restLeft>0){ W3.restLeft--; W3.rowQ=ROAD_CH[0].rows().slice(); return; }
+  const pool=ROAD_CH.filter(c=>!c.rest && p>=c.min && (W3.used[c.name]||0)<2);
+  if(!pool.length){ W3.rowQ=ROAD_CH[0].rows().slice(); return; }
+  const c=pool[Math.floor(Math.random()*pool.length)];
+  W3.used[c.name]=(W3.used[c.name]||0)+1;
+  W3.rowQ=c.rows(p).slice();
+  W3.restLeft=(p<0.4?2:1);
+  W3.chName=c.name;
+}
+function roadGen(){
+  if(!W3.rowQ||!W3.rowQ.length) pickRoadChunk();
+  const str=W3.rowQ.shift();
+  W3.obs.push({kind:'row', z:W3.nextZ, cells:rowOf(str), safe:(W3.restLeft>0), hit:false});
+  W3.nextZ+=T3.ring;
+}
+/* 발밑이 어떤 칸인가 */
+function roadCellAt(z){
+  let best=null, bd=1e9;
+  for(const o of W3.obs){ if(o.kind!=='row')continue;
+    const d=Math.abs(o.z-z); if(d<bd){ bd=d; best=o; } }
+  return best;
+}
+function roadTick(dt){
+  const row=roadCellAt(T3.ZC); if(!row)return;
+  const li=laneOf(W3.cx), cell=row.cells[li];
+  const topY = cell ? T3.W-cell.h*BLKH : T3.W+900;     // 없으면 바닥이 없다
+  /* 블록에 정면으로 부딪혔나 */
+  if(!row.hit && cell && cell.h>0 && W3.cy > topY+26){
+    row.hit=true; miniHit();
+    W3.cy=topY; W3.vy=0; W3.onFloor=true;
   }
-  /* 벽에 붙은 포 — 때맞춰 탄을 뱉는다 */
-  if(p>0.28 && Math.random()<0.014+0.022*p){
-    const up=Math.random()<.5;
-    cv2.guns.push({x:g.x, up, t:Math.random()*1.4, cd:1.5-0.6*p});
+  if(!row.hit && cell && cell.tt){
+    row.hit=true;
+    if(cell.tt==='burn'){ miniHit(); }
+    else if(cell.tt==='give'){ S.energy=Math.min(S.energyMax,S.energy+MINI.heal); vibe('right'); }
+    else if(cell.tt==='boost') W3.boostT=1.6;
+    else if(cell.tt==='slow')  W3.slowT=1.4;
+    else if(cell.tt==='slip')  W3.slipT=1.6;
+  }
+  /* 떨어짐 */
+  W3.vy+=T3.grav*dt; W3.cy+=W3.vy*dt;
+  if(W3.cy>=topY){ W3.cy=topY; W3.vy=0; W3.onFloor=true; }
+  else W3.onFloor=false;
+  if(W3.cy>T3.W+520){                                  // 허공으로 떨어졌다
+    miniHit();
+    W3.cx=0; W3.cy=T3.W-200; W3.vy=0;
   }
 }
+function roadDraw(){
+  if(!W3.stars){ W3.stars=[]; for(let i=0;i<80;i++)
+    W3.stars.push({x:Math.random()*VW, y:CEIL_Y+Math.random()*(VH-CEIL_Y-260),
+                   r:Math.random()*2.2+0.6, a:0.2+Math.random()*0.5}); }
+  ctx.save();
+  ctx.fillStyle='#F3EDDF';
+  for(const st of W3.stars){ ctx.globalAlpha=st.a*0.5;
+    ctx.beginPath(); ctx.arc(st.x,st.y,st.r,0,7); ctx.fill(); }
+  ctx.globalAlpha=1;
+  const rows=W3.obs.filter(o=>o.kind==='row'&&o.z>30).sort((a,b)=>b.z-a.z);
+  for(const r of rows){
+    const fade=Math.max(0,Math.min(1,(T3.FAR-r.z)/T3.FAR*1.7));
+    for(let i=0;i<LANES;i++){
+      const c=r.cells[i]; if(!c)continue;
+      const d=c.tt?TILE[c.tt]:null;
+      const col=d?d.c:(r.safe?'#F3EDDF':C['--jade']);
+      const x0=laneX(i)-LANEW/2, x1=laneX(i)+LANEW/2;
+      const y=T3.W-c.h*BLKH;
+      const a=p3(x0,y,r.z), b=p3(x1,y,r.z);
+      const e=p3(x0,y,r.z+T3.ring), f=p3(x1,y,r.z+T3.ring);
+      ctx.globalAlpha=fade*(c.h?0.95:0.8);
+      ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
+      ctx.lineTo(f.x,f.y); ctx.lineTo(e.x,e.y); ctx.closePath();
+      ctx.fillStyle=col+(c.h?'66':'33'); ctx.fill();
+      ctx.strokeStyle=col; ctx.shadowColor=col; ctx.shadowBlur=c.tt?15:8;
+      ctx.lineWidth=Math.max(1,2.6*T3.F/r.z); ctx.stroke();
+      if(c.h>0){                                       // 블록 앞면
+        const g=p3(x0,T3.W,r.z), h2=p3(x1,T3.W,r.z);
+        ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
+        ctx.lineTo(h2.x,h2.y); ctx.lineTo(g.x,g.y); ctx.closePath();
+        ctx.fillStyle='rgba(10,16,26,.92)'; ctx.fill(); ctx.stroke();
+      }
+      ctx.shadowBlur=0;
+    }
+  }
+  ctx.restore();
+  const me=p3(W3.cx,W3.cy,T3.ZC);
+  drawSeonbiBack(me.x, me.y, me.s, W3.lean, MG.inv>0, !W3.onFloor);
+}
+
+/* ── 동굴의 움직이는 기믹 — 문과 포 ─────────────────── */
+/* caveGimmick 은 덩이가 대신한다 */
 function caveGimTick(dt){
   const flow=CAVE.speed*MG.spd;
   for(let i=cv2.gates.length-1;i>=0;i--){
@@ -1039,7 +1154,7 @@ function caveGimTick(dt){
       q.t=q.cd;
       const g=caveAt(q.x-cv2.ox);
       cv2.shots.push({x:sx, y:q.up?g.top+14:g.bot-14,
-                      vy:(q.up?1:-1)*(280+220*MG.prog), vx:-60, r:11});
+                      vy:(q.up?1:-1)*(170+105*MG.prog), vx:-45, r:11});
     }
   }
   for(let i=cv2.shots.length-1;i>=0;i--){
