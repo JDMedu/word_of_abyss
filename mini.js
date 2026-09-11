@@ -3,14 +3,14 @@
    본 게임과 떼어 둔다. 이 파일이 없거나 깨져도 본 게임은 돈다.
    ══════════════════════════════════════════════════════════ */
 const MINI={
-  dur:40,            // 카운트다운(초)
+  dur:32,            // 카운트다운(초)
   hitCost:5,         // 부딪히면 깎이는 기력
   brake:0.40,        // 부딪히면 속도가 이만큼으로 떨어진다
   brakeBack:3.0,     // 원래 속도로 돌아오는 데 걸리는 시간
   hitTime:0,         // 쓰지 않는다 — 벌은 느려짐과 기력뿐
   invuln:0.9,        // 부딪힌 뒤 잠깐 무적
   heal:8,            // 옥빛 구슬이 돌려주는 기력
-  clean:38.6,   // 한 번도 안 부딪히면 30초쯤에 빠져나간다          // 한 번도 안 부딪히면 이쯤에 빠져나간다(초)
+  clean:30.7,   // 한 번도 안 부딪히면 24초쯤에 빠져나간다          // 한 번도 안 부딪히면 이쯤에 빠져나간다(초)
 };
 let MG=null, mT=0, mHold=false;
 
@@ -216,7 +216,9 @@ function caveGen(){
   cv2.nx+=CAVE.step;
 }
 function caveAt(x){                                   // 그 자리의 위아래 벽
-  const i=Math.floor((x+cv2.ox)/CAVE.step);
+  /* 앞에서부터 떨궈 내므로 seg[0] 이 세상 0 이 아니다. 첫 칸을 기준으로 센다 */
+  if(!cv2.seg.length) return {x:0,top:CEIL_Y,bot:VH,mid:VH/2,gap:VH};
+  const i=Math.round((x+cv2.ox-cv2.seg[0].x)/CAVE.step);
   return cv2.seg[Math.max(0,Math.min(cv2.seg.length-1,i))];
 }
 function caveTick(dt){
@@ -436,7 +438,7 @@ const mAxis=()=>{
    덩이 — 낱개를 굴리지 않고 4~8초짜리 「한 가지 생각」을 이어 붙인다
    소개 → 비틀기 → 겹치기 → 마지막. 사이에는 반드시 쉼표를 둔다
    ══════════════════════════════════════════════════════════ */
-const restAfter = p => (p<0.35?3 : p<0.70?2 : 1);
+const restAfter = p => (p<0.35?3 : 2);
 
 /* ── 동굴 덩이 일곱 ─────────────────────────────────── */
 const cvRock=(x,y,r)=>cv2.rocks.push({x,y,r,a:Math.random()*7,sp:(Math.random()-.5)*1.6});
@@ -542,39 +544,63 @@ const CH3={
   }},
  ],
  run:[
-  {name:'쉼', min:0, rest:true, rows:p=>[[],[],[{kind:'gem',x:(R()-.5)*T3.W*0.9,y:T3.W-110}]]},
+  {name:'쉼', min:0, rest:true, rows:p=>[[],
+     [{kind:'tile',tt:'give',x:0,w:70,len:T3.ring*0.8}],[]]},
   {name:'계단', min:0.0, rows:p=>{
-     const x=(R()-.5)*T3.W*0.5;
-     return [[{kind:'hurdle',x,w:90,hh:50}],[],
-             [{kind:'hurdle',x,w:90,hh:62}],[],
-             [{kind:'hurdle',x,w:90,hh:74}]];
+     const x=(R()-.5)*T3.road*0.5;
+     return [[{kind:'hurdle',x,w:80,hh:50}],[],
+             [{kind:'hurdle',x,w:80,hh:62}],[],
+             [{kind:'hurdle',x,w:80,hh:74}]];
   }},
   {name:'갈림길', min:0.05, rows:p=>[
-     [{kind:'wall',x:0,w:60+26*p,h:T3.W*2}],[],
-     [{kind:'wall',x:0,w:60+26*p,h:T3.W*2}],[],
-     [{kind:'wall',x:S1()*T3.W*0.45,w:55+22*p,h:T3.W*2}]],
+     [{kind:'wall',x:0,w:54+22*p,h:T3.W*2}],[],
+     [{kind:'wall',x:0,w:54+22*p,h:T3.W*2},
+      {kind:'tile',tt:'boost',x:S1()*T3.road*0.6,w:60,len:T3.ring}],[],
+     [{kind:'wall',x:S1()*T3.road*0.5,w:50+20*p,h:T3.W*2}]],
   },
   {name:'끊긴 다리', min:0.12, rows:p=>[
      [{kind:'pit',len:T3.ring*0.55}],[],
      [{kind:'pit',len:T3.ring*(0.6+0.3*p)}],[],
      [{kind:'pit',len:T3.ring*(0.6+0.3*p)},{kind:'gem',x:0,y:T3.W-150}]],
   },
+  {name:'좁은 띠', min:0.15, rows:p=>{
+     const s=S1(), w=T3.road*0.52;
+     return [[{kind:'pit',x:s*T3.road*0.62,w,len:T3.ring}],
+             [{kind:'pit',x:s*T3.road*0.62,w,len:T3.ring}],
+             [{kind:'pit',x:s*T3.road*0.62,w,len:T3.ring},
+              {kind:'tile',tt:'give',x:-s*T3.road*0.5,w:56,len:T3.ring}],
+             [{kind:'pit',x:s*T3.road*0.62,w,len:T3.ring}],[]];
+  }},
+  {name:'불길', min:0.20, rows:p=>{
+     const s=S1();
+     return [[{kind:'tile',tt:'burn',x:s*T3.road*0.55,w:80,len:T3.ring*1.2}],[],
+             [{kind:'tile',tt:'burn',x:-s*T3.road*0.55,w:80,len:T3.ring*1.2}],[],
+             [{kind:'tile',tt:'burn',x:0,w:70,len:T3.ring},
+              {kind:'tile',tt:'boost',x:s*T3.road*0.7,w:56,len:T3.ring}]];
+  }},
   {name:'굽이', min:0.18, rows:p=>{
      const s=S1();
-     return [[{kind:'wall',x:s*T3.W*0.70,w:52+24*p,h:T3.W*2}],
-             [{kind:'wall',x:s*T3.W*0.62,w:52+24*p,h:T3.W*2}],[],
-             [{kind:'wall',x:s*T3.W*0.54,w:52+24*p,h:T3.W*2}],
-             [{kind:'gem',x:-s*T3.W*0.5,y:T3.W-110}]];
+     return [[{kind:'wall',x:s*T3.road*0.75,w:48+20*p,h:T3.W*2}],
+             [{kind:'wall',x:s*T3.road*0.66,w:48+20*p,h:T3.W*2}],[],
+             [{kind:'wall',x:s*T3.road*0.58,w:48+20*p,h:T3.W*2}],
+             [{kind:'gem',x:-s*T3.road*0.5,y:T3.W-110}]];
   }},
   {name:'지그재그', min:0.25, rows:p=>{
-     const s=S1(), w=50+24*p;
-     return [[{kind:'wall',x: s*T3.W*0.5,w,h:T3.W*2}],[],
-             [{kind:'wall',x:-s*T3.W*0.5,w,h:T3.W*2}],[],
-             [{kind:'wall',x: s*T3.W*0.5,w,h:T3.W*2}]];
+     const s=S1(), w=46+22*p;
+     return [[{kind:'wall',x: s*T3.road*0.5,w,h:T3.W*2}],[],
+             [{kind:'wall',x:-s*T3.road*0.5,w,h:T3.W*2}],[],
+             [{kind:'wall',x: s*T3.road*0.5,w,h:T3.W*2}]];
+  }},
+  {name:'미끄럼', min:0.35, rows:p=>{
+     const s=S1();
+     return [[{kind:'tile',tt:'slip',x:0,w:T3.road,len:T3.ring*2.2}],[],
+             [{kind:'wall',x:s*T3.road*0.55,w:50,h:T3.W*2}],[],
+             [{kind:'pit',len:T3.ring*0.7}]];
   }},
   {name:'낭떠러지', min:0.50, rows:p=>[
-     [{kind:'hurdle',x:0,w:110,hh:56}],[],
+     [{kind:'hurdle',x:0,w:100,hh:56}],[],
      [{kind:'pit',len:T3.ring*1.3}],[],[],
+     [{kind:'tile',tt:'boost',x:0,w:80,len:T3.ring}],
      [{kind:'pit',len:T3.ring*1.5}]],
   },
  ]
@@ -593,6 +619,15 @@ const T3={
   base:820,         // 기본 다가오는 속도
   move:760,         // 좌우(상하) 움직임 속도
   grav:3400, jump:-1500,
+  road:185,         // 띠 반폭 — 이 밖으로 나가면 허공이다
+};
+/* 스카이로드의 타일 — 색마다 성질이 다르다 */
+const TILE={
+  boost:{c:'#8FD14F', n:'빠름'},
+  slow :{c:'#4A6B8A', n:'끈적'},
+  slip :{c:'#6A6F78', n:'미끄럼'},
+  burn :{c:'#E2453A', n:'불'},
+  give :{c:'#F3EDDF', n:'보급'},
 };
 let W3=null;
 const curZ=z=>W3.run ? Math.sin((z+W3.rolled)*0.0013+W3.seed)*T3.W*1.7
@@ -604,7 +639,8 @@ function t3Init(run){
   W3={ run, cx:0, cy:run?T3.W-70:0, vx:0, vy:0, onFloor:true,
        z0:0, obs:[], nextZ:T3.FAR, ang:0, lean:0, jumpHeld:false,
        seed:Math.random()*7, rolled:0, rest:0,
-       chQ:[], chRest:0, restAfter:3, used:{}, chName:'', slot:0 };
+       chQ:[], chRest:0, restAfter:3, used:{}, chName:'', slot:0,
+       slipT:0, boostT:0, slowT:0, drift:0 };
   for(let z=T3.ring; z<T3.FAR; z+=T3.ring) W3.obs.push({kind:'ring',z});
 }
 function pick3Chunk(){
@@ -621,7 +657,7 @@ function t3Gen(){
   const z=W3.nextZ;
   const resting=(W3.chRest>0)||(!W3.chQ.length);
   W3.obs.push({kind:'ring', z, safe:resting});
-  const step=(MG.prog<0.45?3:2);
+  const step=3;                                       // 끝까지 세 칸 간격
   W3.slot=(W3.slot||0)+1;
   if(W3.slot%step!==0){ W3.nextZ+=T3.ring; return; }   // 줄 사이를 벌린다
   if(W3.chQ.length){
@@ -637,10 +673,13 @@ function t3Gen(){
   W3.nextZ+=T3.ring;
 }
 function t3Tick(dt){
-  const flow=T3.base*MG.spd;
+  const flow=T3.base*MG.spd*(W3.boostT>0?1.45:1)*(W3.slowT>0?0.62:1);
   /* 움직임 */
   const L=mAxis();
-  W3.cx=Math.max(-T3.W+40,Math.min(T3.W-40, W3.cx+L.x*T3.move*dt));
+  const steer=(W3.run&&W3.slipT>0)?0:L.x;             // 미끄럼 — 조향이 안 먹는다
+  if(W3.run&&W3.slipT>0) W3.drift=W3.drift||0; else W3.drift=steer;
+  const lim=W3.run?T3.road+70:T3.W-40;
+  W3.cx=Math.max(-lim,Math.min(lim, W3.cx+(W3.run?W3.drift:steer)*T3.move*dt));
   W3.lean+=((L.x)-W3.lean)*Math.min(1,dt*9);
   if(W3.run){
     W3.vy+=T3.grav*dt; W3.cy+=W3.vy*dt;
@@ -651,6 +690,15 @@ function t3Tick(dt){
     W3.cy=Math.max(-T3.W+40,Math.min(T3.W-40, W3.cy+L.y*T3.move*dt));
   }
   W3.ang+=dt;
+  if(W3.run){
+    if(W3.slipT>0) W3.slipT=Math.max(0,W3.slipT-dt);
+    if(W3.boostT>0) W3.boostT=Math.max(0,W3.boostT-dt);
+    if(W3.slowT>0) W3.slowT=Math.max(0,W3.slowT-dt);
+    if(Math.abs(W3.cx)>T3.road-26 && W3.onFloor){     // 띠 밖 — 허공이다
+      miniHit();
+      W3.cx=Math.max(-T3.road+60,Math.min(T3.road-60,W3.cx*0.4));
+    }
+  }
   /* 다가온다 */
   for(let i=W3.obs.length-1;i>=0;i--){
     const o=W3.obs[i];
@@ -688,7 +736,16 @@ function t3Block(o){
                      return Math.hypot(x,y) > r-R; }
     case 'wall':   return Math.abs(x-o.x)<o.w+R;
     case 'hurdle': return Math.abs(x-o.x)<o.w+R && (T3.W-70-y)<o.hh;
-    case 'pit':    return W3.onFloor;                     // 발이 땅에 있으면 빠진다
+    case 'pit':    return W3.onFloor && Math.abs(x-(o.x||0))<(o.w||T3.road)+R;
+    case 'tile':   {                                     // 밟으면 성질이 옮는다
+      if(!W3.onFloor || Math.abs(x-o.x)>o.w+R) return false;
+      if(o.tt==='burn') return true;
+      if(o.tt==='give'){ S.energy=Math.min(S.energyMax,S.energy+MINI.heal); vibe('right'); }
+      if(o.tt==='boost') W3.boostT=1.6;
+      if(o.tt==='slow')  W3.slowT=1.4;
+      if(o.tt==='slip')  W3.slipT=1.6;
+      return false;
+    }
   }
   return false;
 }
@@ -696,11 +753,30 @@ function t3Block(o){
 function t3Draw(){
   const jade=C['--jade'], red='#E2453A';
   ctx.save();
-  /* 소실점으로 뻗는 모서리 선 넷 */
-  ctx.strokeStyle='rgba(82,191,160,.30)'; ctx.lineWidth=2;
-  for(const [sx,sy] of [[-1,-1],[1,-1],[-1,1],[1,1]]){
-    const a=p3(sx*T3.W, sy*T3.W, 40), b=p3(sx*T3.W, sy*T3.W, T3.FAR);
-    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+  if(W3.run){
+    /* 허공에 뜬 띠 — 벽이 없다. 옆으로 나가면 떨어진다 */
+    if(!W3.stars){ W3.stars=[]; for(let i=0;i<70;i++)
+      W3.stars.push({x:Math.random()*VW, y:CEIL_Y+Math.random()*(VH-CEIL_Y-300),
+                     r:Math.random()*2.2+0.6, a:0.2+Math.random()*0.5}); }
+    ctx.fillStyle='#F3EDDF';
+    for(const st of W3.stars){ ctx.globalAlpha=st.a*0.5;
+      ctx.beginPath(); ctx.arc(st.x,st.y,st.r,0,7); ctx.fill(); }
+    ctx.globalAlpha=1;
+    ctx.strokeStyle=C['--jade']; ctx.shadowColor=C['--jade']; ctx.shadowBlur=16;
+    ctx.lineWidth=4;
+    for(const sx of [-1,1]){                      // 띠의 두 가장자리
+      ctx.beginPath();
+      const a=p3(sx*T3.road,T3.W,50), b=p3(sx*T3.road,T3.W,T3.FAR);
+      ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+    }
+    ctx.shadowBlur=0;
+  }else{
+    /* 소실점으로 뻗는 모서리 선 넷 */
+    ctx.strokeStyle='rgba(82,191,160,.30)'; ctx.lineWidth=2;
+    for(const [sx,sy] of [[-1,-1],[1,-1],[-1,1],[1,1]]){
+      const a=p3(sx*T3.W, sy*T3.W, 40), b=p3(sx*T3.W, sy*T3.W, T3.FAR);
+      ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+    }
   }
   const list=[...W3.obs].sort((a,b)=>b.z-a.z);        // 먼 것부터
   for(const o of list){
@@ -711,14 +787,26 @@ function t3Draw(){
       ctx.globalAlpha=fade*(o.safe?0.95:0.45); ctx.strokeStyle=o.safe?C['--paper']:jade;
       ctx.lineWidth=lw*(o.safe?0.9:0.7);
       ctx.shadowColor=o.safe?C['--paper']:jade; ctx.shadowBlur=8*s*8;
-      const a=p3(-T3.W,-T3.W,o.z), b=p3(T3.W,T3.W,o.z);
-      ctx.strokeRect(a.x,a.y,b.x-a.x,b.y-a.y);
-      if(W3.run){                                     // 바닥 결
-        ctx.globalAlpha=fade*0.35;
-        const f1=p3(-T3.W,T3.W,o.z), f2=p3(T3.W,T3.W,o.z);
+      if(W3.run){                                     // 띠의 이음매 한 줄
+        const f1=p3(-T3.road,T3.W,o.z), f2=p3(T3.road,T3.W,o.z);
         ctx.beginPath(); ctx.moveTo(f1.x,f1.y); ctx.lineTo(f2.x,f2.y); ctx.stroke();
+      }else{
+        const a=p3(-T3.W,-T3.W,o.z), b=p3(T3.W,T3.W,o.z);
+        ctx.strokeRect(a.x,a.y,b.x-a.x,b.y-a.y);
       }
       ctx.shadowBlur=0; continue;
+    }
+    if(o.kind==='tile'){                              // 색 타일
+      const d=TILE[o.tt]||TILE.boost;
+      const a=p3(o.x-o.w,T3.W,o.z), b=p3(o.x+o.w,T3.W,o.z);
+      const c2=p3(o.x-o.w,T3.W,o.z+o.len), d2=p3(o.x+o.w,T3.W,o.z+o.len);
+      ctx.globalAlpha=fade*0.85;
+      ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
+      ctx.lineTo(d2.x,d2.y); ctx.lineTo(c2.x,c2.y); ctx.closePath();
+      ctx.fillStyle=d.c+'55'; ctx.fill();
+      ctx.strokeStyle=d.c; ctx.shadowColor=d.c; ctx.shadowBlur=16;
+      ctx.lineWidth=Math.max(1,3*s*1.4); ctx.stroke(); ctx.shadowBlur=0;
+      continue;
     }
     ctx.globalAlpha=fade; ctx.lineWidth=lw;
     if(o.kind==='gem'){
@@ -764,8 +852,9 @@ function t3Draw(){
       const a=p3(o.x-o.w,-T3.W,o.z), b=p3(o.x+o.w,T3.W,o.z);
       ctx.fillRect(a.x,a.y,b.x-a.x,b.y-a.y); ctx.strokeRect(a.x,a.y,b.x-a.x,b.y-a.y);
     }else if(o.kind==='pit'){
-      const a=p3(-T3.W,T3.W,o.z), b=p3(T3.W,T3.W,o.z);
-      const c=p3(-T3.W,T3.W,o.z+o.len), d=p3(T3.W,T3.W,o.z+o.len);
+      const RW=(o.w||T3.road);
+      const a=p3(-RW,T3.W,o.z), b=p3(RW,T3.W,o.z);
+      const c=p3(-RW,T3.W,o.z+o.len), d=p3(RW,T3.W,o.z+o.len);
       ctx.beginPath();
       ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.lineTo(d.x,d.y); ctx.lineTo(c.x,c.y);
       ctx.closePath();
