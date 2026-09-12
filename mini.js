@@ -24,6 +24,10 @@ function miniStart(kind,done){
   mT=performance.now();
   if(MG.kind==='cave') caveInit(); else t3Init(MG.kind==='run');
   S.screen='mini';
+  /* 덮개를 걷는다. 보스가 말한 뒤에 들어오면 vTalk 이 그대로 덮여 있어서
+     미니게임이 화면에도 안 보이고 손도 안 닿았다 */
+  if(typeof show==='function') show(null);
+  if(typeof dropTouches==='function') dropTouches();
   vibe('alertOn');
   if(typeof guide==='function'){                 // 처음 만나는 판만 설명한다
     guide('mgAll');
