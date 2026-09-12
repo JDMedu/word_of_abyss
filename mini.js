@@ -250,7 +250,7 @@ function caveTick(dt){
     if(r.x<cv2.ox-80){ cv2.rocks.splice(i,1); continue; }
     const sx=r.x-cv2.ox;
     if(Math.abs(sx-CAVE.px)<r.r+22 && Math.abs(r.y-cv2.y)<r.r+22){
-      if(r.heal){ S.energy=Math.min(S.energyMax,S.energy+MINI.heal);
+      if(r.heal){ MG.healFx=1; S.energy=Math.min(S.energyMax,S.energy+MINI.heal);
                   spawnGrainsSafe(sx,r.y,8); cv2.rocks.splice(i,1); vibe('right'); }
       else miniHit();
     }
@@ -299,12 +299,9 @@ function caveDraw(){
   /* 바위와 구슬 */
   for(const r of cv2.rocks){
     const sx=r.x-ox; if(sx<-80||sx>VW+80)continue;
+    if(r.heal){ potion(sx, r.y+Math.sin(MG.t*3+r.x*0.02)*7, 1.05); continue; }
     ctx.save(); ctx.translate(sx,r.y); ctx.rotate(r.a);
-    if(r.heal){
-      ctx.strokeStyle=C['--jade']; ctx.shadowColor=C['--jade']; ctx.shadowBlur=22;
-      ctx.lineWidth=3; ctx.beginPath(); ctx.arc(0,0,r.r,0,7); ctx.stroke();
-      ctx.beginPath(); ctx.arc(0,0,r.r*0.45,0,7); ctx.stroke();
-    }else{
+    {
       ctx.strokeStyle='#E2453A'; ctx.shadowColor='#E2453A'; ctx.shadowBlur=18;
       ctx.fillStyle='rgba(30,10,12,.9)'; ctx.lineWidth=3.5;
       ctx.beginPath();
@@ -416,7 +413,7 @@ const mAxis=()=>{
     if(MG.t>10 && Math.abs(p.x-VW/2)<100 && p.y>VH-100 && p.y<VH-40){ miniEnd('quit'); return; }
     if(MG.kind==='cave'){ mHold=true; return; }
     if(p.x<VW/2){ mStick.id=e.pointerId; mStick.ox=p.x; mStick.oy=p.y; mStick.x=p.x; mStick.y=p.y; }
-    else if(MG.kind==='run' && W3 && W3.onFloor){ W3.vy=jumpV(); W3.onFloor=false; vibe('charged'); }
+    else if(MG.kind==='run' && W3){ W3.buf=T3.jumpBuf; }   // 눌린 것만 적어 둔다. 뛰는 건 roadTick 이
   },true);
   cv.addEventListener('pointermove',e=>{
     if(!MG||S.screen!=='mini')return;
@@ -632,9 +629,11 @@ const T3={
   road:185,         // 띠 반폭 — 이 밖으로 나가면 허공이다
   /* 질주 — 스카이로드처럼 길 위에서 비스듬히 내려다본다 */
   ZCrun:380,        // 선비가 서 있는 깊이(질주). 얕으면 점프가 화면을 통째로 흔든다
-  eye:520,          // 카메라가 길 위로 뜬 높이. 0이면 길이 선 하나로 눌린다
-  horizon:0.30,     // 소실점이 화면 위에서 이만큼 되는 자리 — 낮출수록 멀리까지 보인다
+  eye:420,          // 카메라가 길 위로 뜬 높이. 0이면 길이 선 하나로 눌린다
+  horizon:0.27,     // 소실점이 화면 위에서 이만큼 되는 자리 — 낮출수록 멀리까지 보인다
   heroS:3.6,        // 선비 크기 — 깊이가 멀어져도 그대로 둔다
+  jumpBuf:0.20,     // 착지 전에 누른 것도 기억해 둔다 — 연속 점프가 먹히게
+  coyote:0.12,      // 발판을 벗어난 뒤에도 이만큼은 뛸 수 있다
   barRX:28, barRY:52,   // 낙하 막대 판정 — 선비는 세로로 길쭉하다
   fovKick:0.18,     // 빨라지면 시야가 이만큼 넓어진다 — 속도감의 절반은 여기서 나온다
 };
@@ -664,7 +663,7 @@ function t3Init(run){
        seed:Math.random()*7, rolled:0, rest:0,
        chQ:[], chRest:0, restAfter:3, used:{}, chName:'', slot:0,
        slipT:0, boostT:0, slowT:0, drift:0, rowQ:[], restLeft:run?3:0,
-       gone:false, respawn:0, holeRun:0, rowN:0, deco:[], roadC:3 };
+       gone:false, respawn:0, holeRun:0, rowN:0, deco:[], roadC:3, buf:0, coy:0 };
   if(run) caveDecoInit();
   if(run){ W3.nextZ=T3.ring; while(W3.nextZ<T3.FAR) roadGen(); }
   else for(let z=T3.ring; z<T3.FAR; z+=T3.ring) W3.obs.push({kind:'ring',z});
@@ -729,6 +728,7 @@ function t3Tick(dt){
       o.hit=true;
       if(o.kind==='gem'){
         if(Math.hypot(o.x-W3.cx,o.y-W3.cy)<86){
+          MG.healFx=1;
           S.energy=Math.min(S.energyMax,S.energy+MINI.heal);
           vibe('right'); o.got=true;
         }
@@ -830,11 +830,8 @@ function t3Draw(){
     ctx.globalAlpha=fade; ctx.lineWidth=lw;
     if(o.kind==='gem'){
       if(o.got) continue;
-      const c=p3(o.x,o.y,o.z);
-      ctx.strokeStyle=jade; ctx.shadowColor=jade; ctx.shadowBlur=20;
-      ctx.beginPath(); ctx.arc(c.x,c.y,26*s*1.6,0,7); ctx.stroke();
-      ctx.beginPath(); ctx.arc(c.x,c.y,12*s*1.6,0,7); ctx.stroke();
-      ctx.shadowBlur=0; continue;
+      const c=p3(o.x,o.y+Math.sin(MG.t*3+o.x*0.01)*12,o.z);
+      potion(c.x,c.y,c.s*1.5); continue;
     }
     ctx.strokeStyle=red; ctx.shadowColor=red; ctx.shadowBlur=14;
     ctx.fillStyle='rgba(34,10,14,.55)';
@@ -1039,6 +1036,8 @@ const RB=(c,w,ch)=>{ let s='', a=c-(w-1)/2;
   for(let i=0;i<LANES;i++) s+=(i>=a&&i<a+w)?(ch||'#'):'.'; return s; };
 const RO=(c,w,oc)=>{ const t=RB(c,w).split(''); t[oc]='o'; return t.join(''); };
 const HOLE='.......';
+const W5='.#####.';                                   // 바탕은 다섯 칸 — 여기에 구멍을 판다
+const CV=(str,...ix)=>{ const t=str.split(''); for(const i of ix) t[i]='.'; return t.join(''); };
 
 /* ── 길 ──────────────────────────────────────────────
    할 일은 두 가지뿐이다 — 옆으로 옮기기, 뛰어넘기.
@@ -1050,63 +1049,68 @@ const ROAD_CH=[
  /* 쉼 — 직전 길이 끝난 자리에서 가운데로 이어 준다 */
  {name:'쉼', min:0, rest:true, rows:()=>{
     const out=[]; let x=W3.roadC;
-    while(x!==3){ x+=x>3?-1:1; out.push(RB(x,3)); }
-    while(out.length<2) out.push(RB(3,3));
+    while(x!==3){ x+=x>3?-1:1; out.push(RB(x,5)); }
+    while(out.length<2) out.push(RB(3,5));
     return out; }},
 
- {name:'굽이', min:0, rows:()=>mayFlip(
-   [RB(3,3),RB(2,3),RB(1,3),HOLE,RB(1,3),RB(2,3),RB(3,3),RB(4,3),RB(5,3)])},
+ /* ── 한두 칸 구멍 — 옆으로 피한다 ─────────────────── */
+ {name:'점점이', min:0, rows:()=>mayFlip(
+   [W5,CV(W5,3),CV(W5,3),CV(W5,2),W5,CV(W5,4),CV(W5,4),CV(W5,3),W5])},
 
- {name:'지그재그', min:0, rows:()=>mayFlip(
-   [RB(3,3),RB(4,3),RB(5,3),RB(4,3),HOLE,RB(2,3),RB(1,3),RB(2,3),RB(3,3)])},
+ {name:'물결', min:0, rows:()=>mayFlip(
+   [W5,'.####..','.###...','.####..',HOLE,'..####.','...###.','..####.',W5])},
 
- {name:'좁아짐', min:0, rows:()=>
-   [RB(3,3),RB(3,3),RB(3,1),RB(3,1),RB(3,1),HOLE,RB(3,3),RB(3,3),RB(3,3)]},
+ {name:'한쪽으로', min:0, rows:()=>mayFlip(
+   [W5,'.####..','.###...','.#o....','.##....',HOLE,'.###...','.####..',W5,W5])},
 
- {name:'건너뛰기', min:0, rows:()=>
-   [RB(3,3),RB(3,3),HOLE,RB(3,3),RB(3,3),RB(3,3),HOLE,RB(3,3),RB(3,3),RB(3,3)]},
+ /* ── 반쪽 구멍 — 피하거나 뛰거나 ──────────────────── */
+ {name:'가운데 갈라짐', min:0, rows:()=>
+   [W5,'.##.##.','.#...#.','.#...#.','.##.##.',W5,HOLE,W5,W5,W5]},
 
- {name:'넓은 길', min:0.03, rows:()=>mayFlip(
-   [RB(3,3),RB(3,5),RO(3,5,1),RB(3,5),HOLE,RB(3,5),RB(3,5),RB(3,3)])},
+ {name:'엇갈린 반쪽', min:0.06, rows:()=>mayFlip(
+   [W5,'.###...','.##....','.##....',W5,'...###.','....##.','....##.',W5])},
 
- {name:'비켜선 외길', min:0.05, rows:()=>mayFlip(
-   [RB(3,3),RB(4,3),RB(5,3),RB(5,1),RB(5,1),RB(5,1),HOLE,RB(5,3),RB(4,3),RB(3,3)])},
+ {name:'비틀린 물길', min:0.12, rows:()=>mayFlip(
+   [W5,'.####..','.###...','..##...','..##...',HOLE,'...##..','...###.','..####.',W5])},
 
- {name:'두 갈래', min:0.07, rows:()=>
-   [RB(3,3),'.##.##.','.#...#.','.......','.#...#.','.##.##.',RB(3,3),RB(3,3)]},
+ /* ── 전 폭 구멍 — 반드시 뛴다 ─────────────────────── */
+ {name:'뛰어넘기', min:0, rows:()=>
+   [W5,W5,HOLE,W5,W5,W5,HOLE,W5,W5,W5]},
 
  {name:'긴 도약', min:0.10, rows:()=>mayFlip(
-   [RB(3,3),RB(3,3),RB(3,3),HOLE,HOLE,RB(5,3),RB(5,3),RB(5,3)])},
+   [W5,W5,W5,HOLE,HOLE,'...###.','...###.','..####.',W5])},
 
- {name:'섬돌', min:0.12, rows:()=>
-   [RB(3,3),RB(3,3),RB(3,3,'='),RB(3,3,'X'),RB(3,3,'='),RB(3,3),HOLE,RB(3,3),RB(3,3),RB(3,3)]},
-
- {name:'징검다리', min:0.15, rows:()=>
-   [RB(3,3),RB(3,3),RB(3,3),HOLE,HOLE,RB(3,3),RB(3,3),RO(3,3,3),HOLE,HOLE,RB(3,3),RB(3,3),RB(3,3)]},
-
- {name:'엇갈린 도약', min:0.18, rows:()=>mayFlip(
-   [RB(3,3),RB(2,3),RB(1,3),RB(1,3),HOLE,HOLE,RB(5,3),RB(5,3),RB(5,3),HOLE,HOLE,
-    RB(1,3),RB(1,3),RB(1,3)])},
+ {name:'징검다리', min:0.14, rows:()=>mayFlip(
+   [W5,W5,'.###...','.###...',HOLE,HOLE,'...###.','...###.','...###.',W5,W5])},
 
  {name:'연속 도약', min:0.22, rows:()=>
-   [RB(3,3),RB(3,3),RB(3,3),HOLE,RB(3,3),RB(3,3),RB(3,3),HOLE,RB(3,3),RB(3,3),RB(3,3),
-    HOLE,RB(3,3),RB(3,3),RB(3,3)]},
+   [W5,W5,W5,HOLE,W5,W5,W5,HOLE,W5,W5,W5,HOLE,W5,W5,W5]},
 
- {name:'좁은 외길', min:0.26, rows:()=>mayFlip(
-   [RB(3,3),RB(2,3),RB(1,3),RB(1,1),RB(1,1),RB(1,1),RB(1,1),RO(1,1,1),RB(1,3),RB(2,3),RB(3,3)])},
+ {name:'엇갈린 도약', min:0.28, rows:()=>mayFlip(
+   [W5,W5,'.###...','.###...',HOLE,HOLE,'...###.','...###.','...###.',
+    HOLE,HOLE,'.###...','.###...','.###...'])},
 
- {name:'섬돌 넘기', min:0.30, rows:()=>mayFlip(
-   [RB(3,3),RB(3,3),RB(3,3,'X'),HOLE,RB(5,3),RB(5,3),RB(5,3)])},
+ /* ── 좁아짐 — 판마다 두어 번만 ────────────────────── */
+ {name:'좁은 목', min:0.08, rows:()=>
+   [W5,'.####..','..###..','..#o#..','..###..',HOLE,'..###..','..####.',W5]},
 
- {name:'벼랑길', min:0.34, rows:()=>mayFlip(
-   [RB(3,3),RB(4,3),RB(5,3),RB(5,1),RB(5,1),HOLE,HOLE,RB(3,3),RB(3,3),RB(3,3)])},
+ {name:'좁아짐', min:0.20, rows:()=>
+   [W5,'.####..','..###..','...#...','...#...',HOLE,'...#...','..###..','.####..',W5]},
 
- {name:'좁은 도약', min:0.40, rows:()=>mayFlip(
-   [RB(3,3),RB(3,1),RB(3,1),HOLE,HOLE,RB(3,1),RB(3,1),RB(3,1),RB(3,3),RB(3,3)])},
+ {name:'비켜선 외길', min:0.26, rows:()=>mayFlip(
+   [W5,'..####.','...###.','....#..','....#..','....#..',HOLE,'...###.','..####.',W5])},
+
+ /* ── 나머지 ───────────────────────────────────────── */
+ {name:'옥병 길', min:0.04, rows:()=>mayFlip(
+   [W5,RO(3,5,1),CV(W5,2),CV(W5,3),W5,HOLE,W5,W5,W5])},
+
+ {name:'섬돌', min:0.16, rows:()=>
+   [W5,W5,RB(3,3,'='),RB(3,3,'X'),RB(3,3,'='),W5,HOLE,W5,W5,W5]},
 
  {name:'마지막 관문', min:0.55, rows:()=>mayFlip(
-   [RB(3,3),RB(3,5),RB(3,5),RO(3,5,5),RB(3,3),HOLE,HOLE,RB(1,3),RB(1,3),RB(1,3),
-    RB(1,1),RB(1,1),HOLE,RB(3,3),RB(4,3),RB(5,3),HOLE,HOLE,RB(3,3),RB(3,3),RB(3,3)])},
+   [W5,RO(3,5,5),W5,'.##.##.','.#...#.','.##.##.',W5,HOLE,HOLE,
+    '.###...','.###...','.###...',CV('.###...',2),'.###...',HOLE,
+    '...###.','..####.',W5,W5])},
 ];
 
 function pickRoadChunk(){
@@ -1169,7 +1173,9 @@ function roadTick(dt,flow){
     if(W3.respawn<=0){
       W3.gone=false;
       W3.cx=laneX(roadSafeLane(W3.cx));
-      W3.cy=T3.W-460; W3.vy=0; W3.onFloor=false;
+      W3.cy=T3.W-180; W3.vy=0; W3.onFloor=false; W3.buf=0; W3.coy=0;
+      MG.brake=MINI.brakeBack;              // 나타나는 순간부터 다시 느리게 — 곧바로 또 빠지지 않게
+      MG.inv=1.4;                           // 잠깐 무적
       vibe('open');
     }
     return;
@@ -1194,6 +1200,12 @@ function roadTick(dt,flow){
   }
   /* 떨어짐 — 마리오처럼 위에서 내려올 때만 올라선다.
      예전에는 밑에서도 끌어올려서 구멍이 없는 셈이었다 */
+  /* 눌러 둔 점프를 여기서 쓴다 — 착지 직전에 눌러도, 발판을 막 벗어났어도 먹힌다 */
+  W3.buf=Math.max(0,W3.buf-dt);
+  W3.coy=W3.onFloor?T3.coyote:Math.max(0,W3.coy-dt);
+  if(W3.buf>0 && (W3.onFloor||W3.coy>0)){
+    W3.vy=jumpV(); W3.onFloor=false; W3.buf=0; W3.coy=0; vibe('charged');
+  }
   const prevY=W3.cy;
   W3.vy+=jumpG()*dt; W3.cy+=W3.vy*dt;
   if(hasFloor && W3.vy>=0 && prevY<=topY+2 && W3.cy>=topY){
@@ -1258,10 +1270,14 @@ function caveDecoDraw(){
 }
 /* 옥병 — 기력을 돌려준다. 길 위에 떠서 오르내린다 */
 function drawOrb(o){
-  const p=p3(o.x, o.y+Math.sin(MG.t*3+o.x*0.01)*12, o.z), s=p.s;
+  const p=p3(o.x, o.y+Math.sin(MG.t*3+o.x*0.01)*12, o.z);
+  potion(p.x,p.y,p.s);
+}
+/* 옥병 — 동굴·낙하·질주 셋 다 이 모양을 쓴다 */
+function potion(x,y,s){
   if(s<0.06) return;
   const w=30*s, h=40*s;
-  ctx.save(); ctx.translate(p.x,p.y);
+  ctx.save(); ctx.translate(x,y);
   ctx.shadowColor=C['--jade']; ctx.shadowBlur=Math.min(30,20*s);
   ctx.fillStyle='rgba(82,191,160,.80)'; ctx.strokeStyle='#F3EDDF';
   ctx.lineWidth=Math.max(1,2*s);
@@ -1274,6 +1290,18 @@ function drawOrb(o){
   ctx.closePath(); ctx.fill(); ctx.stroke();
   ctx.fillStyle='#F3EDDF';
   ctx.fillRect(-w*0.28,-h*0.60,w*0.56,h*0.16);         // 마개
+  ctx.restore();
+}
+/* 그림자 — 뜬 동안 발밑에 진다. 구멍 위에서는 안 진다(그 자체가 경고다) */
+function drawDrop(){
+  const row=roadCellAt(T3.ZCrun); if(!row)return;
+  const c=row.cells[laneOf(W3.cx)]; if(!c)return;
+  const sy=T3.W-c.h*BLKH, up=sy-W3.cy;
+  if(up<8) return;
+  const k=Math.max(0.22,1-up/(T3.jumpH*1.15)*0.82);
+  const p=p3(W3.cx,sy,T3.ZCrun);
+  ctx.save(); ctx.globalAlpha=0.5*k; ctx.fillStyle='#05080F';
+  ctx.beginPath(); ctx.ellipse(p.x,p.y,34*p.s*k,12*p.s*k,0,0,7); ctx.fill();
   ctx.restore();
 }
 function roadDraw(){
@@ -1290,10 +1318,12 @@ function roadDraw(){
       const y=T3.W-c.h*BLKH;
       const a=p3(x0,y,r.z), b=p3(x1,y,r.z);
       const e=p3(x0,y,r.z+T3.ring), f=p3(x1,y,r.z+T3.ring);
-      ctx.globalAlpha=fade*(c.h?0.95:0.8)*band;
+      ctx.globalAlpha=fade;
       ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
       ctx.lineTo(f.x,f.y); ctx.lineTo(e.x,e.y); ctx.closePath();
-      ctx.fillStyle=col+(c.h?'66':(band>0.9?'3A':'20')); ctx.fill();
+      ctx.fillStyle=col; ctx.fill();                   // 꽉 찬 면이다
+      if(band<0.9){ ctx.globalAlpha=fade*0.26; ctx.fillStyle='#05080F'; ctx.fill(); }
+      ctx.globalAlpha=fade;
       ctx.strokeStyle=col; ctx.shadowColor=col; ctx.shadowBlur=8;
       ctx.lineWidth=Math.max(1,2.6*fov()/r.z); ctx.stroke();
       if(c.h>0){                                       // 블록 앞면
@@ -1308,6 +1338,7 @@ function roadDraw(){
   ctx.restore();
   for(const o of W3.obs) if(o.kind==='orb'&&!o.got&&o.z>40) drawOrb(o);
   if(W3.gone) return;                                  // 빠져 있는 동안은 안 그린다
+  drawDrop();
   const me=p3(W3.cx,W3.cy,T3.ZCrun);
   drawSeonbiBack(me.x, me.y, T3.heroS*(me.s*T3.ZCrun/T3.F), W3.lean, MG.inv>0, !W3.onFloor);
 }
