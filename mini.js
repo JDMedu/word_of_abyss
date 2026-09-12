@@ -1145,12 +1145,16 @@ function roadGen(){
     W3.obs.push({kind:'orb', z, x:laneX(i), y:T3.W-96, got:false});
   W3.nextZ+=T3.ring;
 }
-/* 발밑이 어떤 칸인가 */
+/* 발밑이 어떤 칸인가.
+   한 줄은 z 부터 z+ring 까지 그려진다. 그러니 그 구간에 든 줄을 밟는 것으로 쳐야
+   보이는 것과 밟는 것이 어긋나지 않는다. 예전엔 가장 가까운 줄을 골라서
+   절반쯤은 한 줄 앞을 밟고 있었다 — 길인데 빠지던 원인 */
 function roadCellAt(z){
-  let best=null, bd=1e9;
+  let best=null, bz=-1e9, near=null, bd=1e9;
   for(const o of W3.obs){ if(o.kind!=='row')continue;
-    const d=Math.abs(o.z-z); if(d<bd){ bd=d; best=o; } }
-  return best;
+    if(o.z<=z && o.z+T3.ring>z && o.z>bz){ bz=o.z; best=o; }
+    const d=Math.abs(o.z-z); if(d<bd){ bd=d; near=o; } }
+  return best||near;
 }
 /* 떨어졌을 때 올라설 칸 — 가운데가 아니라 가장 가까운 성한 칸 */
 function roadSafeLane(fromX){
@@ -1318,12 +1322,10 @@ function roadDraw(){
       const y=T3.W-c.h*BLKH;
       const a=p3(x0,y,r.z), b=p3(x1,y,r.z);
       const e=p3(x0,y,r.z+T3.ring), f=p3(x1,y,r.z+T3.ring);
-      ctx.globalAlpha=fade;
+      ctx.globalAlpha=fade*(c.h?0.95:0.8)*band;
       ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
       ctx.lineTo(f.x,f.y); ctx.lineTo(e.x,e.y); ctx.closePath();
-      ctx.fillStyle=col; ctx.fill();                   // 꽉 찬 면이다
-      if(band<0.9){ ctx.globalAlpha=fade*0.26; ctx.fillStyle='#05080F'; ctx.fill(); }
-      ctx.globalAlpha=fade;
+      ctx.fillStyle=col+(c.h?'66':(band>0.9?'3A':'20')); ctx.fill();
       ctx.strokeStyle=col; ctx.shadowColor=col; ctx.shadowBlur=8;
       ctx.lineWidth=Math.max(1,2.6*fov()/r.z); ctx.stroke();
       if(c.h>0){                                       // 블록 앞면
