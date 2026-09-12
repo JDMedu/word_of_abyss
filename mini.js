@@ -19,7 +19,7 @@ function miniStart(kind,done){
   const kinds=['cave','fall','run'];
   MG={ kind:kind&&kinds.includes(kind)?kind:kinds[Math.floor(Math.random()*kinds.length)],
       t:0, left:MINI.dur, prog:0, spd:1, brake:0, hits:0, inv:0, over:null, done,
-      quit:false, fx:0, shake:0, pen:0, penFx:0 };
+      quit:false, fx:0, shake:0, pen:0, penFx:0, healFx:0 };
   mT=performance.now();
   if(MG.kind==='cave') caveInit(); else t3Init(MG.kind==='run');
   S.screen='mini';
@@ -59,6 +59,7 @@ function miniTick(dt){
   if(MG.penFx>0) MG.penFx=Math.max(0,MG.penFx-dt*1.6);
   MG.inv=Math.max(0,MG.inv-dt);
   MG.fx=Math.max(0,MG.fx-dt*2.2);
+  if(MG.healFx>0) MG.healFx=Math.max(0,MG.healFx-dt*1.8);
   MG.shake=Math.max(0,MG.shake-dt*60);
   if(MG.brake>0) MG.brake=Math.max(0,MG.brake-dt);
   /* 시간이 갈수록 빨라지고, 부딪히면 뚝 떨어졌다 돌아온다 */
@@ -78,6 +79,13 @@ function miniDraw(){
   if(MG.kind==='cave') caveDraw(); else if(MG.kind==='run') roadDraw(); else t3Draw();
   ctx.restore();
   miniHud();
+  if(MG.healFx>0){                               // 옥병을 주웠다 — 옥빛이 번진다
+    ctx.save(); ctx.globalAlpha=MG.healFx*0.55;
+    ctx.strokeStyle=C['--jade']; ctx.shadowColor=C['--jade'];
+    ctx.lineWidth=26; ctx.shadowBlur=34;
+    ctx.strokeRect(13,13,VW-26,VH-26);
+    ctx.restore();
+  }
   if(MG.fx>0){                                   // 부딪힌 순간 테두리가 붉게
     ctx.save(); ctx.globalAlpha=MG.fx*0.85;
     ctx.strokeStyle='#E2453A'; ctx.shadowColor='#E2453A';
@@ -624,8 +632,8 @@ const T3={
   road:185,         // 띠 반폭 — 이 밖으로 나가면 허공이다
   /* 질주 — 스카이로드처럼 길 위에서 비스듬히 내려다본다 */
   ZCrun:380,        // 선비가 서 있는 깊이(질주). 얕으면 점프가 화면을 통째로 흔든다
-  eye:390,          // 카메라가 길 위로 뜬 높이. 0이면 길이 선 하나로 눌린다
-  horizon:0.40,     // 소실점이 화면 위에서 이만큼 되는 자리
+  eye:520,          // 카메라가 길 위로 뜬 높이. 0이면 길이 선 하나로 눌린다
+  horizon:0.30,     // 소실점이 화면 위에서 이만큼 되는 자리 — 낮출수록 멀리까지 보인다
   heroS:3.6,        // 선비 크기 — 깊이가 멀어져도 그대로 둔다
   barRX:28, barRY:52,   // 낙하 막대 판정 — 선비는 세로로 길쭉하다
   fovKick:0.18,     // 빨라지면 시야가 이만큼 넓어진다 — 속도감의 절반은 여기서 나온다
@@ -656,7 +664,7 @@ function t3Init(run){
        seed:Math.random()*7, rolled:0, rest:0,
        chQ:[], chRest:0, restAfter:3, used:{}, chName:'', slot:0,
        slipT:0, boostT:0, slowT:0, drift:0, rowQ:[], restLeft:run?3:0,
-       gone:false, respawn:0, holeRun:0, rowN:0, deco:[] };
+       gone:false, respawn:0, holeRun:0, rowN:0, deco:[], roadC:3 };
   if(run) caveDecoInit();
   if(run){ W3.nextZ=T3.ring; while(W3.nextZ<T3.FAR) roadGen(); }
   else for(let z=T3.ring; z<T3.FAR; z+=T3.ring) W3.obs.push({kind:'ring',z});
@@ -1021,62 +1029,84 @@ function drawSeonbiDown(x,y,s,lean,blink){
 const LANES=7, LANEW=78, BLKH=88;
 const laneX=i=>(i-(LANES-1)/2)*LANEW;
 const laneOf=x=>Math.max(0,Math.min(LANES-1,Math.round(x/LANEW+(LANES-1)/2)));
-const CELL={ '#':{h:0,tt:null}, '=':{h:1,tt:null}, 'X':{h:2,tt:null},
-             '>':{h:0,tt:'boost'}, '~':{h:0,tt:'slow'}, '/':{h:0,tt:'slip'},
-             '!':{h:0,tt:'burn'},  '+':{h:0,tt:'give'} };
+const CELL={ '#':{h:0}, '=':{h:1}, 'X':{h:2}, 'o':{h:0} };   // 'o' 는 길 + 그 위에 옥병
 /* 칸마다 새 객체를 만든다 — 같은 것을 돌려 쓰면 한 줄을 고칠 때 다른 줄까지 바뀐다 */
 const rowOf=str=>str.split('').map(c=>CELL[c]?{...CELL[c]}:null);
 const flip=rs=>rs.map(r=>r.split('').reverse().join(''));
 const mayFlip=rs=>R()<.5?rs:flip(rs);
+/* 가운데 칸 c, 폭 w 짜리 길 한 줄 */
+const RB=(c,w,ch)=>{ let s='', a=c-(w-1)/2;
+  for(let i=0;i<LANES;i++) s+=(i>=a&&i<a+w)?(ch||'#'):'.'; return s; };
+const RO=(c,w,oc)=>{ const t=RB(c,w).split(''); t[oc]='o'; return t.join(''); };
+const HOLE='.......';
 
 /* ── 길 ──────────────────────────────────────────────
-   일곱 칸 격자 위에 실제 길은 세 칸이나 한 칸으로 놓인다.
-   '.' 은 구멍 — 빠지면 죽는다. 이어진 구멍은 두 줄까지, 점프로 넘는다.
+   할 일은 두 가지뿐이다 — 옆으로 옮기기, 뛰어넘기.
+   좌우로 옮기는 건 길이 세 칸 이상일 때만 시킨다.
+   한 칸으로 좁아지면 그 자리에서 곧게 이어진다.
+   구멍은 한두 줄 — 뛰어야만 넘는다. 착지할 자리는 늘 세 줄.
    ──────────────────────────────────────────────────── */
 const ROAD_CH=[
- {name:'쉼', min:0, rest:true, rows:()=>['..###..','..#+#..','..###..']},
+ /* 쉼 — 직전 길이 끝난 자리에서 가운데로 이어 준다 */
+ {name:'쉼', min:0, rest:true, rows:()=>{
+    const out=[]; let x=W3.roadC;
+    while(x!==3){ x+=x>3?-1:1; out.push(RB(x,3)); }
+    while(out.length<2) out.push(RB(3,3));
+    return out; }},
 
- {name:'굽이', min:0.0, rows:()=>mayFlip(
-   ['..###..','.###...','###....','.###...','..###..','...###.','....###','...###.'])},
+ {name:'굽이', min:0, rows:()=>mayFlip(
+   [RB(3,3),RB(2,3),RB(1,3),HOLE,RB(1,3),RB(2,3),RB(3,3),RB(4,3),RB(5,3)])},
 
- {name:'좁아짐', min:0.04, rows:()=>
-   ['..###..','..###..','...#...','...#...','...#...','..###..','..###..']},
+ {name:'지그재그', min:0, rows:()=>mayFlip(
+   [RB(3,3),RB(4,3),RB(5,3),RB(4,3),HOLE,RB(2,3),RB(1,3),RB(2,3),RB(3,3)])},
 
- {name:'건너뛰기', min:0.08, rows:()=>
-   ['..###..','..###..','.......','..###..','..###..','..###..','.......','..###..','..###..']},
+ {name:'좁아짐', min:0, rows:()=>
+   [RB(3,3),RB(3,3),RB(3,1),RB(3,1),RB(3,1),HOLE,RB(3,3),RB(3,3),RB(3,3)]},
 
- {name:'외길', min:0.12, rows:()=>mayFlip(
-   ['..###..','...#...','..#....','.#.....','.#.....','..#....','...#...','..###..'])},
+ {name:'건너뛰기', min:0, rows:()=>
+   [RB(3,3),RB(3,3),HOLE,RB(3,3),RB(3,3),RB(3,3),HOLE,RB(3,3),RB(3,3),RB(3,3)]},
 
- {name:'두 갈래', min:0.16, rows:()=>
-   ['..###..','.##.##.','.#...#.','.#...#.','.#>.#..','.##.##.','..###..']},
+ {name:'넓은 길', min:0.03, rows:()=>mayFlip(
+   [RB(3,3),RB(3,5),RO(3,5,1),RB(3,5),HOLE,RB(3,5),RB(3,5),RB(3,3)])},
 
- {name:'비켜서기', min:0.20, rows:()=>mayFlip(
-   ['..###..','..X##..','..###..','..##X..','..###..','..X##..','..###..'])},
+ {name:'비켜선 외길', min:0.05, rows:()=>mayFlip(
+   [RB(3,3),RB(4,3),RB(5,3),RB(5,1),RB(5,1),RB(5,1),HOLE,RB(5,3),RB(4,3),RB(3,3)])},
 
- {name:'긴 도약', min:0.24, rows:()=>mayFlip(
-   ['..###..','..###..','..###..','.......','.......','...###.','...###.','...###.'])},
+ {name:'두 갈래', min:0.07, rows:()=>
+   [RB(3,3),'.##.##.','.#...#.','.......','.#...#.','.##.##.',RB(3,3),RB(3,3)]},
 
- {name:'불길', min:0.28, rows:()=>
-   ['..###..','..!#!..','..###..','..#!#..','..###..','..!#!..','..###..']},
+ {name:'긴 도약', min:0.10, rows:()=>mayFlip(
+   [RB(3,3),RB(3,3),RB(3,3),HOLE,HOLE,RB(5,3),RB(5,3),RB(5,3)])},
 
- {name:'미끄럼', min:0.32, rows:()=>
-   ['..###..','...#...','..///..','..///..','..///..','..###..','..###..']},
+ {name:'섬돌', min:0.12, rows:()=>
+   [RB(3,3),RB(3,3),RB(3,3,'='),RB(3,3,'X'),RB(3,3,'='),RB(3,3),HOLE,RB(3,3),RB(3,3),RB(3,3)]},
 
- {name:'좁은 굽이', min:0.36, rows:()=>mayFlip(
-   ['..###..','...#...','....#..','.....#.','......#','.....#.','....#..','...#...','..###..'])},
+ {name:'징검다리', min:0.15, rows:()=>
+   [RB(3,3),RB(3,3),RB(3,3),HOLE,HOLE,RB(3,3),RB(3,3),RO(3,3,3),HOLE,HOLE,RB(3,3),RB(3,3),RB(3,3)]},
 
- {name:'징검다리', min:0.42, rows:()=>mayFlip(
-   ['..###..','..###..','.......','.......','....###','....###','....###','.......','.......',
-    '..###..','..###..'])},
+ {name:'엇갈린 도약', min:0.18, rows:()=>mayFlip(
+   [RB(3,3),RB(2,3),RB(1,3),RB(1,3),HOLE,HOLE,RB(5,3),RB(5,3),RB(5,3),HOLE,HOLE,
+    RB(1,3),RB(1,3),RB(1,3)])},
 
- {name:'벼랑', min:0.50, rows:()=>mayFlip(
-   ['..###..','...#...','.......','.......','..###..','..###..','..###..','.......',
-    '..###..','..###..'])},
+ {name:'연속 도약', min:0.22, rows:()=>
+   [RB(3,3),RB(3,3),RB(3,3),HOLE,RB(3,3),RB(3,3),RB(3,3),HOLE,RB(3,3),RB(3,3),RB(3,3),
+    HOLE,RB(3,3),RB(3,3),RB(3,3)]},
 
- {name:'마지막', min:0.60, rows:()=>mayFlip(
-   ['..###..','..#>#..','...#...','.......','.......','.###...','.###...','.#.....','.......',
-    '...###.','...###.','...###.','..###..'])},
+ {name:'좁은 외길', min:0.26, rows:()=>mayFlip(
+   [RB(3,3),RB(2,3),RB(1,3),RB(1,1),RB(1,1),RB(1,1),RB(1,1),RO(1,1,1),RB(1,3),RB(2,3),RB(3,3)])},
+
+ {name:'섬돌 넘기', min:0.30, rows:()=>mayFlip(
+   [RB(3,3),RB(3,3),RB(3,3,'X'),HOLE,RB(5,3),RB(5,3),RB(5,3)])},
+
+ {name:'벼랑길', min:0.34, rows:()=>mayFlip(
+   [RB(3,3),RB(4,3),RB(5,3),RB(5,1),RB(5,1),HOLE,HOLE,RB(3,3),RB(3,3),RB(3,3)])},
+
+ {name:'좁은 도약', min:0.40, rows:()=>mayFlip(
+   [RB(3,3),RB(3,1),RB(3,1),HOLE,HOLE,RB(3,1),RB(3,1),RB(3,1),RB(3,3),RB(3,3)])},
+
+ {name:'마지막 관문', min:0.55, rows:()=>mayFlip(
+   [RB(3,3),RB(3,5),RB(3,5),RO(3,5,5),RB(3,3),HOLE,HOLE,RB(1,3),RB(1,3),RB(1,3),
+    RB(1,1),RB(1,1),HOLE,RB(3,3),RB(4,3),RB(5,3),HOLE,HOLE,RB(3,3),RB(3,3),RB(3,3)])},
 ];
 
 function pickRoadChunk(){
@@ -1087,24 +1117,28 @@ function pickRoadChunk(){
   const c=pool[Math.floor(Math.random()*pool.length)];
   W3.used[c.name]=(W3.used[c.name]||0)+1;
   W3.rowQ=c.rows(p).slice();
-  W3.restLeft=(p<0.4?2:1);
+  W3.restLeft=1;                                       // 이어 주는 줄만. 예전엔 절반이 빈 평지였다
   W3.chName=c.name;
 }
-/* 한 줄에 설 자리가 있는지 본다.
-   없어도 통짜 구멍이면 점프로 넘으니 둔다. 다만 세 줄 이어지면 못 넘는다 */
+/* 구멍이 세 줄 이어지면 점프로 못 넘는다 — 그때만 가운데를 뚫는다 */
 function roadFixRow(cells){
-  const stand=cells.some(c=>c&&c.h===0&&c.tt!=='burn');
-  const hole =cells.every(c=>!c);
-  if(stand){ W3.holeRun=0; return; }
-  if(hole && W3.holeRun<2){ W3.holeRun++; return; }
-  W3.holeRun=0;
-  cells[3]={h:0,tt:null};                              // 막힌 줄 — 가운데를 뚫는다
+  if(cells.some(c=>c)){ W3.holeRun=0; return; }
+  if(W3.holeRun<2){ W3.holeRun++; return; }
+  W3.holeRun=0; cells[3]={h:0};
 }
 function roadGen(){
   if(!W3.rowQ||!W3.rowQ.length) pickRoadChunk();
-  const cells=rowOf(W3.rowQ.shift());
+  const str=W3.rowQ.shift();
+  const cells=rowOf(str);
   roadFixRow(cells);
-  W3.obs.push({kind:'row', z:W3.nextZ, cells, safe:(W3.restLeft>0), hit:false, n:W3.rowN++});
+  const z=W3.nextZ;
+  W3.obs.push({kind:'row', z, cells, hit:false, n:W3.rowN++});
+  /* 길 자리를 기억해 둔다 — 다음 덩이가 여기서 이어진다 */
+  const on=cells.map((c,i)=>c?i:-1).filter(i=>i>=0);
+  if(on.length) W3.roadC=Math.round((on[0]+on[on.length-1])/2);
+  /* 옥병 — 길 위에 떠 있다 */
+  for(let i=0;i<str.length;i++) if(str[i]==='o')
+    W3.obs.push({kind:'orb', z, x:laneX(i), y:T3.W-96, got:false});
   W3.nextZ+=T3.ring;
 }
 /* 발밑이 어떤 칸인가 */
@@ -1122,7 +1156,7 @@ function roadSafeLane(fromX){
     for(const i of (d?[c0-d,c0+d]:[c0])){
       if(i<0||i>=LANES) continue;
       const c=r.cells[i];
-      if(c && c.h===0 && c.tt!=='burn') return i;
+      if(c && c.h===0) return i;
     }
   return c0;
 }
@@ -1149,13 +1183,14 @@ function roadTick(dt,flow){
     row.hit=true; miniHit();
     W3.cy=topY; W3.vy=0; W3.onFloor=true;
   }
-  if(!row.hit && hasFloor && cell.tt){
-    row.hit=true;
-    if(cell.tt==='burn'){ miniHit(); }
-    else if(cell.tt==='give'){ S.energy=Math.min(S.energyMax,S.energy+MINI.heal); vibe('right'); }
-    else if(cell.tt==='boost') W3.boostT=1.6;
-    else if(cell.tt==='slow')  W3.slowT=1.4;
-    else if(cell.tt==='slip')  W3.slipT=1.6;
+  /* 옥병 — 스치면 기력이 돌아온다 */
+  for(const o of W3.obs){
+    if(o.kind!=='orb'||o.got) continue;
+    if(Math.abs(o.z-T3.ZCrun)<T3.ring*0.7 &&
+       Math.abs(o.x-W3.cx)<LANEW*0.8 && Math.abs(o.y-W3.cy)<150){
+      o.got=true; MG.healFx=1;
+      S.energy=Math.min(S.energyMax,S.energy+MINI.heal); vibe('right');
+    }
   }
   /* 떨어짐 — 마리오처럼 위에서 내려올 때만 올라선다.
      예전에는 밑에서도 끌어올려서 구멍이 없는 셈이었다 */
@@ -1188,9 +1223,9 @@ function caveDecoTick(dt,flow){
   }
 }
 /* 굴 테 — 밑동에서 천장까지 한 바퀴 */
-const archPts=z=>{ const W=CAVE3.w, H=CAVE3.h, B=T3.W+320;
-  return [[-W,B],[-W*0.96,T3.W-H*0.34],[-W*0.62,T3.W-H*0.86],[0,T3.W-H*1.12],
-          [W*0.62,T3.W-H*0.86],[W*0.96,T3.W-H*0.34],[W,B]].map(q=>p3(q[0],q[1],z)); };
+const archPts=z=>{ const W=CAVE3.w, H=CAVE3.h, BOT=T3.W+320;
+  return [[-W,BOT],[-W*0.96,T3.W-H*0.34],[-W*0.62,T3.W-H*0.86],[0,T3.W-H*1.12],
+          [W*0.62,T3.W-H*0.86],[W*0.96,T3.W-H*0.34],[W,BOT]].map(q=>p3(q[0],q[1],z)); };
 const ceilY=xn=>T3.W-CAVE3.h*(1.12-0.50*xn*xn);       // 그 자리의 천장 높이
 function caveDecoDraw(){
   const stone='#6E6455';
@@ -1221,6 +1256,26 @@ function caveDecoDraw(){
   }
   ctx.restore();
 }
+/* 옥병 — 기력을 돌려준다. 길 위에 떠서 오르내린다 */
+function drawOrb(o){
+  const p=p3(o.x, o.y+Math.sin(MG.t*3+o.x*0.01)*12, o.z), s=p.s;
+  if(s<0.06) return;
+  const w=30*s, h=40*s;
+  ctx.save(); ctx.translate(p.x,p.y);
+  ctx.shadowColor=C['--jade']; ctx.shadowBlur=Math.min(30,20*s);
+  ctx.fillStyle='rgba(82,191,160,.80)'; ctx.strokeStyle='#F3EDDF';
+  ctx.lineWidth=Math.max(1,2*s);
+  ctx.beginPath();
+  ctx.moveTo(-w*0.20,-h*0.46); ctx.lineTo(w*0.20,-h*0.46); ctx.lineTo(w*0.20,-h*0.14);
+  ctx.quadraticCurveTo(w*0.60,-h*0.02, w*0.48,h*0.26);
+  ctx.quadraticCurveTo(w*0.30,h*0.54, 0,h*0.54);
+  ctx.quadraticCurveTo(-w*0.30,h*0.54,-w*0.48,h*0.26);
+  ctx.quadraticCurveTo(-w*0.60,-h*0.02,-w*0.20,-h*0.14);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle='#F3EDDF';
+  ctx.fillRect(-w*0.28,-h*0.60,w*0.56,h*0.16);         // 마개
+  ctx.restore();
+}
 function roadDraw(){
   caveDecoDraw();
   const rows=W3.obs.filter(o=>o.kind==='row'&&o.z>30).sort((a,b)=>b.z-a.z);
@@ -1230,8 +1285,7 @@ function roadDraw(){
     const band=(r.n%2)?1:0.66;                       // 줄무늬 — 흐름이 눈에 보인다
     for(let i=0;i<LANES;i++){
       const c=r.cells[i]; if(!c)continue;
-      const d=c.tt?TILE[c.tt]:null;
-      const col=d?d.c:(r.safe?'#F3EDDF':C['--jade']);
+      const col=C['--jade'];                           // 길은 한 색뿐이다
       const x0=laneX(i)-LANEW/2, x1=laneX(i)+LANEW/2;
       const y=T3.W-c.h*BLKH;
       const a=p3(x0,y,r.z), b=p3(x1,y,r.z);
@@ -1240,7 +1294,7 @@ function roadDraw(){
       ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
       ctx.lineTo(f.x,f.y); ctx.lineTo(e.x,e.y); ctx.closePath();
       ctx.fillStyle=col+(c.h?'66':(band>0.9?'3A':'20')); ctx.fill();
-      ctx.strokeStyle=col; ctx.shadowColor=col; ctx.shadowBlur=c.tt?15:8;
+      ctx.strokeStyle=col; ctx.shadowColor=col; ctx.shadowBlur=8;
       ctx.lineWidth=Math.max(1,2.6*fov()/r.z); ctx.stroke();
       if(c.h>0){                                       // 블록 앞면
         const g=p3(x0,T3.W,r.z), h2=p3(x1,T3.W,r.z);
@@ -1252,6 +1306,7 @@ function roadDraw(){
     }
   }
   ctx.restore();
+  for(const o of W3.obs) if(o.kind==='orb'&&!o.got&&o.z>40) drawOrb(o);
   if(W3.gone) return;                                  // 빠져 있는 동안은 안 그린다
   const me=p3(W3.cx,W3.cy,T3.ZCrun);
   drawSeonbiBack(me.x, me.y, T3.heroS*(me.s*T3.ZCrun/T3.F), W3.lean, MG.inv>0, !W3.onFloor);
