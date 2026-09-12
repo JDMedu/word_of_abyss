@@ -20,7 +20,7 @@ function miniStart(kind,done){
   MG={ kind:kind&&kinds.includes(kind)?kind:kinds[Math.floor(Math.random()*kinds.length)],
       t:0, left:MINI.dur, prog:0, spd:1, brake:0, hits:0, inv:0, over:null, done,
       quit:false, fx:0, shake:0, pen:0, penFx:0, healFx:0,
-      warn:0, warnT:0, warnFx:0 };
+      warn:0, warnT:0, warnFx:0, quake:0, qT:0, deb:[] };
   mT=performance.now();
   if(MG.kind==='cave') caveInit(); else t3Init(MG.kind==='run');
   S.screen='mini';
@@ -80,6 +80,25 @@ function miniTick(dt){
   }
   if(MG.warnT>0)  MG.warnT =Math.max(0,MG.warnT-dt);
   if(MG.warnFx>0) MG.warnFx=Math.max(0,MG.warnFx-dt*0.8);
+  /* 8할 — 여기서부터는 쉬지 않고 무너진다. 자막은 없다 */
+  if(MG.prog>=0.8){
+    if(!MG.quake){ MG.quake=1; MG.qT=0; }
+    MG.shake=Math.max(MG.shake,9);               // 늘 자잘하게 떨린다
+    MG.qT-=dt;
+    if(MG.qT<=0){                                // 이따금 크게 한 번
+      MG.qT=0.40+Math.random()*0.42;
+      MG.shake=Math.max(MG.shake,28+Math.random()*20);
+      MG.warnFx=Math.max(MG.warnFx,0.5);
+      vibe('alertOn');
+    }
+    if(MG.deb.length<80 && Math.random()<0.7)    // 부스러기가 쏟아진다
+      MG.deb.push({x:Math.random()*VW, y:-24, vy:420+Math.random()*760,
+                   r:2+Math.random()*4.5, sw:(Math.random()-.5)*90});
+  }
+  for(let i=MG.deb.length-1;i>=0;i--){
+    const d=MG.deb[i]; d.y+=d.vy*dt; d.x+=d.sw*dt;
+    if(d.y>VH+40) MG.deb.splice(i,1);
+  }
   if(MG.kind==='cave') caveTick(dt); else t3Tick(dt);
   if(MG.prog>=1){ miniEnd('clear'); return; }
   if(MG.left<=0){ miniEnd('timeout'); return; }
@@ -92,6 +111,14 @@ function miniDraw(){
   if(MG.kind==='cave') caveDraw(); else if(MG.kind==='run') roadDraw(); else t3Draw();
   ctx.restore();
   miniHud();
+  if(MG.deb.length){                             // 무너지며 떨어지는 부스러기
+    ctx.save(); ctx.fillStyle='#B08A4E';
+    for(const d of MG.deb){
+      ctx.globalAlpha=0.30+0.45*Math.min(1,d.vy/900);
+      ctx.beginPath(); ctx.ellipse(d.x,d.y,d.r,d.r*1.9,0,0,7); ctx.fill();
+    }
+    ctx.restore();
+  }
   if(MG.warnFx>0){                               // 절반 — 위아래에서 흙먼지가 밀려든다
     const a=MG.warnFx, H=VH*0.32;
     ctx.save();
@@ -225,6 +252,7 @@ const CAVE={
   px:VW*0.30, grav:1250, thrust:-2050, vmax:820,   // 훨씬 무겁고 느리게
   step:46,                     // 지형 한 칸의 가로 폭
   base:900, speed:395,         // 기본 흐름 속도(가로)
+  orbR:66,                     // 옥병 줍는 품 — 바위(39)보다 훨씬 넉넉하게
 };
 let cv2=null;
 function caveInit(){
@@ -285,7 +313,9 @@ function caveTick(dt){
     const r=cv2.rocks[i]; r.a+=r.sp*dt;
     if(r.x<cv2.ox-80){ cv2.rocks.splice(i,1); continue; }
     const sx=r.x-cv2.ox;
-    if(Math.abs(sx-CAVE.px)<r.r+22 && Math.abs(r.y-cv2.y)<r.r+22){
+    /* 옥병은 넉넉하게 — 바위는 정확하게 */
+    const rx=r.heal?CAVE.orbR:r.r+22, ry=r.heal?CAVE.orbR*0.9:r.r+22;
+    if(Math.abs(sx-CAVE.px)<rx && Math.abs(r.y-cv2.y)<ry){
       if(r.heal){ MG.healFx=1; S.energy=Math.min(S.energyMax,S.energy+MINI.heal);
                   spawnGrainsSafe(sx,r.y,8); cv2.rocks.splice(i,1); vibe('right'); }
       else miniHit();
