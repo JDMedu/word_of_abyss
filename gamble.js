@@ -5,17 +5,18 @@
    nextStage() 에 한 줄만 넣으면 된다.
    ══════════════════════════════════════════════════════════ */
 const GAM={
-  /* 세 판 — 목숨과 잔이 판마다 다르다 */
-  rounds:[{life:2,d:2,t:2},{life:3,d:3,t:3},{life:3,d:4,t:3}],
+  /* 세 판 — 목숨과 잔 수가 판마다 다르다. 잔은 그때그때 뽑는다 */
+  rounds:[{life:1,cup:[2,3]},{life:4,cup:[3,4]},{life:4,cup:[4,6]}],
   loseEnergy:0.15,     // 한 판 지면 기력을 이만큼 잃는다(최소 1은 남는다)
   tonicHeal:0.05,      // 보약 한 잔
   wait:1.5,            // 노름꾼이 뜸 들이는 시간
-  quizN:3,             // 앉기 전에 묻는 낱말 수
+  quizN:4,             // 앉기 전에 묻는 낱말 수
 };
-/* 맞힌 순서대로 받는다. 셋 다 맞히면 셋 다 */
+/* 맞힌 순서대로 받는다. 넷 다 맞히면 넷 다 */
 const GITEM=[
   {id:'peek', name:'엿보기',   tip:'다음 잔이 무엇인지 나만 본다'},
   {id:'toss', name:'털어내기', tip:'다음 잔을 마시지 않고 엎는다'},
+  {id:'dbl',  name:'덧칠',     tip:'다음 잔이 사약이면 두 몫으로 든다'},
   {id:'cuff', name:'오랏줄',   tip:'노름꾼의 다음 차례를 건너뛴다'},
 ];
 
@@ -24,10 +25,11 @@ const GITEM=[
    노름판의 반말 하나로 민다                            */
 const GLINE={
   meet:'앉아라.\n셈은 네가 하고, 마시는 것도 네가 고른다.',
-  round:[ '사약 둘, 보약 둘. 섞는다.\n잘 보아 두어라. 두 번은 안 보여준다.',
-          '한 판 갔다. 잔을 새로 놓는다.\n이번엔 목숨이 셋이다. 길어질 것이야.',
-          '마지막이다.\n여기서 지면 하나를 두고 간다.' ],
-  refill:'잔이 떨어졌다. 다시 놓는다.',
+  /* 셈에 쓸 수는 오직 여기서만 나온다. 화면에는 안 적는다 */
+  round:[ (d,t)=>`주전자에 사약 ${d}, 보약 ${t}을 붓는다.\n잘 새겨 두어라. 두 번은 안 일러준다.`,
+          (d,t)=>`한 판 갔다. 주전자를 비우고 새로 붓는다.\n사약 ${d}, 보약 ${t}이다.`,
+          (d,t)=>`마지막이다. 사약 ${d}, 보약 ${t}.\n여기서 지면 하나를 두고 간다.` ],
+  refill:(d,t)=>`주전자가 비었다. 다시 붓는다.\n사약 ${d}, 보약 ${t}이다.`,
   /* 짧은 것들은 화면을 멈추지 않는다. 노름꾼 아래에 잠깐 떴다 사라진다 */
   meDeath:['셈이 틀렸구나.','아까 그 잔을 건넸어야지.','아직 견딜 만하지?'],
   meTonic:['그건 알고 마신 게냐, 운이 좋은 게냐.','한 잔 더 집어 보아라.'],
@@ -47,9 +49,10 @@ let GB=null, gT=0;
 /* ── 들고 나기 ───────────────────────────────────────── */
 function gambleStart(done){
   GB={ round:0, wins:0, losses:0, mine:0, his:0,
-       cups:[], taken:0, peek:-1, cuffed:false, items:[],
+       cups:[], taken:0, peekKind:null, cuffed:false, dbl:false, hitDbl:false, items:[],
        turn:'me', cam:0, camTo:0, wait:0,
        st:'idle', p:0, who:null, actor:null, cup:null,
+       wipe:0, wiped:false, onWipe:null, flashW:0,
        shake:0, flash:0, veil:0, jade:0, knock:0, red:0, back:true,
        lamp:0, line:null, lineT:0, t:0, done:done||null };
   gT=performance.now();
@@ -103,15 +106,24 @@ function gAskQuiz(n){
 function gRoundStart(){
   const r=GAM.rounds[GB.round];
   GB.mine=r.life; GB.his=r.life;
-  gDeal(); GB.turn='me'; GB.camTo=0; GB.cam=0; GB.peek=-1;
+  const n=gDeal();
+  GB.turn='me'; GB.camTo=0; GB.cam=0;
+  GB.wipe=1; GB.st='open'; GB.flashW=1;          // 새 판이 밝아지며 열린다
   S.screen='gamble'; show(null);
-  say('노름꾼', GLINE.round[GB.round], C['--gold'], ()=>{ S.screen='gamble'; show(null); });
+  say('노름꾼', GLINE.round[GB.round](n.d,n.t), C['--gold'],
+      ()=>{ S.screen='gamble'; show(null); });
 }
+/* 잔 수는 판마다 뽑고, 사약은 하나 이상 · 잔 수보다 하나 적게까지 */
 function gDeal(){
-  const r=GAM.rounds[GB.round], a=[];
-  for(let i=0;i<r.d;i++) a.push({kind:'death'});
-  for(let i=0;i<r.t;i++) a.push({kind:'tonic'});
-  GB.cups=a.sort(()=>Math.random()-.5); GB.taken=0; GB.peek=-1;
+  const r=GAM.rounds[GB.round];
+  const n=r.cup[0]+Math.floor(Math.random()*(r.cup[1]-r.cup[0]+1));
+  const d=1+Math.floor(Math.random()*(n-1));     // 1 ~ n-1
+  const a=[];
+  for(let i=0;i<d;i++)   a.push({kind:'death'});
+  for(let i=0;i<n-d;i++) a.push({kind:'tonic'});
+  GB.cups=a.sort(()=>Math.random()-.5); GB.taken=0;
+  GB.peekKind=null; GB.dbl=false;
+  return {d, t:n-d};
 }
 const gLeft  =()=>GB.cups.slice(GB.taken);
 const gDeath =()=>gLeft().filter(c=>c.kind==='death').length;
@@ -119,34 +131,39 @@ const gTonic =()=>gLeft().filter(c=>c.kind==='tonic').length;
 function gSay(t){ GB.line=t; GB.lineT=2.4; }
 
 /* ── 잔 하나 ─────────────────────────────────────────── */
-const GPH={ lift:0.55, hold:0.30, tilt:0.35, res:1.10, calm:0.60 };
-const GTOT=GPH.lift+GPH.hold+GPH.tilt+GPH.res+GPH.calm;
+/* 따른다 → 옮긴다 → 뜸 → 기운다 → 결과.
+   따르는 동안에도 잔 속은 검다. 입에 댈 때만 드러난다 */
+const GPH={ pour:0.55, move:0.40, hold:0.25, tilt:0.35, res:1.10, calm:0.60 };
+const GMARK=GPH.pour+GPH.move+GPH.hold+GPH.tilt;
+const GTOT=GMARK+GPH.res+GPH.calm;
 
 function gTake(who, actor){
   if(GB.st!=='idle' || !gLeft().length) return;
   GB.st='run'; GB.p=0; GB.who=who; GB.actor=actor||'me'; GB.cup=GB.cups[GB.taken];
-  GB.peek=-1;
+  GB.hitDbl=GB.dbl; GB.dbl=false; GB.peekKind=null;
 }
 function gLand(){
   const dead=GB.cup.kind==='death';
   if(GB.who==='toss'){ gSay(dead?'사약을 엎었다.':'보약을 엎었다.'); return; }
+  const dmg=(dead&&GB.hitDbl)?2:1;
   if(GB.who==='me'){
-    if(dead){ GB.flash=1; GB.veil=1; GB.shake=34; GB.mine--; vibe('hurt');
-              gSay(gPick(GLINE.meDeath)); }
+    if(dead){ GB.flash=1; GB.veil=1; GB.shake=34+GB.hitDbl*16; GB.mine-=dmg; vibe('hurt');
+              gSay(GB.hitDbl?'덧칠한 사약이다. 두 몫으로 든다.':gPick(GLINE.meDeath)); }
     else    { GB.jade=1;
               S.energy=Math.min(S.energyMax, S.energy+Math.round(S.energyMax*GAM.tonicHeal));
               vibe('charged'); gSay(gPick(GLINE.meTonic)); }
   }else{
-    if(dead){ GB.knock=1; GB.red=1; GB.shake=44; GB.lamp=1;
-              GB.back=Math.random()<0.5; GB.his--; vibe('boss');
-              gSay(gPick(GLINE.hisDeath)); }
+    if(dead){ GB.knock=1; GB.red=1; GB.shake=44+GB.hitDbl*18; GB.lamp=1;
+              GB.back=Math.random()<0.5; GB.his-=dmg; vibe('boss');
+              gSay(GB.hitDbl?'덧칠이 먹었다.':gPick(GLINE.hisDeath)); }
     else    { gSay(gPick(GLINE.hisTonic)); }
   }
 }
 /* 차례는 하나로 정해진다 — 제가 마신 잔이 보약이면 그대로, 그 밖에는 넘어간다 */
 function gPass(){
   if(GB.who==='toss'){ GB.turn=GB.actor; GB.camTo=GB.turn==='dealer'?1:0; GB.wait=GAM.wait; return; }
-  const keep=(GB.who===GB.actor && GB.cup.kind==='tonic');
+  /* 누가 마셨든 상관없다. 보약이면 따른 사람이 한 번 더, 사약이면 넘어간다 */
+  const keep=(GB.cup.kind==='tonic');
   let next=keep?GB.actor:(GB.actor==='me'?'dealer':'me');
   if(next==='dealer' && GB.cuffed){ next='me'; GB.cuffed=false; gSay(GLINE.cuff); }
   GB.turn=next; GB.camTo=next==='dealer'?1:0; GB.wait=GAM.wait;
@@ -154,7 +171,11 @@ function gPass(){
 /* 판이 끝났나 */
 function gCheck(){
   if(GB.mine>0 && GB.his>0){
-    if(!gLeft().length){ gDeal(); gSay(GLINE.refill); }
+    if(!gLeft().length){
+      const n=gDeal();
+      say('노름꾼', GLINE.refill(n.d,n.t), C['--gold'],
+          ()=>{ S.screen='gamble'; show(null); });
+    }
     else if(gLeft().length===1) gSay(GLINE.last);
     return;
   }
@@ -164,13 +185,17 @@ function gCheck(){
          S.energy=Math.max(1, S.energy-Math.round(S.energyMax*GAM.loseEnergy)); }
   const over=GB.wins>=2||GB.losses>=2;
   GB.st='hold';
+  /* 판이 갈리면 화면이 통째로 꺼졌다가 새 판이 밝아지며 열린다 */
   setTimeout(()=>{
     if(!GB) return;
-    if(over){ say('노름꾼', won?GLINE.win:GLINE.lose, C['--gold'],
-                  ()=>{ if(GB.wins>=2) gambleEnd(true); else gPenalty(); }); return; }
-    say('노름꾼', won?GLINE.roundWin:GLINE.roundLose, C['--gold'],
-        ()=>{ GB.round++; GB.st='idle'; gRoundStart(); });
-  }, 1400);
+    GB.st='wipe'; GB.wiped=false;
+    GB.onWipe=()=>{
+      if(over){ say('노름꾼', won?GLINE.win:GLINE.lose, C['--gold'],
+                    ()=>{ if(GB.wins>=2) gambleEnd(true); else gPenalty(); }); return; }
+      say('노름꾼', won?GLINE.roundWin:GLINE.roundLose, C['--gold'],
+          ()=>{ GB.round++; gRoundStart(); });
+    };
+  }, 1200);
 }
 
 /* ── 진 값 — 구슬 하나를 버리거나 위력을 내준다 ────────── */
@@ -215,13 +240,22 @@ function gTick(dt){
     if(was<mark && GB.p>=mark) gLand();
     if(GB.p>=GTOT){ gPass(); GB.st='idle'; GB.taken++; GB.cup=null; GB.who=null; gCheck(); }
   }
+  else if(GB.st==='wipe'){
+    GB.wipe=Math.min(1,(GB.wipe||0)+dt*2.2);
+    if(GB.wipe>=1 && !GB.wiped){ GB.wiped=true; const f=GB.onWipe; GB.onWipe=null; if(f) f(); }
+  }
+  else if(GB.st==='open'){
+    GB.wipe=Math.max(0,(GB.wipe||0)-dt*1.7);
+    if(GB.wipe<=0) GB.st='idle';
+  }
   const ease=(v,k)=>Math.max(0,v-dt*k);
   GB.shake=ease(GB.shake,90); GB.flash=ease(GB.flash,3.4);
   GB.veil =ease(GB.veil,0.85); GB.jade=ease(GB.jade,1.5);
   GB.lamp =ease(GB.lamp,2.2);  GB.knock=ease(GB.knock,1.6);
   GB.red  =ease(GB.red,1.05);  GB.lineT=ease(GB.lineT,1);
+  GB.flashW=ease(GB.flashW||0,1.6);
   GB.cam += (GB.camTo-GB.cam)*Math.min(1,dt*3.4);
-  if(GB.turn==='dealer' && GB.st==='idle' && gLeft().length){
+  if(GB.turn==='dealer' && GB.st==='idle' && !GB.wipe && gLeft().length){
     GB.wait-=dt;
     if(GB.wait<=0){
       const d=gDeath(), t=gTonic();
@@ -243,8 +277,14 @@ function gKnock(){
    ══════════════════════════════════════════════════════ */
 const GHX=VW/2, GHY=352, GRX=88, GRY=106, GWAIST=700, GNECK=470;
 const GTOP=760, GBOT=1250, GTHW=300, GBHW=640;
-const GCUPY=915, GCUPGAP=132;
-const gCupX=(i,n)=>VW/2+(i-(n-1)/2)*GCUPGAP;
+/* 주전자와 잔은 차례를 따라 상 이쪽저쪽으로 건너간다.
+   늘어놓지 않으니 셀 것은 대사로 들은 수뿐이다 */
+function gRest(){
+  const c=GB.cam;
+  return { px:VW/2-165, py:1000+(700-1000)*c,
+           cx:VW/2+95,  cy:1000+(700-1000)*c,
+           s:1.15+(0.80-1.15)*c };
+}
 const gFlick=()=>0.86+0.14*Math.sin(GB.t*11)+0.05*Math.sin(GB.t*23.7);
 function gRR(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y);
   ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
@@ -374,6 +414,26 @@ function gLamp(x,y){
   ctx.beginPath(); ctx.ellipse(0,-9,3.4,8*f,0,0,7); ctx.fill();
   ctx.restore(); ctx.restore();
 }
+function gPot(x,y,s,tilt){
+  ctx.save(); ctx.translate(x,y); ctx.scale(s,s); ctx.rotate(tilt);
+  ctx.strokeStyle='rgba(243,237,223,.74)'; ctx.lineWidth=3.2;
+  ctx.fillStyle='rgba(5,8,15,.94)';
+  ctx.beginPath();                                   // 몸통
+  ctx.moveTo(-34,-22);
+  ctx.bezierCurveTo(-46,4,-38,30,0,30);
+  ctx.bezierCurveTo(38,30,46,4,34,-22);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(0,-22,34,10,0,0,7); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-8,-30); ctx.lineTo(8,-30);   // 꼭지
+  ctx.moveTo(0,-30); ctx.lineTo(0,-22); ctx.stroke();
+  ctx.beginPath();                                   // 부리
+  ctx.moveTo(30,-12); ctx.quadraticCurveTo(56,-16,62,-34);
+  ctx.lineWidth=6; ctx.stroke();
+  ctx.beginPath();                                   // 손잡이
+  ctx.moveTo(-30,-14); ctx.quadraticCurveTo(-58,-4,-30,16);
+  ctx.lineWidth=4.6; ctx.stroke();
+  ctx.restore();
+}
 function gCup(x,y,s,tilt,show,kind){
   ctx.save(); ctx.translate(x,y); ctx.scale(s,s); ctx.rotate(tilt);
   ctx.strokeStyle='rgba(243,237,223,.78)'; ctx.lineWidth=3.2;
@@ -410,7 +470,7 @@ function gCam(){
 const GBTN=[ {x:60, y:1160, w:360, h:104, k:'me',     s:'내가 마신다'},
              {x:460,y:1160, w:360, h:104, k:'dealer', s:'건넨다'} ];
 const gMyTurn=()=>GB.turn==='me'&&GB.st==='idle'&&gLeft().length>0;
-function gItemBox(i){ return {x:60+i*266, y:1300, w:250, h:76}; }
+function gItemBox(i){ return {x:36+i*204, y:1300, w:192, h:76}; }
 
 function gDraw(){
   const sh=GB.shake;
@@ -430,35 +490,48 @@ function gDraw(){
     ctx.fillText(GB.line, VW/2, 726); ctx.restore();
   }
   gTable(); gLamp(150,822); gLamp(730,822);
-  const n=GB.cups.length;
-  for(let i=GB.taken;i<n;i++){
-    if(GB.st==='run' && i===GB.taken) continue;
-    gCup(gCupX(i,n),GCUPY,1,0, i===GB.peek?0.5:0, GB.cups[i].kind);
+
+  const R=gRest(), run=GB.st==='run';
+  let potTilt=0, pouring=0;
+  if(run && GB.p<GPH.pour){ pouring=Math.sin((GB.p/GPH.pour)*Math.PI); potTilt=-0.62*pouring; }
+  gPot(R.px,R.py,R.s,potTilt);
+  if(GB.peekKind){                                   // 엿본 것 — 주전자 옆에 표가 앉는다
+    ctx.save(); ctx.globalAlpha=.72;
+    ctx.fillStyle=GB.peekKind==='death'?C['--vermilion']:C['--jade'];
+    ctx.shadowColor=ctx.fillStyle; ctx.shadowBlur=18;
+    ctx.beginPath(); ctx.arc(R.px-64*R.s, R.py-34*R.s, 11*R.s, 0, 7); ctx.fill();
+    ctx.restore();
   }
-  if(GB.st==='run'){
-    const p=GB.p, sx=gCupX(GB.taken,n);
-    const to = GB.who==='dealer' ? {x:GHX,y:470,s:0.8}
+  if(pouring>0.08){                                  // 떨어지는 줄기 — 색은 없다
+    ctx.save(); ctx.globalAlpha=pouring;
+    ctx.strokeStyle='rgba(243,237,223,.5)'; ctx.lineWidth=3.4*R.s;
+    ctx.beginPath();
+    ctx.moveTo(R.px+62*R.s, R.py-34*R.s);
+    ctx.quadraticCurveTo(R.cx-6*R.s, R.py-26*R.s, R.cx, R.cy-22*R.s);
+    ctx.stroke(); ctx.restore();
+  }
+  /* 잔 — 따르는 동안은 제자리, 그 뒤에 마실 사람에게 간다 */
+  let x=R.cx, y=R.cy, cs=R.s, tilt=0, show=0;
+  if(run && GB.p>=GPH.pour){
+    const to = GB.who==='dealer' ? {x:GHX,y:500,s:0.9}
              : GB.who==='toss'   ? {x:VW/2,y:1040,s:1.2}
                                  : {x:VW/2,y:1120,s:1.9};
-    let x=sx,y=GCUPY,s=1,tilt=0,show=0;
-    if(p<GPH.lift){ const k=p/GPH.lift, e=k*k*(3-2*k);
-      x=sx+(to.x-sx)*e; y=GCUPY+(to.y-GCUPY)*e; s=1+(to.s-1)*e; }
-    else{ x=to.x; y=to.y; s=to.s;
-      const q=p-GPH.lift;
-      if(q>=GPH.hold){ const k=Math.min(1,(q-GPH.hold)/GPH.tilt);
+    const q=GB.p-GPH.pour;
+    if(q<GPH.move){ const k=q/GPH.move, e=k*k*(3-2*k);
+      x=R.cx+(to.x-R.cx)*e; y=R.cy+(to.y-R.cy)*e; cs=R.s+(to.s-R.s)*e; }
+    else{ x=to.x; y=to.y; cs=to.s;
+      const w=q-GPH.move;
+      if(w>=GPH.hold){ const k=Math.min(1,(w-GPH.hold)/GPH.tilt);
         tilt=(GB.who==='dealer'?1:-1)*k*(GB.who==='toss'?1.4:0.62); show=k; }
-      if(q>=GPH.hold+GPH.tilt) show=1;
+      if(w>=GPH.hold+GPH.tilt) show=1;
     }
-    gCup(x,y,s,tilt,show,GB.cup.kind);
   }
+  gCup(x,y,cs,tilt,show,run?GB.cup.kind:null);
   ctx.restore();                                       // ── 시점 끝
 
-  /* 붙박이 — 시점이 올라가도 셈은 끊기지 않는다 */
+  /* 남은 수는 적지 않는다. 들은 것을 머리에 담고 있어야 한다 */
   const fade=1-GB.cam;
   ctx.save(); ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.font=`400 34px 'Gowun Batang',serif`;
-  ctx.fillStyle=C['--vermilion']; ctx.fillText(`사약 ${gDeath()}`, VW/2-96, 1418);
-  ctx.fillStyle=C['--jade'];      ctx.fillText(`보약 ${gTonic()}`, VW/2+96, 1418);
   ctx.globalAlpha=.5; ctx.font=`400 24px 'Gowun Batang',serif`;
   ctx.fillStyle=C['--paper'];
   ctx.fillText(`${GB.round+1}판  ·  ${GB.wins}승 ${GB.losses}패`, VW/2, 1064);
@@ -483,7 +556,7 @@ function gDraw(){
       ctx.strokeStyle=C['--gold']; ctx.lineWidth=2;
       ctx.fillStyle='rgba(229,178,79,.10)';
       gRR(r.x,r.y,r.w,r.h,10); ctx.fill(); ctx.stroke();
-      ctx.font=`400 28px 'Gowun Batang',serif`; ctx.fillStyle=C['--gold'];
+      ctx.font=`400 25px 'Gowun Batang',serif`; ctx.fillStyle=C['--gold'];
       ctx.fillText(it.name, r.x+r.w/2, r.y+r.h/2+1);
     });
     ctx.restore();
@@ -505,13 +578,24 @@ function gDraw(){
     ctx.save(); ctx.globalAlpha=Math.min(1,GB.flash)*.55;
     ctx.fillStyle=C['--vermilion']; ctx.fillRect(0,0,VW,VH); ctx.restore();
   }
+  if(GB.flashW>0){                                  // 새 판 — 종이빛이 한 번 친다
+    ctx.save(); ctx.globalAlpha=Math.min(1,GB.flashW)*.7;
+    ctx.fillStyle=C['--paper']; ctx.fillRect(0,0,VW,VH); ctx.restore();
+  }
+  if(GB.wipe>0){                                    // 판이 갈린다 — 통째로 꺼진다
+    ctx.save(); ctx.globalAlpha=Math.min(1,GB.wipe);
+    ctx.fillStyle=C['--pit-void']||'#05080F'; ctx.fillRect(0,0,VW,VH); ctx.restore();
+  }
 }
 
 /* ── 도구 쓰기 ───────────────────────────────────────── */
 function gUse(i){
   const id=GB.items[i]; if(!id||!gMyTurn()) return;
-  if(id==='peek'){ GB.peek=GB.taken; gSay('다음 잔을 보았다.'); }
+  if(id==='peek'){ const c=GB.cups[GB.taken];
+    GB.peekKind=c?c.kind:null;
+    gSay(c&&c.kind==='death'?'다음은 사약이다.':'다음은 보약이다.'); }
   else if(id==='toss'){ GB.items.splice(i,1); gTake('toss','me'); return; }
+  else if(id==='dbl'){ GB.dbl=true; gSay('먹을 한 번 더 칠했다.'); }
   else if(id==='cuff'){ GB.cuffed=true; gSay('오랏줄을 걸어 두었다.'); }
   GB.items.splice(i,1);
   vibe('charged');
