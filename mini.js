@@ -620,6 +620,12 @@ const T3={
   move:760,         // 좌우(상하) 움직임 속도
   grav:7000, jump:-1900,   // 한 번 뛰면 세 칸 남짓 — 스카이로드처럼 딱딱하게
   road:185,         // 띠 반폭 — 이 밖으로 나가면 허공이다
+  /* 질주 — 스카이로드처럼 길 위에서 비스듬히 내려다본다 */
+  ZCrun:380,        // 선비가 서 있는 깊이(질주). 얕으면 점프가 화면을 통째로 흔든다
+  eye:390,          // 카메라가 길 위로 뜬 높이. 0이면 길이 선 하나로 눌린다
+  horizon:0.40,     // 소실점이 화면 위에서 이만큼 되는 자리
+  heroS:3.6,        // 선비 크기 — 깊이가 멀어져도 그대로 둔다
+  barRX:28, barRY:52,   // 낙하 막대 판정 — 선비는 세로로 길쭉하다
 };
 /* 스카이로드의 타일 — 색마다 성질이 다르다 */
 const TILE={
@@ -632,14 +638,17 @@ const TILE={
 let W3=null;
 const curZ=z=>0;                       // 스카이로드는 곧게 뻗는다
 const p3=(x,y,z)=>{ const s=T3.F/Math.max(24,z), off=curZ(z)-curZ(T3.ZC);
-  return {x:VW/2+(x+off-W3.cx)*s, y:VH*0.52+(y-W3.cy)*s, s}; };
+  /* 질주에서는 카메라가 선비가 아니라 길에 붙어 있다 — 뛰면 선비가 떠오른다 */
+  const cy = W3.run ? T3.W-T3.eye : W3.cy;
+  const hz = W3.run ? T3.horizon  : 0.52;
+  return {x:VW/2+(x+off-W3.cx)*s, y:VH*hz+(y-cy)*s, s}; };
 
 function t3Init(run){
   W3={ run, cx:0, cy:run?T3.W-70:0, vx:0, vy:0, onFloor:true,
        z0:0, obs:[], nextZ:T3.FAR, ang:0, lean:0, jumpHeld:false,
        seed:Math.random()*7, rolled:0, rest:0,
        chQ:[], chRest:0, restAfter:3, used:{}, chName:'', slot:0,
-       slipT:0, boostT:0, slowT:0, drift:0, rowQ:[], restLeft:0 };
+       slipT:0, boostT:0, slowT:0, drift:0, rowQ:[], restLeft:run?3:0 };
   if(run){ W3.nextZ=T3.ring; while(W3.nextZ<T3.FAR) roadGen(); }
   else for(let z=T3.ring; z<T3.FAR; z+=T3.ring) W3.obs.push({kind:'ring',z});
 }
@@ -696,7 +705,7 @@ function t3Tick(dt){
     const o=W3.obs[i];
     o.z-=flow*dt;
     if(o.z<-120){ W3.obs.splice(i,1); continue; }
-    if(o.kind==='bar')   o.o=Math.sin(W3.ang*o.sp)*T3.W*0.62;
+    if(o.kind==='bar' && o.sp) o.o=Math.sin(W3.ang*o.sp)*T3.W*0.62;   // sp 0 = 제자리
     if(o.kind==='cross') o.a+=o.sp*dt;
     if(o.kind==='iris')  o.ph+=dt*1.00;
     if(!o.hit && o.z<=T3.ZC && o.z>T3.ZC-flow*dt-10){
@@ -718,7 +727,8 @@ function t3Block(o){
   const x=W3.cx, y=W3.cy, R=46;
   switch(o.kind){
     case 'plate':  return Math.hypot(x-o.hx,y-o.hy) > o.hr-R;
-    case 'bar':    return o.vert ? Math.abs(x-o.o)<o.w+R : Math.abs(y-o.o)<o.w+R;
+    case 'bar':    return o.vert ? Math.abs(x-o.o)<o.w+T3.barRX
+                                 : Math.abs(y-o.o)<o.w+T3.barRY;
     case 'cross':  { for(let k=0;k<4;k++){ const a=o.a+k*Math.PI/2;
                        const dx=Math.cos(a), dy=Math.sin(a);
                        const t=x*dx+y*dy; if(t<0) continue;
@@ -1063,8 +1073,20 @@ function roadCellAt(z){
     const d=Math.abs(o.z-z); if(d<bd){ bd=d; best=o; } }
   return best;
 }
+/* 떨어졌을 때 올라설 칸 — 가운데가 아니라 가장 가까운 성한 칸 */
+function roadSafeLane(fromX){
+  const rows=W3.obs.filter(o=>o.kind==='row'&&o.z>T3.ZCrun-60).sort((a,b)=>a.z-b.z);
+  const c0=laneOf(fromX);
+  for(const r of rows) for(let d=0;d<LANES;d++)
+    for(const i of (d?[c0-d,c0+d]:[c0])){
+      if(i<0||i>=LANES) continue;
+      const c=r.cells[i];
+      if(c && c.h===0 && c.tt!=='burn') return i;
+    }
+  return c0;
+}
 function roadTick(dt){
-  const row=roadCellAt(T3.ZC); if(!row)return;
+  const row=roadCellAt(T3.ZCrun); if(!row)return;
   const li=laneOf(W3.cx), cell=row.cells[li];
   const topY = cell ? T3.W-cell.h*BLKH : T3.W+900;     // 없으면 바닥이 없다
   /* 블록에 정면으로 부딪혔나 */
@@ -1086,7 +1108,7 @@ function roadTick(dt){
   else W3.onFloor=false;
   if(W3.cy>T3.W+520){                                  // 허공으로 떨어졌다
     miniHit();
-    W3.cx=0; W3.cy=T3.W-200; W3.vy=0;
+    W3.cx=laneX(roadSafeLane(W3.cx)); W3.cy=T3.W-200; W3.vy=0;
   }
 }
 function roadDraw(){
@@ -1125,8 +1147,8 @@ function roadDraw(){
     }
   }
   ctx.restore();
-  const me=p3(W3.cx,W3.cy,T3.ZC);
-  drawSeonbiBack(me.x, me.y, me.s, W3.lean, MG.inv>0, !W3.onFloor);
+  const me=p3(W3.cx,W3.cy,T3.ZCrun);
+  drawSeonbiBack(me.x, me.y, T3.heroS, W3.lean, MG.inv>0, !W3.onFloor);
 }
 
 /* ── 동굴의 움직이는 기믹 — 문과 포 ─────────────────── */
