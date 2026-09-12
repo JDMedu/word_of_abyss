@@ -694,6 +694,7 @@ canvas{display:block;width:100%;height:100%}
           <button class="btn ghost" onclick="admMini('fall')">낙하</button>
           <button class="btn ghost" onclick="admMini('run')">질주</button>
           <button class="btn gold" onclick="admTo25()">25층으로 간다</button>
+          <button class="btn ghost" onclick="typeof admGamble==='function'?admGamble():alert('gamble.js 를 못 찾았습니다')">노름꾼</button>
         </div>
       </div>
     </div>
@@ -10908,5 +10909,6 @@ if(META.sawIntro){ show('vTitle'); maybeOfferInstall(); } else showIntro();
 requestAnimationFrame(loop);
 </script>
 <script src="mini.js"></script>
+<script src="gamble.js"></script>
 </body>
 </html>
