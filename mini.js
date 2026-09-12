@@ -19,11 +19,16 @@ function miniStart(kind,done){
   const kinds=['cave','fall','run'];
   MG={ kind:kind&&kinds.includes(kind)?kind:kinds[Math.floor(Math.random()*kinds.length)],
       t:0, left:MINI.dur, prog:0, spd:1, brake:0, hits:0, inv:0, over:null, done,
-      quit:false, fx:0, shake:0, pen:0, penFx:0, healFx:0 };
+      quit:false, fx:0, shake:0, pen:0, penFx:0, healFx:0,
+      warn:0, warnT:0, warnFx:0 };
   mT=performance.now();
   if(MG.kind==='cave') caveInit(); else t3Init(MG.kind==='run');
   S.screen='mini';
   vibe('alertOn');
+  if(typeof guide==='function'){                 // 처음 만나는 판만 설명한다
+    guide('mgAll');
+    guide(MG.kind==='cave'?'mgCave':MG.kind==='run'?'mgRun':'mgFall');
+  }
 }
 function miniEnd(how){                       // 'clear' | 'timeout' | 'dead' | 'quit'
   const done=MG.done; const kind=MG.kind; MG=null;
@@ -67,6 +72,14 @@ function miniTick(dt){
   const b=MG.brake>0 ? MINI.brake+(1-MINI.brake)*(1-MG.brake/MINI.brakeBack) : 1;
   MG.spd=ramp*b;
   MG.prog+=MG.spd*dt/MINI.clean;
+  /* 절반 — 구덩이가 크게 한 번 무너진다. 연출뿐, 속도는 그대로 */
+  if(!MG.warn && MG.prog>=0.5){
+    MG.warn=1; MG.warnT=2.6; MG.warnFx=1;
+    MG.shake=Math.max(MG.shake,34);
+    vibe('alertOn');
+  }
+  if(MG.warnT>0)  MG.warnT =Math.max(0,MG.warnT-dt);
+  if(MG.warnFx>0) MG.warnFx=Math.max(0,MG.warnFx-dt*0.8);
   if(MG.kind==='cave') caveTick(dt); else t3Tick(dt);
   if(MG.prog>=1){ miniEnd('clear'); return; }
   if(MG.left<=0){ miniEnd('timeout'); return; }
@@ -79,6 +92,29 @@ function miniDraw(){
   if(MG.kind==='cave') caveDraw(); else if(MG.kind==='run') roadDraw(); else t3Draw();
   ctx.restore();
   miniHud();
+  if(MG.warnFx>0){                               // 절반 — 위아래에서 흙먼지가 밀려든다
+    const a=MG.warnFx, H=VH*0.32;
+    ctx.save();
+    let g=ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,`rgba(176,138,78,${(0.58*a).toFixed(3)})`);
+    g.addColorStop(1,'rgba(176,138,78,0)');
+    ctx.fillStyle=g; ctx.fillRect(0,0,VW,H);
+    g=ctx.createLinearGradient(0,VH,0,VH-H);
+    g.addColorStop(0,`rgba(176,138,78,${(0.48*a).toFixed(3)})`);
+    g.addColorStop(1,'rgba(176,138,78,0)');
+    ctx.fillStyle=g; ctx.fillRect(0,VH-H,VW,H);
+    ctx.restore();
+  }
+  if(MG.warnT>0){                                // 자막
+    const a=Math.min(1,MG.warnT*1.6);
+    ctx.save(); ctx.globalAlpha=a;
+    ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+    ctx.fillStyle='rgba(5,8,15,.72)'; roundRect(VW/2-330,252,660,64,10); ctx.fill();
+    ctx.font=`700 38px 'Gowun Batang',serif`;
+    ctx.fillStyle='#E5B24F'; ctx.shadowColor='#E5B24F'; ctx.shadowBlur=16;
+    ctx.fillText('구덩이가 빠르게 무너진다',VW/2,296);
+    ctx.restore();
+  }
   if(MG.healFx>0){                               // 옥병을 주웠다 — 옥빛이 번진다
     ctx.save(); ctx.globalAlpha=MG.healFx*0.55;
     ctx.strokeStyle=C['--jade']; ctx.shadowColor=C['--jade'];
@@ -1304,7 +1340,7 @@ function drawDrop(){
   if(up<8) return;
   const k=Math.max(0.22,1-up/(T3.jumpH*1.15)*0.82);
   const p=p3(W3.cx,sy,T3.ZCrun);
-  ctx.save(); ctx.globalAlpha=0.5*k; ctx.fillStyle='#05080F';
+  ctx.save(); ctx.globalAlpha=0.62*k; ctx.fillStyle='#03060A';
   ctx.beginPath(); ctx.ellipse(p.x,p.y,34*p.s*k,12*p.s*k,0,0,7); ctx.fill();
   ctx.restore();
 }
@@ -1312,29 +1348,43 @@ function roadDraw(){
   caveDecoDraw();
   const rows=W3.obs.filter(o=>o.kind==='row'&&o.z>30).sort((a,b)=>b.z-a.z);
   ctx.save();
+  const byN={}; for(const r of rows) byN[r.n]=r;
+  const jade=C['--jade'];
+  const seg=(p,q)=>{ ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.stroke(); };
   for(const r of rows){
     const fade=Math.max(0,Math.min(1,(T3.FAR-r.z)/T3.FAR*1.7));
-    const band=(r.n%2)?1:0.66;                       // 줄무늬 — 흐름이 눈에 보인다
+    const dark=(r.n%2)===0;                          // 줄무늬 — 흐름이 눈에 보인다
+    const prev=byN[r.n-1], next=byN[r.n+1];
+    const lw=Math.max(1,2.6*fov()/r.z);
     for(let i=0;i<LANES;i++){
       const c=r.cells[i]; if(!c)continue;
-      const col=C['--jade'];                           // 길은 한 색뿐이다
       const x0=laneX(i)-LANEW/2, x1=laneX(i)+LANEW/2;
       const y=T3.W-c.h*BLKH;
       const a=p3(x0,y,r.z), b=p3(x1,y,r.z);
       const e=p3(x0,y,r.z+T3.ring), f=p3(x1,y,r.z+T3.ring);
-      ctx.globalAlpha=fade*(c.h?0.95:0.8)*band;
+      /* 길은 속이 꽉 찬 어두운 돌이다 — 구멍(검정)과 확실히 갈라진다 */
+      ctx.globalAlpha=fade; ctx.shadowBlur=0;
       ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
       ctx.lineTo(f.x,f.y); ctx.lineTo(e.x,e.y); ctx.closePath();
-      ctx.fillStyle=col+(c.h?'66':(band>0.9?'3A':'20')); ctx.fill();
-      ctx.strokeStyle=col; ctx.shadowColor=col; ctx.shadowBlur=8;
-      ctx.lineWidth=Math.max(1,2.6*fov()/r.z); ctx.stroke();
+      ctx.fillStyle = c.h ? (dark?'#1B4C41':'#225E4E') : (dark?'#0F2E28':'#154036');
+      ctx.fill();
+      ctx.strokeStyle='rgba(82,191,160,.16)';          // 안쪽 이음매는 희미하게
+      ctx.lineWidth=lw*0.6; ctx.stroke();
+      /* 구멍과 맞닿은 가장자리만 밝게 — 여기가 떨어지는 자리다 */
+      ctx.strokeStyle=jade; ctx.shadowColor=jade;
+      ctx.shadowBlur=10; ctx.lineWidth=lw*1.5;
+      if(!r.cells[i-1]) seg(a,e);
+      if(!r.cells[i+1]) seg(b,f);
+      if(prev && !prev.cells[i]) seg(a,b);
+      if(next && !next.cells[i]) seg(e,f);
+      ctx.shadowBlur=0;
       if(c.h>0){                                       // 블록 앞면
         const g=p3(x0,T3.W,r.z), h2=p3(x1,T3.W,r.z);
         ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
         ctx.lineTo(h2.x,h2.y); ctx.lineTo(g.x,g.y); ctx.closePath();
-        ctx.fillStyle='rgba(10,16,26,.92)'; ctx.fill(); ctx.stroke();
+        ctx.fillStyle='rgba(8,14,22,.94)'; ctx.fill();
+        ctx.lineWidth=lw; ctx.strokeStyle=jade; ctx.stroke();
       }
-      ctx.shadowBlur=0;
     }
   }
   ctx.restore();
@@ -1415,3 +1465,48 @@ function caveGimDraw(){
   }
   ctx.restore();
 }
+
+/* ══════════════════════════════════════════════════════════
+   안내 — 본 게임의 설명 장치에 세 판을 얹는다.
+   index.html 을 고치지 않으려고 여기서 등록한다
+   ══════════════════════════════════════════════════════════ */
+(function(){
+  if(typeof GUIDE!=='object' || !GUIDE) return;
+  GUIDE.mgAll=[
+   {h:'구덩이가 무너진다',t:`25층에 닿으면 구덩이가 무너지기 시작합니다.<br>
+     <b>40초</b> 안에 빠져나가야 합니다.<br>
+     부딪히거나 빠지면 기력이 깎이고 속도가 뚝 떨어져, 그만큼 시간을 잃습니다.<br>
+     길에 놓인 <b>옥병</b>을 스치면 기력이 돌아옵니다.`}];
+
+  GUIDE.mgCave=[
+   {h:'조작 — 동굴',t:`굴 속을 날아서 빠져나갑니다.<br>
+     화면 <b>아무 데나 누르고 있으면</b> 떠오릅니다.<br>
+     손을 떼면 가라앉습니다. <b>누르는 길이로 높이를 맞춥니다.</b>`},
+   {h:'피할 것',t:`위아래 <b>바위벽</b>에 닿으면 기력이 깎입니다.<br>
+     굴 안에는 떠다니는 바위, 여닫는 문, 돌을 뱉는 포대가 있습니다.<br>
+     붉은 것은 모두 피하고 <b>옥병</b>만 주우세요.`}];
+
+  GUIDE.mgFall=[
+   {h:'조작 — 낙하',t:`구덩이 속으로 곧장 떨어집니다.<br>
+     <b>화면 왼쪽 아래를 끌어</b> 위아래·좌우로 몸을 옮깁니다.<br>
+     끄는 방향으로 그대로 움직입니다.`},
+   {h:'피할 것',t:`붉은 <b>막대와 벽</b>이 정면에서 다가옵니다.<br>
+     멀리서 뚫린 곳을 미리 보고 그쪽으로 옮겨 두세요.<br>
+     <b>옥병</b>은 그대로 지나가면 주워집니다.`}];
+
+  GUIDE.mgRun=[
+   {h:'조작 — 질주',t:`무너지는 길 위를 달립니다.<br>
+     <b>화면 왼쪽 아래를 끌어</b> 좌우로 옮깁니다.<br>
+     <b>화면 오른쪽을 누르면</b> 뜁니다.<br>
+     착지하기 조금 전에 눌러도 먹히니, 이어서 뛰어도 됩니다.`},
+   {h:'길과 구멍',t:`길에 뚫린 <b>구멍</b>으로 빠지면 잠깐 사라졌다 위로 돌아옵니다.<br>
+     구멍과 맞닿은 모서리에는 <b>밝은 선</b>이 그어져 있습니다 — 그 너머가 허공입니다.<br>
+     떠 있는 동안에는 <b>발밑 그림자</b>로 내려앉을 자리를 봅니다.
+     그림자가 없으면 아래가 비었다는 뜻입니다.`}];
+
+  if(typeof HELP!=='undefined' && Array.isArray(HELP))
+    HELP.push(['mgAll','구덩이 탈출 — 공통'],
+              ['mgRun','구덩이 탈출 — 질주'],
+              ['mgFall','구덩이 탈출 — 낙하'],
+              ['mgCave','구덩이 탈출 — 동굴']);
+})();
