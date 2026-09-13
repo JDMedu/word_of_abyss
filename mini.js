@@ -1609,6 +1609,10 @@ let mgE0=0, mgKind0=null;
     endPrev(how);
     if(how==='dead') return;             // 죽으면 판이 끝난다. 결과 화면은 없다
     const gained=(S.bonusInk||0)-ink0;
+    if(typeof mBump==='function'){                 // 미션 셈
+      mBump('mini'); mBump('mini_'+(mgKind0||'cave'));
+      if(how==='clear'){ mBump('miniOut'); if(hits===0) mBump('miniClean'); }
+    }
     const row=(k,v)=>`<div><span>${k}</span><b>${v}</b></div>`;
     const out=(how==='clear');
     const t=(typeof el==='function')?el('mgeTitle'):null;
