@@ -34,17 +34,49 @@ const GLINE={
   /* 짧은 것들은 화면을 멈추지 않는다. 노름꾼 아래에 잠깐 떴다 사라진다 */
   /* 내가 마셨을 때 — 내가 따른 것인가, 그가 건넨 것인가 */
   me:{
-    ownDeath:['셈이 틀렸구나.','아까 그 잔은 건넸어야지.','따른 손이 네 손이다.'],
-    ownTonic:['알고 마신 게냐, 운이 좋은 게냐.','한 잔 더 따라 보아라.'],
-    givenDeath:['받아라. 내가 따른 것이다.','차례를 너무 오래 쥐고 있었다.'],
-    givenTonic:['…아깝게 되었다.','살려 주려던 것은 아니다.'],
+    ownDeath:['셈이 틀렸구나.','아까 그 잔은 건넸어야지.','따른 손이 네 손이다.',
+              '제 손으로 따라 제 입에 넣었다.','그래도 손은 떨지 않는구나.'],
+    ownTonic:['알고 마신 게냐, 운이 좋은 게냐.','한 잔 더 따라 보아라.',
+              '아직은 네 차례다.','손이 가벼워졌구나.'],
+    givenDeath:['받아라. 내가 따른 것이다.','차례를 너무 오래 쥐고 있었다.',
+                '이번엔 내 손이었다.','앉은 값은 해야지.'],
+    givenTonic:['…아깝게 되었다.','살려 주려던 것은 아니다.',
+                '이번 것은 그냥 가져가라.','내 손이 무디었다.'],
   },
   /* 그가 마셨을 때 — 제가 따라 제가 마신 것인가, 내가 건넨 것인가 */
   his:{
-    ownDeath:['내가 마실 줄은 몰랐겠지.','…이것도 셈에 넣어 두어라.'],
-    ownTonic:['나는 이것을 마셔도 낫지 않는다.\n차례를 잇는 것뿐이다.'],
-    givenDeath:['…좋다. 셈을 할 줄 아는구나.','한 번은 맞겠지. 한 번은.'],
-    givenTonic:['이것을 나에게 주다니.','나에게는 물이나 같다. 네가 마셨어야지.'],
+    ownDeath:['내가 마실 줄은 몰랐겠지.','…이것도 셈에 넣어 두어라.',
+              '가끔은 이런 날도 있다.','제 잔에 제가 걸렸다.'],
+    ownTonic:['나는 이것을 마셔도 낫지 않는다.\n차례를 잇는 것뿐이다.',
+              '맛도 없는 것을 또 마신다.','차례는 내가 가져간다.'],
+    givenDeath:['…좋다. 셈을 할 줄 아는구나.','한 번은 맞겠지. 한 번은.',
+                '손이 매섭구나.','…쓰다.'],
+    givenTonic:['이것을 나에게 주다니.','나에게는 물이나 같다. 네가 마셨어야지.',
+                '고맙다고 해야 하나.','차례는 받아 두겠다.'],
+  },
+  /* 판을 보고 고르는 줄 — 보통 줄보다 먼저 나온다 */
+  spec:{
+    dblSelf:['제 손으로 두 몫을 만들었구나.','덧칠한 잔을 제가 마셨다.'],
+    dblHit:['덧칠이 먹었다.','두 몫이 한꺼번에 들었다.'],
+    meLast:['다음 잔이 마지막이겠구나.','목숨이 하나다. 셈을 잘 해라.'],
+    hisLast:['…하나 남았다.','여기서부터가 어렵다.'],
+    firstHit:['시작이 곱지 않다.','첫 잔부터 받는구나.'],
+    streak2:['두 번은 우연이 아니지.'],
+    streak3:['…누가 일러주더냐.','세 번이면 셈을 하는 것이다.'],
+  },
+  item:{
+    peek:['주전자를 들여다보는구나.','속을 보고도 손이 떨리느냐.'],
+    toss:['한 잔을 버리는구나. 셈이 서느냐.','버린 잔도 셈에 넣어 두어라.'],
+    dbl :['먹을 덧칠하는 게냐.\n제 잔이 될 수도 있다.','두 몫을 걸었구나.'],
+    cuff:['…손을 묶어 두었구나.','오랏줄이라. 어디서 났느냐.'],
+  },
+  idle:{
+    a:['주전자가 식는다.','아직이냐.'],
+    b:['밤이 길기는 하다만.','셈이 그리 어려우냐.'],
+  },
+  tilt:{
+    ahead:(d,t)=>`두 판을 다 내주었구나. 이번엔 안 된다.\n사약 ${d}, 보약 ${t}.`,
+    behind:(d,t)=>`이미 끝난 판이다. 그래도 마셔라.\n사약 ${d}, 보약 ${t}.`,
   },
   last:'하나 남았다. 무엇인지 너도 알고 나도 안다.',
   cuff:'…손을 묶어 두었구나.',
@@ -65,6 +97,8 @@ function gambleStart(done){
        turn:'me', cam:0, camTo:0, wait:0,
        st:'idle', p:0, who:null, actor:null, cup:null,
        wipe:0, wiped:false, onWipe:null, flashW:0,
+       ges:{l:0}, act:null, pose:{lean:0,tilt:0,nodY:0,shoulder:0},
+       gat:{a:0,v:0}, idleT:0, idleNext:3.2, idleSaid:0, streak:0,
        shake:0, flash:0, veil:0, jade:0, knock:0, red:0, back:true,
        lamp:0, line:null, lineT:0, t:0, done:done||null };
   gT=performance.now();
@@ -146,8 +180,10 @@ function gRoundStart(){
   GB.turn='me'; GB.camTo=0; GB.cam=0;
   GB.wipe=1; GB.st='open'; GB.flashW=1;          // 새 판이 밝아지며 열린다
   S.screen='gamble'; show(null);
-  say('노름꾼', GLINE.round[GB.round](n.d,n.t), C['--gold'],
-      ()=>{ S.screen='gamble'; show(null); });
+  const txt = (GB.round===2 && GB.wins>=2) ? GLINE.tilt.ahead(n.d,n.t)
+            : (GB.round===2 && GB.losses>=2)? GLINE.tilt.behind(n.d,n.t)
+            : GLINE.round[GB.round](n.d,n.t);
+  say('노름꾼', txt, C['--gold'], ()=>{ S.screen='gamble'; show(null); });
 }
 /* 잔 수는 판마다 뽑고, 사약은 하나 이상 · 잔 수보다 하나 적게까지 */
 function gDeal(){
@@ -165,6 +201,12 @@ const gLeft  =()=>GB.cups.slice(GB.taken);
 const gDeath =()=>gLeft().filter(c=>c.kind==='death').length;
 const gTonic =()=>gLeft().filter(c=>c.kind==='tonic').length;
 function gSay(t){ GB.line=t; GB.lineT=2.4; }
+/* 침묵이 있어야 말이 무게를 갖는다 */
+function gTalk(spec, plain){
+  if(spec){ gSay(gPick(spec)); return; }
+  if(Math.random()<0.30){ GB.lineT=0; return; }
+  gSay(gPick(plain));
+}
 
 /* ── 잔 하나 ─────────────────────────────────────────── */
 /* 따른다 → 옮긴다 → 뜸 → 기운다 → 결과.
@@ -184,17 +226,30 @@ function gLand(){
   const dmg=(dead&&GB.hitDbl)?2:1;
   const given=(GB.actor!==GB.who);                  // 따른 손과 마신 입이 다른가
   const key=(given?'given':'own')+(dead?'Death':'Tonic');
+  const first=(GB.taken===0);                       // 이 판의 첫 잔인가
   if(GB.who==='me'){
     if(dead){ GB.flash=1; GB.veil=1; GB.shake=34+GB.hitDbl*16; GB.mine-=dmg; vibe('hurt');
-              gSay(GB.hitDbl?'덧칠한 사약이다. 두 몫으로 든다.':gPick(GLINE.me[key])); }
+              GB.streak=0;
+              gAct([['laugh',3],['nod',2],['lean',2],['none',3]]);
+              gTalk(GB.hitDbl?GLINE.spec.dblSelf
+                  : GB.mine===1?GLINE.spec.meLast
+                  : first?GLINE.spec.firstHit : null, GLINE.me[key]); }
     else    { GB.jade=1;
               S.energy=Math.min(S.energyMax, S.energy+Math.round(S.energyMax*GAM.tonicHeal));
-              vibe('charged'); gSay(gPick(GLINE.me[key])); }
+              vibe('charged');
+              gAct([['nod',2],['shake',2],['gat',1],['none',4]]);
+              gTalk(null, GLINE.me[key]); }
   }else{
     if(dead){ GB.knock=1; GB.red=1; GB.shake=44+GB.hitDbl*18; GB.lamp=1;
               GB.back=Math.random()<0.5; GB.his-=dmg; vibe('boss');
-              gSay(GB.hitDbl?'덧칠이 먹었다.':gPick(GLINE.his[key])); }
-    else    { gSay(gPick(GLINE.his[key])); }
+              if(given) GB.streak++; else GB.streak=0;
+              gAct([['shake',2],['straight',2],['none',3]]);
+              gTalk(GB.hitDbl?GLINE.spec.dblHit
+                  : GB.streak>=3?GLINE.spec.streak3
+                  : GB.streak>=2?GLINE.spec.streak2
+                  : GB.his===1?GLINE.spec.hisLast : null, GLINE.his[key]); }
+    else    { gAct([['shake',2],['laugh',1],['gat',1],['none',3]]);
+              gTalk(null, GLINE.his[key]); }
   }
 }
 /* 차례는 하나로 정해진다 — 제가 마신 잔이 보약이면 그대로, 그 밖에는 넘어간다 */
@@ -275,8 +330,68 @@ function gPenalty(wins){
 }
 
 /* ── 셈 ──────────────────────────────────────────────── */
+/* ══ 몸짓 ══════════════════════════════════════════════
+   얼굴이 없는 자다. 몸으로만 말한다.
+   사건이 터지면 어울리는 몸짓 목록에서 하나를 뽑는다.
+   목록에는 '없음'도 들어 있다 — 늘 반응하면 그것도 기계다  */
+const GDUR={nod:0.85, shake:1.0, laugh:1.4, lean:1.1, back:1.3, tilt:2.0, straight:1.5, gat:0.1};
+function gAct(list){
+  let tot=0; for(const [,w] of list) tot+=w;
+  let r=Math.random()*tot;
+  for(const [k,w] of list){ r-=w; if(r<=0){
+    if(k==='none') return;
+    if(k==='gat'){ GB.gat.v+=3.6; return; }      // 갓만 한 번 흔들린다
+    GB.act={k, t:0, dur:GDUR[k]||1}; return;
+  }}
+}
+/* 몸짓이 지금 어떤 자세를 만들고 있는가 */
+function gPose(){
+  let lean=GB.ges.l, tilt=0, nodY=0, shoulder=0;
+  const a=GB.act;
+  if(a){
+    const u=Math.min(1,a.t/a.dur), e=Math.sin(Math.PI*u);
+    if(a.k==='nod')      nodY = Math.sin(u*Math.PI*2)*11;
+    else if(a.k==='shake')    tilt += Math.sin(u*Math.PI*6)*0.085*(1-u);
+    else if(a.k==='laugh')    shoulder = Math.abs(Math.sin(a.t*13))*7*(1-u);
+    else if(a.k==='lean')     lean += 0.18*e;
+    else if(a.k==='back')     lean -= 0.15*e;
+    else if(a.k==='tilt')     tilt += 0.085*e;
+    else if(a.k==='straight') lean -= 0.11*e;
+  }
+  return {lean, tilt, nodY, shoulder};
+}
+function gGesture(dt){
+  const live=1-gHush();                          // 뜸 동안에는 몸짓도 멎는다
+  /* 상태에서 오는 기본 자세 */
+  let base=0;
+  if(GB.st==='idle' && !GB.wipe && GB.turn==='dealer') base=0.22;
+  if(GB.st==='run' && GB.actor==='dealer' && GB.p<GPH.pour) base=0.36;
+  if(GB.st==='run' && GB.who==='dealer' && GB.p>=GPH.pour) base=0.14;
+  if(gLeft().length===1 && GB.st==='idle') base=-0.07;   // 마지막 한 잔 — 여기만 고정이다
+  GB.ges.l += (base-GB.ges.l)*Math.min(1,dt*2.4);
+
+  if(GB.act){ GB.act.t+=dt*live; if(GB.act.t>=GB.act.dur) GB.act=null; }
+
+  /* 내가 오래 고르고 있으면 — 볼 때도 있고 안 볼 때도 있다 */
+  if(GB.st==='idle' && GB.turn==='me' && !GB.wipe){
+    GB.idleT+=dt;
+    if(GB.idleT>=GB.idleNext){
+      gAct([['tilt',3],['back',2],['gat',2],['none',3]]);
+      if(GB.idleSaid===0 && GB.idleT>6)      { gSay(gPick(GLINE.idle.a)); GB.idleSaid=1; }
+      else if(GB.idleSaid===1 && GB.idleT>12){ gSay(gPick(GLINE.idle.b)); GB.idleSaid=2; }
+      GB.idleNext=GB.idleT+3+Math.random()*3;    // 다음은 언제일지 모른다
+    }
+  }else{ GB.idleT=0; GB.idleNext=3.2+Math.random()*2.2; GB.idleSaid=0; }
+
+  GB.pose=gPose();
+  /* 갓은 몸보다 한 박자 늦게 따라온다. 이거 하나로 인형이 사람이 된다 */
+  const tgt=GB.pose.tilt;
+  GB.gat.v += ((tgt-GB.gat.a)*45 - GB.gat.v*7)*dt*live;
+  GB.gat.a += GB.gat.v*dt*live;
+}
 function gTick(dt){
   GB.t+=dt;
+  gGesture(dt);
   GB.dustT=(GB.dustT||0)+dt*(1-gHush());          // 뜸 동안에는 먼지도 멎는다
   if(GB.st==='run'){
     const was=GB.p; GB.p+=dt;
@@ -405,16 +520,28 @@ function gLit(pathFn){
   g.addColorStop(0,'rgba(229,178,79,.26)'); g.addColorStop(1,'rgba(229,178,79,0)');
   ctx.fillStyle=g; ctx.fillRect(0,0,VW,760); ctx.restore();
 }
+/* 몸을 앞으로 낸다 — 허리를 축으로 조금 커지고 내려온다 */
+function gTfLean(l){
+  if(!l) return;
+  ctx.translate(GHX,GWAIST); ctx.scale(1+0.06*l,1+0.06*l); ctx.translate(-GHX,-GWAIST+26*l);
+}
 function gDealer(){
-  const k=gKnock(), back=GB.back, breath=Math.sin(GB.t*0.8)*3;
+  const k=gKnock(), back=GB.back, P=GB.pose, hush=gHush();
+  const breath=(Math.sin(GB.t*0.8)*3 - P.shoulder)*(1-hush);
   const tt=GB.t*(1-GB.red);                   // 사약을 받으면 일렁임이 멎는다
-  ctx.save(); ctx.translate(0,breath); gTfBody(k,back);
+  ctx.save(); ctx.translate(0,breath); gTfLean(P.lean); gTfBody(k,back);
     ctx.save(); gBodyPath(); ctx.clip(); gInk(tt,452,690); ctx.restore();
     gEdge(gBodyPath);
   ctx.restore();
-  ctx.save(); ctx.translate(0,breath); gTfBody(k,back); gTfHead(k,back);
+  ctx.save(); ctx.translate(0,breath+P.nodY); gTfLean(P.lean); gTfBody(k,back); gTfHead(k,back);
+    if(P.tilt){                                // 고개를 기울이거나 젓는다
+      ctx.translate(GHX,GNECK); ctx.rotate(P.tilt); ctx.translate(-GHX,-GNECK);
+    }
     ctx.save(); gHeadPath(); ctx.clip(); gInk(tt+2.1,GHY-GRY,GHY+GRY); ctx.restore();
-    gEdge(gHeadPath); gLit(gHeadPath); gGat();
+    gEdge(gHeadPath); gLit(gHeadPath);
+    ctx.save();                                // 갓은 한 박자 늦게 따라온다
+    ctx.translate(GHX,286); ctx.rotate(GB.gat.a-P.tilt); ctx.translate(-GHX,-286);
+    gGat(); ctx.restore();
   ctx.restore();
 }
 function gRoom(){
@@ -645,12 +772,14 @@ function gDraw(){
 /* ── 도구 쓰기 ───────────────────────────────────────── */
 function gUse(i){
   const id=GB.items[i]; if(!id||!gMyTurn()) return;
+  gAct([['tilt',2],['lean',2],['gat',1],['none',2]]);
   if(id==='peek'){ const c=GB.cups[GB.taken];
     GB.peekKind=c?c.kind:null;
-    gSay(c&&c.kind==='death'?'다음은 사약이다.':'다음은 보약이다.'); }
-  else if(id==='toss'){ GB.items.splice(i,1); gTake('toss','me'); return; }
-  else if(id==='dbl'){ GB.dbl=true; gSay('먹을 한 번 더 칠했다.'); }
-  else if(id==='cuff'){ GB.cuffed=true; gSay('오랏줄을 걸어 두었다.'); }
+    gSay(gPick(GLINE.item.peek)); }
+  else if(id==='toss'){ GB.items.splice(i,1); gSay(gPick(GLINE.item.toss));
+                        gTake('toss','me'); return; }
+  else if(id==='dbl'){ GB.dbl=true; gSay(gPick(GLINE.item.dbl)); }
+  else if(id==='cuff'){ GB.cuffed=true; gSay(gPick(GLINE.item.cuff)); }
   GB.items.splice(i,1);
   vibe('charged');
 }
