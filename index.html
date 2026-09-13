@@ -2339,7 +2339,11 @@ function resumeRun(d){
   if(!S.ballSlots.length) S.ballSlots=[{def:BALLDEF('stone'),lv:1}];
   S.isBoss=isBossStage(S.stage);
   S.deepRun=!!d.deepRun;
-  S.depth=Math.max(0,Math.min(d.depth||0, META.abyss||0));      // 두고 온 판의 심연 깊이
+  /* 두고 온 판의 심연 깊이. 깊이를 적기 전에 저장된 옛 판은 값이 아예 없으므로,
+     0 으로 깎아버리지 말고 고른 깊이로 되살린다 — 그래야 말뚝·몸돌이 안 사라진다 */
+  S.depth=(d.depth===undefined||d.depth===null)
+        ? Math.max(0,Math.min(META.depth||0, META.abyss||0))
+        : Math.max(0,Math.min(d.depth,       META.abyss||0));
   /* 두고 온 판의 회차 차례를 그대로 되살린다. 없으면 새로 짠 것을 쓴다 */
   if(d.plan&&d.plan.length===CONFIG.lessonsPerRun){
     META.plan=d.plan.map(k=>{const [b,l]=k.split('|');return {b,l:+l};});
@@ -2780,8 +2784,10 @@ function resolveAlert(correct){
       || (cut>-Infinity && x.y>=cut-4));       // 경보 바로 윗줄
     S.bricks=S.bricks.filter(x=>!list.includes(x));
     for(const x of list){
-      countWord(x); burst(x.x+x.w/2,x.y+x.h/2,10,'gold');
-      spawnGrains(x.x+x.w/2, x.y+x.h/2, 5);       // 먹 알갱이가 채자인에게 빨려 온다
+      /* 종이빛으로 터진다. 먹 알갱이는 뺐다 — 총알과 구별이 안 됐다 */
+      countWord(x);
+      burst(x.x+x.w/2,x.y+x.h/2,14,'paper');
+      burst(x.x+x.w/2,x.y+x.h/2,8,'gold');
     }
     S.winFlash=1; S.shake=26; vibe('right');
     S.alertMsg={text:`${ans.w} — 뜻이 풀렸다`,t:2.0,ok:true};
@@ -3083,6 +3089,7 @@ function healPct(p){
 }
 /* 상태이상마다 제 색을 갖는다 */
 const FX={
+  paper:'#F3EDDF',     // 종이빛 — 경보를 맞혔을 때 터진다
   bolt:'#F5DC4E',      // 벼락 · 빛줄기 — 노랑
   poison:'#8FD14F',    // 중독 — 밝은 독풀빛
   pool:'#1F7A4C',      // 먹웅덩이 — 진한 늪빛
