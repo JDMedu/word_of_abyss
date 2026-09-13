@@ -236,8 +236,7 @@ function gTick(dt){
   GB.t+=dt;
   if(GB.st==='run'){
     const was=GB.p; GB.p+=dt;
-    const mark=GPH.lift+GPH.hold+GPH.tilt;
-    if(was<mark && GB.p>=mark) gLand();
+    if(was<GMARK && GB.p>=GMARK) gLand();
     if(GB.p>=GTOT){ gPass(); GB.st='idle'; GB.taken++; GB.cup=null; GB.who=null; gCheck(); }
   }
   else if(GB.st==='wipe'){
