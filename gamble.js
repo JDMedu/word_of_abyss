@@ -68,15 +68,30 @@ function gambleStart(done){
        shake:0, flash:0, veil:0, jade:0, knock:0, red:0, back:true,
        lamp:0, line:null, lineT:0, t:0, done:done||null };
   gT=performance.now();
-  const go=()=>say('노름꾼', GLINE.meet, C['--gold'], ()=>gAskQuiz(0));
-  if(META.gamSeen){ go(); return; }
+  const btn=el('ghGo');
+  if(META.gamSeen || !btn){ gMeet(); return; }    // 설명은 처음 한 번만
   META.gamSeen=1; try{ saveMeta(); }catch(e){}
   S.screen='gamble-help'; if(typeof dropTouches==='function') dropTouches();
-  el('ghGo').onclick=()=>{ show(null); go(); };
+  btn.onclick=()=>{ show(null); gMeet(); };
   show('vGamHelp');
 }
+
+/* ── 앉을 것인가 — 매번 묻는다 ────────────────────────
+   한 번 지나치면 이 판에서는 다시 만나지 않는다        */
+function gMeet(){
+  const sit=el('gmSit'), pass=el('gmPass');
+  if(!sit||!pass){ gSit(); return; }
+  S.screen='gamble-meet'; if(typeof dropTouches==='function') dropTouches();
+  sit.onclick =()=>{ show(null); gSit(); };
+  pass.onclick=()=>{ show(null); S.gamblerDone=1; gambleEnd(-1); };
+  show('vGamMeet');
+}
+function gSit(){
+  S.gamblerDone=1;
+  say('노름꾼', GLINE.meet, C['--gold'], ()=>gAskQuiz(0));
+}
 /* 세 판을 다 치르고 나서 셈한다 */
-function gambleEnd(wins){
+function gambleEnd(wins){                        // -1 이면 지나친 것이다
   const done=GB?GB.done:null;
   if(wins>=2){
     S.bonusInk += (wins>=3 ? GAM.ink3 : GAM.ink2);
@@ -690,8 +705,24 @@ cv.addEventListener('pointerdown',e=>{
   host.appendChild(p);
 
   const st=document.createElement('style');
-  st.textContent='#vGam .gqpos{display:block;font-family:var(--font-ui);font-size:.52em;'
-    +'font-weight:700;letter-spacing:.2em;color:var(--gold);margin-bottom:.9em}';
+  st.textContent=
+    '#vGam .gqpos{display:block;font-family:var(--font-ui);font-size:.52em;'
+   +'font-weight:700;letter-spacing:.2em;color:var(--gold);margin-bottom:.9em}'
+   /* 내용이 길어도 단추가 밀려나지 않게 — 구르는 것은 안쪽뿐이다 */
+   +'#vGamHelp{justify-content:flex-start;padding-top:9%}'
+   +'#vGamHelp>*{flex-shrink:0}'
+   +'#ghBody{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;'
+   +'width:100%;max-width:24em;padding:.2em 0 .6em}'
+   +'#vGamPen>*{flex-shrink:0}'
+   +'#gmStake{width:100%;max-width:20em;margin:.6em 0 1em}'
+   +'#gmStake>div{display:flex;justify-content:space-between;align-items:baseline;'
+   +'gap:1em;padding:.55em 0;border-bottom:1px solid rgba(243,237,223,.12)}'
+   +'#gmStake span{font-family:var(--font-ui);font-size:.72em;font-weight:700;'
+   +'letter-spacing:.16em;color:var(--gold)}'
+   +'#gmStake b{font-family:var(--font-carve);font-weight:400;text-align:right}'
+   +'#gmWarn{font-family:var(--font-carve);font-size:.92em;color:var(--stone-deep);'
+   +'text-align:center;margin-bottom:1.2em}'
+   +'#gpBody{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}';
   document.head.appendChild(st);
 })();
 
@@ -720,14 +751,32 @@ const GHELP=[
 (function(){
   const host=el('vAdmin')?el('vAdmin').parentNode:document.body;
   const h=document.createElement('div');
-  h.className='veil'; h.id='vGamHelp'; h.style.cssText='justify-content:flex-start;padding-top:10%;overflow-y:auto';
-  h.innerHTML=`<div class="eyebrow">노름꾼</div><h2>보약과 <em>사약</em></h2>`
-    + GHELP.map(g=>`<div style="width:100%;max-width:24em;margin:.55em 0">
+  h.className='veil'; h.id='vGamHelp';
+  h.innerHTML=`<div class="eyebrow" style="flex:0 0 auto">노름꾼</div>
+    <h2 style="flex:0 0 auto">보약과 <em>사약</em></h2>
+    <div id="ghBody">`
+    + GHELP.map(g=>`<div style="margin:.55em 0">
         <div style="font-family:var(--font-ui);font-size:.72em;font-weight:700;
              letter-spacing:.16em;color:var(--gold);margin-bottom:.25em">${g.h}</div>
         <div style="font-family:var(--font-carve);line-height:1.65">${g.t}</div></div>`).join('')
-    + `<div class="row"><button class="btn gold" id="ghGo">앉는다</button></div>`;
+    + `</div><div class="row" style="flex:0 0 auto"><button class="btn gold" id="ghGo">알겠다</button></div>`;
   host.appendChild(h);
+
+  const m=document.createElement('div');
+  m.className='veil'; m.id='vGamMeet';
+  m.innerHTML=`<div class="eyebrow">구덩이 한쪽</div>
+    <h2>상 앞에 앉은 자가 <em>손짓한다</em></h2>
+    <div id="gmStake">
+      <div><span>이기면</span><b>작가의 조각 하나와 먹</b></div>
+      <div><span>지면</span><b>구슬 하나나 위력 한 단</b></div>
+    </div>
+    <div id="gmWarn">한 번 지나치면 이번 판에서는 다시 만나지 않는다.</div>
+    <div class="row">
+      <button class="btn gold"  id="gmSit">앉는다</button>
+      <button class="btn ghost" id="gmPass">구덩이로 나아간다</button>
+    </div>`;
+  host.appendChild(m);
+
   /* 게임 설명에도 한 장 넣는다 — 언제든 다시 본다 */
   try{
     if(typeof GUIDE==='object' && typeof HELP!=='undefined' && !GUIDE.gamble){
@@ -744,7 +793,8 @@ function admGamble(){
   gambleStart(wins=>{
     S.screen='title'; show('vTitle');
     if(typeof refreshTitle==='function') refreshTitle();
-    alert(wins>=3?'3승 — 작가의 조각 하나, 먹 200'
+    alert(wins<0 ?'지나쳤다 — 이 판에서는 다시 안 만난다'
+         :wins>=3?'3승 — 작가의 조각 하나, 먹 200'
          :wins>=2?'2승 — 작가의 조각 하나, 먹 100'
          :`${wins}승 — 졌다`);
   });
