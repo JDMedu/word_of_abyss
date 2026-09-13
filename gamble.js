@@ -31,10 +31,20 @@ const GLINE={
           (d,t)=>`마지막이다. 사약 ${d}, 보약 ${t}.\n여기서 지면 하나를 두고 간다.` ],
   refill:(d,t)=>`주전자가 비었다. 다시 붓는다.\n사약 ${d}, 보약 ${t}이다.`,
   /* 짧은 것들은 화면을 멈추지 않는다. 노름꾼 아래에 잠깐 떴다 사라진다 */
-  meDeath:['셈이 틀렸구나.','아까 그 잔을 건넸어야지.','아직 견딜 만하지?'],
-  meTonic:['그건 알고 마신 게냐, 운이 좋은 게냐.','한 잔 더 집어 보아라.'],
-  hisDeath:['…좋다. 셈을 할 줄 아는구나.','한 번은 맞겠지. 한 번은.'],
-  hisTonic:['이것을 나에게 주다니. 네가 마셨어야지.'],
+  /* 내가 마셨을 때 — 내가 따른 것인가, 그가 건넨 것인가 */
+  me:{
+    ownDeath:['셈이 틀렸구나.','아까 그 잔은 건넸어야지.','따른 손이 네 손이다.'],
+    ownTonic:['알고 마신 게냐, 운이 좋은 게냐.','한 잔 더 따라 보아라.'],
+    givenDeath:['받아라. 내가 따른 것이다.','차례를 너무 오래 쥐고 있었다.'],
+    givenTonic:['…아깝게 되었다.','살려 주려던 것은 아니다.'],
+  },
+  /* 그가 마셨을 때 — 제가 따라 제가 마신 것인가, 내가 건넨 것인가 */
+  his:{
+    ownDeath:['내가 마실 줄은 몰랐겠지.','…이것도 셈에 넣어 두어라.'],
+    ownTonic:['나는 이것을 마셔도 낫지 않는다.\n차례를 잇는 것뿐이다.'],
+    givenDeath:['…좋다. 셈을 할 줄 아는구나.','한 번은 맞겠지. 한 번은.'],
+    givenTonic:['이것을 나에게 주다니.','나에게는 물이나 같다. 네가 마셨어야지.'],
+  },
   last:'하나 남았다. 무엇인지 너도 알고 나도 안다.',
   cuff:'…손을 묶어 두었구나.',
   roundWin:'한 판 내주었다. 그뿐이다.',
@@ -56,7 +66,12 @@ function gambleStart(done){
        shake:0, flash:0, veil:0, jade:0, knock:0, red:0, back:true,
        lamp:0, line:null, lineT:0, t:0, done:done||null };
   gT=performance.now();
-  say('노름꾼', GLINE.meet, C['--gold'], ()=>gAskQuiz(0));
+  const go=()=>say('노름꾼', GLINE.meet, C['--gold'], ()=>gAskQuiz(0));
+  if(META.gamSeen){ go(); return; }
+  META.gamSeen=1; try{ saveMeta(); }catch(e){}
+  S.screen='gamble-help'; if(typeof dropTouches==='function') dropTouches();
+  el('ghGo').onclick=()=>{ show(null); go(); };
+  show('vGamHelp');
 }
 function gambleEnd(win){
   const done=GB?GB.done:null;
@@ -133,7 +148,7 @@ function gSay(t){ GB.line=t; GB.lineT=2.4; }
 /* ── 잔 하나 ─────────────────────────────────────────── */
 /* 따른다 → 옮긴다 → 뜸 → 기운다 → 결과.
    따르는 동안에도 잔 속은 검다. 입에 댈 때만 드러난다 */
-const GPH={ pour:0.55, move:0.40, hold:0.25, tilt:0.35, res:1.10, calm:0.60 };
+const GPH={ pour:0.55, move:0.40, hold:0.62, tilt:0.35, res:1.10, calm:0.60 };
 const GMARK=GPH.pour+GPH.move+GPH.hold+GPH.tilt;
 const GTOT=GMARK+GPH.res+GPH.calm;
 
@@ -146,17 +161,19 @@ function gLand(){
   const dead=GB.cup.kind==='death';
   if(GB.who==='toss'){ gSay(dead?'사약을 엎었다.':'보약을 엎었다.'); return; }
   const dmg=(dead&&GB.hitDbl)?2:1;
+  const given=(GB.actor!==GB.who);                  // 따른 손과 마신 입이 다른가
+  const key=(given?'given':'own')+(dead?'Death':'Tonic');
   if(GB.who==='me'){
     if(dead){ GB.flash=1; GB.veil=1; GB.shake=34+GB.hitDbl*16; GB.mine-=dmg; vibe('hurt');
-              gSay(GB.hitDbl?'덧칠한 사약이다. 두 몫으로 든다.':gPick(GLINE.meDeath)); }
+              gSay(GB.hitDbl?'덧칠한 사약이다. 두 몫으로 든다.':gPick(GLINE.me[key])); }
     else    { GB.jade=1;
               S.energy=Math.min(S.energyMax, S.energy+Math.round(S.energyMax*GAM.tonicHeal));
-              vibe('charged'); gSay(gPick(GLINE.meTonic)); }
+              vibe('charged'); gSay(gPick(GLINE.me[key])); }
   }else{
     if(dead){ GB.knock=1; GB.red=1; GB.shake=44+GB.hitDbl*18; GB.lamp=1;
               GB.back=Math.random()<0.5; GB.his-=dmg; vibe('boss');
-              gSay(GB.hitDbl?'덧칠이 먹었다.':gPick(GLINE.hisDeath)); }
-    else    { gSay(gPick(GLINE.hisTonic)); }
+              gSay(GB.hitDbl?'덧칠이 먹었다.':gPick(GLINE.his[key])); }
+    else    { gSay(gPick(GLINE.his[key])); }
   }
 }
 /* 차례는 하나로 정해진다 — 제가 마신 잔이 보약이면 그대로, 그 밖에는 넘어간다 */
@@ -234,6 +251,7 @@ function gPenalty(){
 /* ── 셈 ──────────────────────────────────────────────── */
 function gTick(dt){
   GB.t+=dt;
+  GB.dustT=(GB.dustT||0)+dt*(1-gHush());          // 뜸 동안에는 먼지도 멎는다
   if(GB.st==='run'){
     const was=GB.p; GB.p+=dt;
     if(was<GMARK && GB.p>=GMARK) gLand();
@@ -284,7 +302,17 @@ function gRest(){
            cx:VW/2+95,  cy:1000+(700-1000)*c,
            s:1.15+(0.80-1.15)*c };
 }
-const gFlick=()=>0.86+0.14*Math.sin(GB.t*11)+0.05*Math.sin(GB.t*23.7);
+/* 입에 대기 직전 — 불도 먼지도 멎는다. 아무것도 안 움직이는 편이 무섭다 */
+function gHush(){
+  if(GB.st!=='run') return 0;
+  const q=GB.p-GPH.pour-GPH.move;
+  if(q<0 || q>=GPH.hold) return 0;
+  return Math.min(1, Math.min(q, GPH.hold-q)/0.18);
+}
+const gFlick=()=>{
+  const h=gHush();
+  return (0.86+0.14*Math.sin(GB.t*11)+0.05*Math.sin(GB.t*23.7))*(1-h)+1.0*h;
+};
 function gRR(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y);
   ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
   ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
@@ -368,8 +396,9 @@ function gRoom(){
   g.addColorStop(0,'rgba(229,178,79,.10)'); g.addColorStop(1,'rgba(5,8,15,0)');
   ctx.fillStyle=g; ctx.fillRect(0,0,VW,VH);
   ctx.globalAlpha=.30; ctx.fillStyle='rgba(243,237,223,.5)';
+  const dt=GB.dustT||(GB.dustT=0);
   for(let i=0;i<34;i++){
-    const s=i*97.3, x=(s*13.7)%VW, y=((s*29.1)+GB.t*(9+i%7)*3)%VH;
+    const s=i*97.3, x=(s*13.7)%VW, y=((s*29.1)+dt*(9+i%7)*3)%VH;
     ctx.fillRect(x,y,2,2);
   }
   ctx.globalAlpha=1;
@@ -654,6 +683,48 @@ cv.addEventListener('pointerdown',e=>{
   st.textContent='#vGam .gqpos{display:block;font-family:var(--font-ui);font-size:.52em;'
     +'font-weight:700;letter-spacing:.2em;color:var(--gold);margin-bottom:.9em}';
   document.head.appendChild(st);
+})();
+
+/* ── 처음 만날 때 읽는 설명 ─────────────────────────── */
+const GHELP=[
+ {h:'무엇을 하는 자리인가', t:`주전자에 <b>보약</b>과 <b>사약</b>이 섞여 있습니다.<br>
+    몇 잔씩인지는 노름꾼이 판이 시작할 때 <b>말로만</b> 일러줍니다.<br>
+    어느 잔이 무엇인지는 아무도 모릅니다.`},
+ {h:'한 잔이 도는 법', t:`차례가 된 사람이 한 잔 따릅니다.<br>
+    <b>자기가 마시거나, 상대에게 건넵니다.</b><br>
+    잔 속은 입에 댈 때까지 검습니다.`},
+ {h:'사약', t:`마신 사람이 <b>목숨을 하나</b> 잃습니다.<br>
+    그리고 <b>차례가 넘어갑니다.</b>`},
+ {h:'보약', t:`마신 사람의 <b>기력이 오릅니다.</b><br>
+    그리고 <b>따른 사람이 한 번 더</b> 따릅니다.<br>
+    노름꾼은 몸이 없어 마셔도 낫지 않습니다. 차례만 이어갑니다.`},
+ {h:'판', t:`세 판 중 <b>두 판을 먼저 이기면</b> 작가의 조각을 받습니다.<br>
+    두 판을 지면 <b>구슬 하나를 두고</b> 가야 합니다.<br>
+    한 판 질 때마다 기력도 깎입니다.`},
+ {h:'도구 — 앉기 전 낱말 넷', t:`맞힌 수만큼 받고, <b>세 판을 그것으로 다 치릅니다.</b><br>
+    <b>엿보기</b> · 다음 잔이 무엇인지 나만 봅니다.<br>
+    <b>털어내기</b> · 다음 잔을 마시지 않고 엎습니다.<br>
+    <b>덧칠</b> · 다음 잔이 사약이면 두 몫으로 듭니다. 보약이면 헛됩니다.<br>
+    <b>오랏줄</b> · 노름꾼의 다음 차례를 건너뜁니다.`},
+];
+(function(){
+  const host=el('vAdmin')?el('vAdmin').parentNode:document.body;
+  const h=document.createElement('div');
+  h.className='veil'; h.id='vGamHelp'; h.style.cssText='justify-content:flex-start;padding-top:10%;overflow-y:auto';
+  h.innerHTML=`<div class="eyebrow">노름꾼</div><h2>보약과 <em>사약</em></h2>`
+    + GHELP.map(g=>`<div style="width:100%;max-width:24em;margin:.55em 0">
+        <div style="font-family:var(--font-ui);font-size:.72em;font-weight:700;
+             letter-spacing:.16em;color:var(--gold);margin-bottom:.25em">${g.h}</div>
+        <div style="font-family:var(--font-carve);line-height:1.65">${g.t}</div></div>`).join('')
+    + `<div class="row"><button class="btn gold" id="ghGo">앉는다</button></div>`;
+  host.appendChild(h);
+  /* 게임 설명에도 한 장 넣는다 — 언제든 다시 본다 */
+  try{
+    if(typeof GUIDE==='object' && typeof HELP!=='undefined' && !GUIDE.gamble){
+      GUIDE.gamble=GHELP.map(g=>({h:g.h,t:g.t}));
+      HELP.push(['gamble','노름꾼 — 보약과 사약']);
+    }
+  }catch(e){}
 })();
 
 /* ── 관리자 시험 ─────────────────────────────────────── */
