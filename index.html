@@ -891,6 +891,7 @@ const CONFIG = {
 
   /* 보상 — 구간 배율(1~10층 ×1, 11~20층 ×2 …)이 곱해진다 */
   inkPerFloor:1, inkPerBoss:1, inkPerAlert:0,   // 경보 보상은 먹 대신 기력으로 간다
+  gamblerRate:1/30, gamblerFrom:8, gamblerTo:40,  // 노름꾼이 나오는 자리
   inkGain:1.60,              // 들어오는 먹을 통째로 이만큼 곱한다
 
   /* 심연(회차)마다 붙는 값 */
@@ -1930,7 +1931,7 @@ function saveRun(){
     const d={
       stage:S.stage, startStage:S.startStage,
       energy:Math.round(S.energy), energyBase:S.energyBase,
-      revives:S.revives, bonusInk:S.bonusInk,
+      revives:S.revives, bonusInk:S.bonusInk, gamblerDone:S.gamblerDone?1:0,
       alertRight:S.alertRight, alertWrong:S.alertWrong,
       grow:S.grow, combo:S.combo, comboBest:S.comboBest, omens:S.omens, stackUp:S.stackUp,
       totalWords:S.totalWords, learned:[...S.learned],
@@ -2312,6 +2313,7 @@ function resumeRun(d){
   S.stage=d.stage; S.startStage=d.startStage;
   S.energyBase=d.energyBase; S.energy=d.energy;
   S.revives=d.revives; S.bonusInk=d.bonusInk; S.wallCharge=d.wallCharge||0;
+  S.gamblerDone=d.gamblerDone||0;
   S.alertRight=d.alertRight; S.alertWrong=d.alertWrong;
   S.grow=d.grow||0; S.combo=d.combo||0; S.comboBest=d.comboBest||0;
   S.fate=null; S.jadeOk=0; S.jadeNo=0;
@@ -6288,6 +6290,12 @@ function offerTome(){
 
 function nextStage(){
   if(S.stage>=CONFIG.maxFloor){ runEnd(true); return; }
+  /* 노름꾼 — 서른 층에 한 번꼴로 나오고, 한 판에 한 번뿐이다.
+     앉든 지나치든 S.gamblerDone 이 서서 다시는 안 나온다 */
+  if(!S.gamblerDone && S.stage>=CONFIG.gamblerFrom && S.stage<=CONFIG.gamblerTo
+     && typeof gambleStart==='function' && Math.random()<CONFIG.gamblerRate){
+    gambleStart(()=>nextStage()); return;
+  }
   /* 기억은 층에 들어설 때가 아니라 층을 다 깬 뒤에 듣는다.
      시작 층 몫은 startRunNow 에서 이미 들려주었다 */
   if(!S.memSaid && S.stage!==S.startStage){
