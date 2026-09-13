@@ -131,6 +131,12 @@ function gSit(){
 /* 세 판을 다 치르고 나서 셈한다 */
 function gambleEnd(wins){                        // -1 이면 지나친 것이다
   const done=GB?GB.done:null;
+  if(typeof mBump==='function'){                 // 미션 셈
+    if(wins>=0) mBump('gamMeet');                // 지나친 것은 만난 것으로 안 친다
+    if(wins>0) mBump('gamRound', wins);          // 이긴 판 수
+    if(wins>=2) mBump('gamWin');                 // 조각을 받았다
+    if(wins>=3) mBump('gamPerfect');
+  }
   if(wins>=2){
     S.bonusInk += (wins>=3 ? GAM.ink3 : GAM.ink2);
     META.wshard=(META.wshard||0)+1; try{ saveMeta(); }catch(e){}
