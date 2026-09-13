@@ -13,6 +13,8 @@ const GAM={
   tonicHeal:0.05,      // 보약 한 잔
   wait:1.5,            // 노름꾼이 뜸 들이는 시간
   ink3:200, ink2:100,  // 세 판을 다 이기면 200먹, 두 판이면 100먹
+  shardInk:1000,       // 대장간에서 작가의 조각 하나를 사는 값
+  narrShard:10,        // 서술자의 개입을 여는 조각 수
   quizN:4,             // 앉기 전에 묻는 낱말 수
 };
 /* 맞힌 순서대로 받는다. 넷 다 맞히면 넷 다 */
@@ -868,7 +870,11 @@ cv.addEventListener('pointerdown',e=>{
    +'#gmStake b{font-family:var(--font-carve);font-weight:400;text-align:right}'
    +'#gmWarn{font-family:var(--font-carve);font-size:.92em;color:var(--stone-deep);'
    +'text-align:center;margin-bottom:1.2em}'
-   +'#gpBody{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}';
+   +'#gpBody{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}'
+   +'#gnBody{font-family:var(--font-carve);font-size:1.9em;line-height:1.7;text-align:center;'
+   +'margin:.6em 0 .4em;color:var(--paper)}'
+   +'#gnBody b{color:var(--gold)}'
+   +'#gnSub{font-family:var(--font-carve);color:var(--stone-deep);margin-bottom:1.4em}';
   document.head.appendChild(st);
 })();
 
@@ -934,6 +940,65 @@ const GHELP=[
       HELP.push(['gamble','노름꾼 — 보약과 사약']);
     }
   }catch(e){}
+})();
+
+/* ══ 대장간 ═══════════════════════════════════════════
+   본 게임의 renderShop 뒤에 두 칸을 덧붙인다.
+   이 파일이 없으면 두 칸도 같이 사라지고 대장간은 그대로 돈다 */
+function gShopRow(name, sub, price, cls, onclick){
+  const d=document.createElement('div');
+  d.className='up'+(cls?' '+cls:'');
+  d.innerHTML=`<div class="info">
+      <div class="un">${name}</div>
+      <div class="ud">${sub}</div>
+    </div>
+    <div class="price${cls==='can'?'':' no'}">${price}</div>`;
+  if(onclick){ d.onclick=onclick; }
+  el('shopList').appendChild(d);
+}
+function gShopRows(){
+  const list=el('shopList'); if(!list) return;
+  const shard=META.wshard||0, cost=GAM.shardInk, need=GAM.narrShard;
+
+  /* 하나 — 먹으로 조각을 산다. 몇 번이든 산다 */
+  const canBuy=META.ink>=cost;
+  gShopRow(`작가의 조각 <span style="font-size:.72em;color:var(--stone-deep)">${shard}개</span>`,
+    '노름꾼에게서 얻는다. 먹으로도 벼릴 수 있다.',
+    `${cost} 먹`, canBuy?'can':'',
+    canBuy?()=>{ META.ink-=cost; META.wshard=shard+1; saveMeta(); renderShop(); }:null);
+
+  /* 둘 — 조각 열이면 서술자가 끼어든다. 한 번뿐이다 */
+  if(META.narrator){
+    gShopRow('서술자의 개입', '이미 열었다. 눌러서 다시 본다.',
+      '받으실 것', 'maxed', ()=>gNarrShow());
+  }else{
+    const canOpen=shard>=need;
+    gShopRow('서술자의 개입',
+      '이야기 밖에서 손이 들어온다. 한 번뿐이다.',
+      canOpen?`조각 ${need}`:`작가의 조각<br>${shard} / ${need}`,
+      canOpen?'can':'',
+      canOpen?()=>{ META.wshard=shard-need; META.narrator=1;
+                    try{ saveMeta(); }catch(e){} renderShop(); gNarrShow(); }:null);
+  }
+}
+function gNarrShow(){
+  const v=el('vNarr'); if(!v) return;
+  show('vNarr');
+}
+(function(){
+  if(typeof renderShop!=='function') return;
+  const prev=renderShop;
+  renderShop=function(){ prev(); try{ gShopRows(); }catch(e){} };
+  const host=el('vAdmin')?el('vAdmin').parentNode:document.body;
+  const v=document.createElement('div');
+  v.className='veil'; v.id='vNarr';
+  v.innerHTML=`<div class="eyebrow">서술자의 개입</div>
+    <h2>이야기 밖에서<br><em>손이 들어온다</em></h2>
+    <div id="gnBody">교무실로<br><b>대건 선생님께</b><br>오세요</div>
+    <div id="gnSub">이 화면을 보여드리면 됩니다.</div>
+    <button class="btn gold" id="gnBack">돌아가기</button>`;
+  host.appendChild(v);
+  const b=el('gnBack'); if(b) b.onclick=()=>show('vShop');
 })();
 
 /* ── 관리자 시험 ─────────────────────────────────────── */
