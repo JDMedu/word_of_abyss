@@ -10,6 +10,7 @@ const GAM={
   loseEnergy:0.15,     // 한 판 지면 기력을 이만큼 잃는다(최소 1은 남는다)
   tonicHeal:0.05,      // 보약 한 잔
   wait:1.5,            // 노름꾼이 뜸 들이는 시간
+  ink3:200, ink2:100,  // 세 판을 다 이기면 200먹, 두 판이면 100먹
   quizN:4,             // 앉기 전에 묻는 낱말 수
 };
 /* 맞힌 순서대로 받는다. 넷 다 맞히면 넷 다 */
@@ -49,7 +50,8 @@ const GLINE={
   cuff:'…손을 묶어 두었구나.',
   roundWin:'한 판 내주었다. 그뿐이다.',
   roundLose:'한 판 가져간다.',
-  win:'가져가라. 어차피 내 것이 아니었다.',
+  win3:'세 판을 다 가져갔구나.\n가져가라, 전부. 어차피 내 것이 아니었다.',
+  win2:'두 판이면 네 것이다.\n가져가라. 한 판은 내가 가진다.',
   lose:'두고 가거라. 다음에 또 앉으면 될 일이다.',
 };
 const gPick=a=>a[Math.floor(Math.random()*a.length)];
@@ -73,11 +75,15 @@ function gambleStart(done){
   el('ghGo').onclick=()=>{ show(null); go(); };
   show('vGamHelp');
 }
-function gambleEnd(win){
+/* 세 판을 다 치르고 나서 셈한다 */
+function gambleEnd(wins){
   const done=GB?GB.done:null;
-  if(win){ META.wshard=(META.wshard||0)+1; try{ saveMeta(); }catch(e){} }
+  if(wins>=2){
+    S.bonusInk += (wins>=3 ? GAM.ink3 : GAM.ink2);
+    META.wshard=(META.wshard||0)+1; try{ saveMeta(); }catch(e){}
+  }
   GB=null; S.screen='play'; show(null);
-  if(done) done(win);
+  if(done) done(wins);
 }
 
 /* ── 앉기 전 — 낱말 셋 ────────────────────────────────
@@ -200,15 +206,19 @@ function gCheck(){
   if(won) GB.wins++;
   else { GB.losses++;
          S.energy=Math.max(1, S.energy-Math.round(S.energyMax*GAM.loseEnergy)); }
-  const over=GB.wins>=2||GB.losses>=2;
+  const over=(GB.round>=GAM.rounds.length-1);     // 두 판을 이겨도 세 판은 다 친다
   GB.st='hold';
   /* 판이 갈리면 화면이 통째로 꺼졌다가 새 판이 밝아지며 열린다 */
   setTimeout(()=>{
     if(!GB) return;
     GB.st='wipe'; GB.wiped=false;
     GB.onWipe=()=>{
-      if(over){ say('노름꾼', won?GLINE.win:GLINE.lose, C['--gold'],
-                    ()=>{ if(GB.wins>=2) gambleEnd(true); else gPenalty(); }); return; }
+      if(over){
+        const w=GB.wins;
+        const t = w>=3?GLINE.win3 : w>=2?GLINE.win2 : GLINE.lose;
+        say('노름꾼', t, C['--gold'], ()=>{ if(w>=2) gambleEnd(w); else gPenalty(w); });
+        return;
+      }
       say('노름꾼', won?GLINE.roundWin:GLINE.roundLose, C['--gold'],
           ()=>{ GB.round++; gRoundStart(); });
     };
@@ -216,10 +226,10 @@ function gCheck(){
 }
 
 /* ── 진 값 — 구슬 하나를 버리거나 위력을 내준다 ────────── */
-function gPenalty(){
+function gPenalty(wins){
   S.screen='gamble-pen'; if(typeof dropTouches==='function') dropTouches();
   const slots=S.ballSlots||[];
-  if(!slots.length){ gambleEnd(false); return; }
+  if(!slots.length){ gambleEnd(wins||0); return; }
   const box=el('gpBody'); box.innerHTML='';
   const mk=(label,sub,fn)=>{
     const b=document.createElement('button');
@@ -234,13 +244,13 @@ function gPenalty(){
   slots.forEach((s,i)=>mk(s.def.name, `${s.lv}단 — 통째로 사라진다`, ()=>{
     if(slots.length<=1){ s.lv=Math.max(1,s.lv-1); }      // 마지막 하나는 안 지운다
     else S.ballSlots.splice(i,1);
-    recalc(); gambleEnd(false);
+    recalc(); gambleEnd(wins||0);
   }));
   const up=slots.filter(s=>s.lv>1);
   if(up.length){
     head('위력을 내준다');
     up.forEach(s=>mk(s.def.name, `${s.lv}단 → ${s.lv-1}단`, ()=>{
-      s.lv--; recalc(); gambleEnd(false);
+      s.lv--; recalc(); gambleEnd(wins||0);
     }));
   }
   el('gpNote').textContent = up.length ? ''
@@ -731,9 +741,11 @@ const GHELP=[
 function admGamble(){
   if(!S||S.screen==='title'){ newRun(); }
   S.screen='play'; show(null);
-  gambleStart(win=>{
+  gambleStart(wins=>{
     S.screen='title'; show('vTitle');
     if(typeof refreshTitle==='function') refreshTitle();
-    alert(win?'이겼다 — 작가의 조각 하나':'졌다');
+    alert(wins>=3?'3승 — 작가의 조각 하나, 먹 200'
+         :wins>=2?'2승 — 작가의 조각 하나, 먹 100'
+         :`${wins}승 — 졌다`);
   });
 }
