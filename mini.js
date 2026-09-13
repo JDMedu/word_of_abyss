@@ -24,10 +24,6 @@ function miniStart(kind,done){
   mT=performance.now();
   if(MG.kind==='cave') caveInit(); else t3Init(MG.kind==='run');
   S.screen='mini';
-  /* 덮개를 걷는다. 보스가 말한 뒤에 들어오면 vTalk 이 그대로 덮여 있어서
-     미니게임이 화면에도 안 보이고 손도 안 닿았다 */
-  if(typeof show==='function') show(null);
-  if(typeof dropTouches==='function') dropTouches();
   vibe('alertOn');
   if(typeof guide==='function'){                 // 처음 만나는 판만 설명한다
     guide('mgAll');
@@ -1543,4 +1539,91 @@ function caveGimDraw(){
               ['mgRun','구덩이 탈출 — 질주'],
               ['mgFall','구덩이 탈출 — 낙하'],
               ['mgCave','구덩이 탈출 — 동굴']);
+})();
+
+
+/* ══════════════════════════════════════════════════════
+   앞뒤 화면 — 갑자기 시작하고 소리 없이 끝나던 것을 감싼다
+   ══════════════════════════════════════════════════════ */
+const MGHOW={
+  cave:'화면 좌우를 눌러 위아래로 난다',
+  fall:'화면 좌우를 눌러 좌우로 피한다',
+  run :'왼쪽으로 줄을 바꾸고 오른쪽으로 뛴다',
+};
+let mgE0=0, mgKind0=null;
+
+(function(){
+  const host=(typeof el==='function'&&el('vAdmin'))?el('vAdmin').parentNode:document.body;
+  const mk=(id,html)=>{ const d=document.createElement('div');
+    d.className='veil'; d.id=id; d.innerHTML=html; host.appendChild(d); return d; };
+  mk('vMiniGo',
+    `<div class="eyebrow">스물다섯째 층</div>
+     <h2>구덩이가 <em>무너진다</em></h2>
+     <div id="mgoSub">달아나야 한다.</div>
+     <div id="mgoHow"></div>
+     <button class="btn gold" id="mgoBtn">달린다</button>`);
+  mk('vMiniEnd',
+    `<div class="eyebrow" id="mgeBrow"></div>
+     <h2 id="mgeTitle"></h2>
+     <div id="mgeRows"></div>
+     <button class="btn gold" id="mgeBtn">계속</button>`);
+  const st=document.createElement('style');
+  st.textContent=
+    '#mgoSub{font-family:var(--font-carve);font-size:1.1em;margin-bottom:.5em}'
+   +'#mgoHow{font-family:var(--font-carve);color:var(--gold);margin-bottom:1.6em;text-align:center}'
+   +'#mgeRows{width:100%;max-width:18em;margin:.4em 0 1.4em}'
+   +'#mgeRows>div{display:flex;justify-content:space-between;align-items:baseline;'
+   +'padding:.5em 0;border-bottom:1px solid rgba(243,237,223,.12)}'
+   +'#mgeRows span{font-family:var(--font-ui);font-size:.72em;font-weight:700;'
+   +'letter-spacing:.16em;color:var(--stone-deep)}'
+   +'#mgeRows b{font-family:var(--font-carve);font-weight:400;font-size:1.15em}';
+  document.head.appendChild(st);
+})();
+
+/* 시작 — 무엇이 오는지, 손으로 뭘 하는지 먼저 알린다 */
+(function(){
+  const begin=miniStart;
+  miniStart=function(kind,done){
+    const kinds=['cave','fall','run'];
+    const k=(kind&&kinds.includes(kind))?kind:kinds[Math.floor(Math.random()*kinds.length)];
+    mgKind0=k;
+    const btn=(typeof el==='function')?el('mgoBtn'):null;
+    if(!btn){ mgE0=S.energy; begin(k,done); return; }
+    el('mgoHow').textContent=MGHOW[k]||'';
+    S.screen='mini-intro';
+    if(typeof dropTouches==='function') dropTouches();
+    if(typeof vibe==='function') vibe('alertOn');
+    btn.onclick=()=>{ show(null); mgE0=S.energy; begin(k,done); };
+    show('vMiniGo');
+  };
+})();
+
+/* 끝 — 빠져나왔는지 묻혔는지, 몸이 어떻게 되었는지 적어 준다 */
+(function(){
+  const endPrev=miniEnd;
+  miniEnd=function(how){
+    const hits=MG?MG.hits:0;
+    const doneFn=MG?MG.done:null;
+    if(MG) MG.done=null;                 // 결과를 보여준 뒤에 넘긴다
+    const ink0=S.bonusInk||0, e0=mgE0;
+    endPrev(how);
+    if(how==='dead') return;             // 죽으면 판이 끝난다. 결과 화면은 없다
+    const gained=(S.bonusInk||0)-ink0;
+    const row=(k,v)=>`<div><span>${k}</span><b>${v}</b></div>`;
+    const out=(how==='clear');
+    const t=(typeof el==='function')?el('mgeTitle'):null;
+    if(!t){ if(doneFn) doneFn(); return; }
+    el('mgeBrow').textContent = out?'빠져나왔다':(how==='timeout'?'묻혔다':'되돌아 나왔다');
+    t.innerHTML = out?'구덩이 <em>밖으로</em>'
+                : how==='timeout'?'흙에 <em>묻혔다</em>' : '되돌아 나왔다';
+    el('mgeRows').innerHTML =
+        row('부딪힘', hits===0?'한 번도 없다':`${hits}번`)
+      + row('기력', `${Math.round(e0)} → ${Math.round(S.energy)}`)
+      + (gained>0?row('먹', `+${gained}`):'');
+    S.alertMsg=null;                     // 지나가는 쪽지는 지운다. 여기에 다 적혀 있다
+    S.screen='mini-end';
+    if(typeof dropTouches==='function') dropTouches();
+    el('mgeBtn').onclick=()=>{ show(null); S.screen='play'; if(doneFn) doneFn(); };
+    show('vMiniEnd');
+  };
 })();
