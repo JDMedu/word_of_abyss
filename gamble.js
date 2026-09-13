@@ -200,9 +200,10 @@ function gLand(){
 /* 차례는 하나로 정해진다 — 제가 마신 잔이 보약이면 그대로, 그 밖에는 넘어간다 */
 function gPass(){
   if(GB.who==='toss'){ GB.turn=GB.actor; GB.camTo=GB.turn==='dealer'?1:0; GB.wait=GAM.wait; return; }
-  /* 누가 마셨든 상관없다. 보약이면 따른 사람이 한 번 더, 사약이면 넘어간다 */
-  const keep=(GB.cup.kind==='tonic');
-  let next=keep?GB.actor:(GB.actor==='me'?'dealer':'me');
+  /* 보약이면 마신 사람이 다음 차례를 가져가고,
+     사약이면 따른 사람이 차례를 잃는다 */
+  let next = GB.cup.kind==='tonic' ? GB.who
+                                   : (GB.actor==='me'?'dealer':'me');
   if(next==='dealer' && GB.cuffed){ next='me'; GB.cuffed=false; gSay(GLINE.cuff); }
   GB.turn=next; GB.camTo=next==='dealer'?1:0; GB.wait=GAM.wait;
 }
@@ -735,10 +736,12 @@ const GHELP=[
     <b>자기가 마시거나, 상대에게 건넵니다.</b><br>
     잔 속은 입에 댈 때까지 검습니다.`},
  {h:'사약', t:`마신 사람이 <b>목숨을 하나</b> 잃습니다.<br>
-    그리고 <b>차례가 넘어갑니다.</b>`},
- {h:'보약', t:`마신 사람의 <b>기력이 오릅니다.</b><br>
-    그리고 <b>따른 사람이 한 번 더</b> 따릅니다.<br>
-    노름꾼은 몸이 없어 마셔도 낫지 않습니다. 차례만 이어갑니다.`},
+    그리고 <b>따른 사람이 차례를 잃습니다.</b><br>
+    자기가 마시든 건네든, 사약이 나오면 제 차례는 끝입니다.`},
+ {h:'보약', t:`마신 사람의 <b>기력이 오르고,<br>
+    그 사람이 다음 차례를 가져갑니다.</b><br>
+    그러니 보약을 건네면 차례를 내주는 셈입니다.<br>
+    노름꾼은 몸이 없어 마셔도 낫지 않습니다. 차례만 가져갑니다.`},
  {h:'판', t:`세 판 중 <b>두 판을 먼저 이기면</b> 작가의 조각을 받습니다.<br>
     두 판을 지면 <b>구슬 하나를 두고</b> 가야 합니다.<br>
     한 판 질 때마다 기력도 깎입니다.`},
