@@ -4,6 +4,8 @@
    지금은 관리자 화면에서만 부른다. 층에서 나오게 하려면
    nextStage() 에 한 줄만 넣으면 된다.
    ══════════════════════════════════════════════════════════ */
+const GBUILD='g07';                    // 어느 판이 돌고 있는지 확인하는 표
+try{ console.log('gamble.js '+GBUILD); }catch(e){}
 const GAM={
   /* 세 판 — 목숨과 잔 수가 판마다 다르다. 잔은 그때그때 뽑는다 */
   rounds:[{life:1,cup:[2,3]},{life:3,cup:[3,4]},{life:4,cup:[4,6]}],
@@ -259,7 +261,11 @@ function gPass(){
      사약이면 따른 사람이 차례를 잃는다 */
   let next = GB.cup.kind==='tonic' ? GB.who
                                    : (GB.actor==='me'?'dealer':'me');
-  if(next==='dealer' && GB.cuffed){ next='me'; GB.cuffed=false; gSay(GLINE.cuff); }
+  if(next==='dealer' && GB.cuffed){                  // 그의 차례를 한 번 건너뛴다
+    next='me'; GB.cuffed=false; GB.lamp=1;
+    gAct([['back',2],['shake',2],['none',1]]);
+    gSay('오랏줄이 걸렸다. 그의 차례를 건너뛴다.');
+  }
   GB.turn=next; GB.camTo=next==='dealer'?1:0; GB.wait=GAM.wait;
 }
 /* 판이 끝났나 */
@@ -676,6 +682,16 @@ function gDraw(){
   let potTilt=0, pouring=0;
   if(run && GB.p<GPH.pour){ pouring=Math.sin((GB.p/GPH.pour)*Math.PI); potTilt=-0.62*pouring; }
   gPot(R.px,R.py,R.s,potTilt);
+  if(GB.cuffed){                                     // 오랏줄이 걸려 있다 — 그의 다음 차례는 없다
+    ctx.save(); ctx.globalAlpha=.5+.25*Math.sin(GB.t*3);
+    ctx.strokeStyle=C['--gold']; ctx.lineWidth=3;
+    ctx.shadowColor=C['--gold']; ctx.shadowBlur=14;
+    for(let i=0;i<3;i++){                            // 손목을 감은 줄
+      ctx.beginPath();
+      ctx.ellipse(GHX, 470+i*13, 66-i*4, 9, 0, 0, 7); ctx.stroke();
+    }
+    ctx.restore();
+  }
   if(GB.peekKind){                                   // 엿본 것 — 주전자 옆에 표가 앉는다
     ctx.save(); ctx.globalAlpha=.72;
     ctx.fillStyle=GB.peekKind==='death'?C['--vermilion']:C['--jade'];
