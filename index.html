@@ -891,7 +891,11 @@ const CONFIG = {
 
   /* 보상 — 구간 배율(1~10층 ×1, 11~20층 ×2 …)이 곱해진다 */
   inkPerFloor:1, inkPerBoss:1, inkPerAlert:0,   // 경보 보상은 먹 대신 기력으로 간다
-  gamblerRate:1/30, gamblerFrom:8, gamblerTo:40,  // 노름꾼이 나오는 자리
+  /* 노름꾼 — 1~40층에서 한 판에 한 번쯤 나온다.
+     스물다섯째 층에 무너지는 판이 있으니 뒤쪽은 조금 묽게 탄다 */
+  gamblerFrom:1, gamblerTo:40, gamblerMid:20,
+  gamblerRateLow:1/22,          // 1~20층 — 여기서 더 자주 만난다
+  gamblerRateHigh:1/30,         // 21~40층
   inkGain:1.60,              // 들어오는 먹을 통째로 이만큼 곱한다
 
   /* 심연(회차)마다 붙는 값 */
@@ -1932,6 +1936,7 @@ function saveRun(){
       stage:S.stage, startStage:S.startStage,
       energy:Math.round(S.energy), energyBase:S.energyBase,
       revives:S.revives, bonusInk:S.bonusInk, gamblerDone:S.gamblerDone?1:0,
+      revUsed:S.revUsed?1:0,
       alertRight:S.alertRight, alertWrong:S.alertWrong,
       grow:S.grow, combo:S.combo, comboBest:S.comboBest, omens:S.omens, stackUp:S.stackUp,
       totalWords:S.totalWords, learned:[...S.learned],
@@ -2147,6 +2152,7 @@ function weakAdd(word){
 }
 function weakHit(word){
   if(!META.weak||META.weak[word]===undefined)return;
+  mBump('weak');                                  // 틀렸던 낱말을 되돌렸다
   META.weak[word]--;
   if(META.weak[word]<=0) delete META.weak[word];
   saveMeta();
@@ -2313,7 +2319,7 @@ function resumeRun(d){
   S.stage=d.stage; S.startStage=d.startStage;
   S.energyBase=d.energyBase; S.energy=d.energy;
   S.revives=d.revives; S.bonusInk=d.bonusInk; S.wallCharge=d.wallCharge||0;
-  S.gamblerDone=d.gamblerDone||0;
+  S.gamblerDone=d.gamblerDone||0; S.revUsed=d.revUsed||0;
   S.alertRight=d.alertRight; S.alertWrong=d.alertWrong;
   S.grow=d.grow||0; S.combo=d.combo||0; S.comboBest=d.comboBest||0;
   S.fate=null; S.jadeOk=0; S.jadeNo=0;
@@ -2603,7 +2609,7 @@ function hurt(amount){
   }
   if(S.energy<=0){
     if(S.revives>0){                              // 부활
-      S.revives--; S.energy=Math.round(S.energyMax*.5);
+      S.revives--; S.revUsed=1; S.energy=Math.round(S.energyMax*.5);
       S.invuln=2.6; S.bullets=[]; S.bricks=[]; S.alert=null; S.alertPending=false;
       S.shake=26; S.winFlash=1; vibe('revive');
       S.alertMsg={text:'되살아났다',t:1.8,ok:true};
@@ -2768,6 +2774,7 @@ function resolveAlert(correct){
   if(gimOn('quiz')) S.quizDone=(S.quizDone||0)+1;
   if(correct){
     S.alertRight++;
+    mBump('alertOk'); S.alertRun=(S.alertRun||0)+1; mMax('alertRun',S.alertRun);
     growHit(CONFIG.growAlert);
     weakHit(ans.w);
     healPct(CONFIG.healAlert);
@@ -2793,6 +2800,7 @@ function resolveAlert(correct){
     S.alertMsg={text:`${ans.w} — 뜻이 풀렸다`,t:2.0,ok:true};
   }else{
     S.alertWrong++;
+    mBump('alertNo'); S.alertRun=0;
     growMiss();
     weakAdd(ans.w);
     S.hardLeft=CONFIG.hardRows;          // 다음 줄들이 굳는다
@@ -3085,6 +3093,7 @@ function healPct(p){
   if(S.tome&&S.tome.noHeal) return;
   const before=S.energy;
   S.energy=Math.min(S.energyMax, S.energy+S.energyMax*p);
+  if(before<S.energyMax && S.energy>=S.energyMax) mBump('full');   // 기력이 가득 찼다
   if(S.energy>before+0.5) S.healFx=0.9;
 }
 /* 상태이상마다 제 색을 갖는다 */
@@ -3105,7 +3114,7 @@ function burst(x,y,n,c){
   for(let i=0;i<n;i++)S.sparks.push({x,y,vx:(Math.random()-.5)*560,vy:(Math.random()-.5)*560,t:.55,c});
 }
 function countWord(b){
-  S.destroyed++;S.totalWords++;S.sinceAlert++;
+  S.destroyed++;S.totalWords++;S.sinceAlert++; mBump('words');
   if(b.kind==='hard') S.bonusInk+=CONFIG.hardInk;
   if(b.kind==='gold') S.bonusInk+=CONFIG.goldInk;
   if(!S.learned.has(b.word.w)){S.learned.add(b.word.w);S.learnedWords.push(b.word);}
@@ -3791,6 +3800,7 @@ function resolveBossQuiz(correct){
   const ans=A.ans;
   if(!correct){                      // 틀리면 그 석판만 부서진다. 질문은 그대로
     S.alertWrong++;
+    mBump('alertNo'); S.alertRun=0;
     growMiss();
     weakAdd(ans.w);
     S.alertMsg={text:'아니다 — 손이 굳었다',t:1.2,ok:false};
@@ -3798,6 +3808,7 @@ function resolveBossQuiz(correct){
     return;
   }
   S.alertRight++;
+  mBump('alertOk'); S.alertRun=(S.alertRun||0)+1; mMax('alertRun',S.alertRun);
   growHit(CONFIG.growBoss);
   weakHit(ans.w);
   healPct(CONFIG.healBossQuiz);
@@ -5624,6 +5635,8 @@ function sellInk(slot){
   return (CONFIG.tierInk[slot.def.tier||1]||5)*slot.lv*CONFIG.sellMul;
 }
 function takeCard(c){
+  mBump('card');
+  if(c && c.def && c.def.evo){ mBump('fuse'); if(c.def.abyss) mBump('evo'); }
   /* 주사위 — 구슬·문방 한 장에만 걸린다 */
   const die=(c.kind==='ball'||c.kind==='gear') ? (S.dice||1) : 1;
   if(die!==1){ S.dice=null; S.diceUsed=die; }
@@ -5860,6 +5873,7 @@ function giveFate(bless){
   const pool=bless?BLESS:CURSE;
   const def=pool[Math.floor(Math.random()*pool.length)];
   S.fate={def,bless,left:CONFIG.jadeLast};
+  if(bless) mBump('fate');                        // 백옥경 축복
   recalc();
   S.screen='fate'; dropTouches();
   el('fateEyebrow').textContent=bless?'백옥경의 축복':'백옥경의 저주';
@@ -6300,7 +6314,9 @@ function nextStage(){
   /* 노름꾼 — 서른 층에 한 번꼴로 나오고, 한 판에 한 번뿐이다.
      앉든 지나치든 S.gamblerDone 이 서서 다시는 안 나온다 */
   if(!S.gamblerDone && S.stage>=CONFIG.gamblerFrom && S.stage<=CONFIG.gamblerTo
-     && typeof gambleStart==='function' && Math.random()<CONFIG.gamblerRate){
+     && typeof gambleStart==='function'
+     && Math.random() < (S.stage<=CONFIG.gamblerMid ? CONFIG.gamblerRateLow
+                                                    : CONFIG.gamblerRateHigh)){
     gambleStart(()=>nextStage()); return;
   }
   /* 기억은 층에 들어설 때가 아니라 층을 다 깬 뒤에 듣는다.
@@ -10229,12 +10245,52 @@ function renderPro(){
 el('btnPro').onclick=()=>{ proTab='어휘'; renderPro(); show('vPro'); guideSoon('pro'); };
 el('proBack').onclick=()=>{ show('vTitle'); refreshTitle(); };
 
+/* ══════════════════════════════════════════════════════════
+   미션 셈 — 평생 누적인 META.pcnt 와 달리, 하루와 한 주로 끊긴다.
+   하루는 새벽 4시에, 한 주는 월요일 새벽 4시에 갈린다
+   ══════════════════════════════════════════════════════════ */
+const MDAY_H=4;                                   // 하루가 갈리는 시각
+function mNow(t){                                 // 4시 이전은 어제로 친다
+  const d=new Date(t||Date.now());
+  d.setHours(d.getHours()-MDAY_H);
+  return d;
+}
+function mDayKey(t){
+  const d=mNow(t);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function mWeekKey(t){                             // 그 주 월요일의 날짜로 적는다
+  const d=mNow(t);
+  const back=(d.getDay()+6)%7;                    // 월요일이 0
+  d.setDate(d.getDate()-back);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+/* 날이 바뀌었으면 칸을 비운다. 받지 않은 것은 그때 사라진다 */
+function mBox(){
+  META.mis=META.mis||{};
+  const M=META.mis, dk=mDayKey(), wk=mWeekKey();
+  if(M.day!==dk){ M.day=dk; M.d={}; M.dPick=null; M.dGot=[]; }
+  if(M.week!==wk){ M.week=wk; M.w={}; M.wPick=null; M.wGot=[]; M.wBonus=0; }
+  M.d=M.d||{}; M.w=M.w||{};
+  return M;
+}
+const mBump=(k,n)=>{ const M=mBox(); const v=n||1;
+  M.d[k]=(M.d[k]||0)+v; M.w[k]=(M.w[k]||0)+v; };
+const mMax =(k,v)=>{ const M=mBox();
+  if(v>(M.d[k]||0)) M.d[k]=v; if(v>(M.w[k]||0)) M.w[k]=v; };
+/* 오늘 게임한 날로 적는다 — 주간의 「세 날에 걸쳐」를 세는 자리 */
+function mMarkDay(){
+  const M=mBox(), dk=mDayKey();
+  M.days=M.days||[]; if(!M.days.includes(dk)) M.days.push(dk);
+  M.w.days=M.days.length;
+}
+
 /* ── 세는 자리 ── */
 const _breakBrick=breakBrick;
 breakBrick=function(b,ball){
   if(b&&!b.quiz){
-    pBump('brick');
-    if(b.kind) pBump('k_'+b.kind);
+    pBump('brick');  mBump('brick');
+    if(b.kind){ pBump('k_'+b.kind); mBump('k_'+b.kind); }
     if(b.word&&b.word.w){ META.book=META.book||{};
       META.book[b.word.w]=(META.book[b.word.w]||0)+1; }
   }
@@ -10249,7 +10305,9 @@ stageClear=function(){ if(!(S.floorHurt||0)) pBump('clean'); return _stageClear(
 const _nextStage2=nextStage;
 nextStage=function(){
   if(S){
-    if(S.isBoss) pBump('boss');
+    if(S.isBoss){ pBump('boss'); mBump('boss'); }
+    mMax('floor', S.stage);
+    if(!S.revUsed) mMax('noRev', S.stage);        // 되살아나지 않고 닿은 층
     if(!S.everHurt) pMax('pure',S.stage);
     if((S.gearSlots||[]).length===0) pMax('bare',S.stage);
     if((S.ballSlots||[]).length===1) pMax('solo',S.stage);
@@ -10271,6 +10329,12 @@ const _runEnd=runEnd;
 runEnd=function(won){
   if(S){
     pMax('combo',S.comboBest||0);
+    mMax('combo',S.comboBest||0);
+    mBump('runs'); mMarkDay();
+    mBump('ink', Math.max(0, S.bonusInk||0));
+    if(S.depth>0)  mBump('abyssRun');
+    if(S.deepRun)  mBump('deepRun');
+    if(won) mBump('clearAll');
     if(won){
       pBump('won_'+META.char);
       if((S.ballSlots||[]).some(b=>b.def&&b.def.evo)) pBump('fuseRun');
@@ -10861,8 +10925,17 @@ function drawGrains(){
 /* ══════════════════════════════════════════════════════════
    죽은 자리 — 죽으면 그 판 먹의 절반을 그 층에 흘리고 간다
    ══════════════════════════════════════════════════════════ */
+/* 죽은 자리는 셋까지 남는다. 옛 판은 하나짜리로 적혀 있어 목록으로 읽어 준다 */
+function graveList(){
+  const G=META.grave;
+  if(!G) return [];
+  return Array.isArray(G) ? G.filter(g=>g&&g.ink>0) : [G];
+}
+function graveSave(list){ META.grave = list.length ? list : null; }
+function graveAt(st){ return graveList().find(g=>g.stage===st); }
+
 function drawGrave(){
-  const G=META.grave; if(!G||!S||S.screen!=='play'||S.stage!==G.stage)return;
+  const G=(S&&S.screen==='play')?graveAt(S.stage):null; if(!G)return;
   const t=performance.now()/1000;
   ctx.save();
   ctx.globalAlpha=0.35+0.25*Math.sin(t*2.2);
@@ -10883,19 +10956,39 @@ runEnd=function(won){
     const gained=Math.max(0, META.ink-before);
     const drop=Math.floor(gained*0.5);
     if(drop>0){
-      META.ink-=drop; META.grave={stage:st, ink:drop}; saveMeta();
+      META.ink-=drop;
+      const list=graveList();
+      const same=list.find(g=>g.stage===st);
+      let lost=0;
+      if(same) same.ink+=drop;                     // 같은 층이면 한자리에 쌓인다
+      else{
+        list.push({stage:st, ink:drop});
+        if(list.length>3){                         // 셋까지. 넘치면 제일 적은 자리를 잃는다
+          list.sort((a,b)=>a.ink-b.ink);
+          lost=list.shift().ink;
+        }
+      }
+      list.sort((a,b)=>b.stage-a.stage);
+      graveSave(list); saveMeta();
       const g=el('inkGain');
-      if(g) g.innerHTML+=`<br><span style="font-size:.6em;color:var(--gold)">`
-        +`먹 <b>${drop}</b>을 ${st}층에 흘렸다 — 다시 닿으면 되찾는다</span>`;
+      if(g){
+        g.innerHTML+=`<br><span style="font-size:.6em;color:var(--gold)">`
+          +`먹 <b>${drop}</b>을 ${st}층에 흘렸다 — 다시 닿으면 되찾는다</span>`;
+        if(lost>0) g.innerHTML+=`<br><span style="font-size:.6em;color:var(--stone-deep)">`
+          +`자리가 셋뿐이라 먹 ${lost}은 잃었다</span>`;
+        const rest=list.filter(x=>x.stage!==st);
+        if(rest.length) g.innerHTML+=`<br><span style="font-size:.6em;color:var(--stone-deep)">`
+          +`남은 자리 — ${rest.map(x=>`${x.stage}층 ${x.ink}`).join(' · ')}</span>`;
+      }
     }
   }
 };
 const _nextStage4=nextStage;
 nextStage=function(){
   const r=_nextStage4();
-  const G=META.grave;
-  if(G && S && S.screen!=='end' && S.stage===G.stage){
-    META.grave=null; META.ink+=G.ink; saveMeta();
+  const G=(S && S.screen!=='end') ? graveAt(S.stage) : null;
+  if(G){
+    graveSave(graveList().filter(x=>x!==G)); META.ink+=G.ink; mBump('grave'); saveMeta();
     S.alertMsg={text:`죽은 자리 — 먹 ${G.ink}을 되찾았다`, t:2.6, ok:true};
     S.winFlash=Math.max(S.winFlash||0,.7); vibe('right');
     spawnGrains(VW/2, CEIL_Y+120, 26);
@@ -10914,7 +11007,7 @@ refreshTitle=function(){
     `<div><b>${G.ink}</b>${G.stage}층에 흘린 먹</div>`;
 };
 
-const BUILD='c69';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c71';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
