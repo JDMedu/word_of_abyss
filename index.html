@@ -346,6 +346,7 @@ canvas{display:block;width:100%;height:100%}
 .loadout .stats{margin-top:.6em;padding-top:.55em;border-top:1px solid rgba(222,211,184,.12);
   font-size:.74em;color:rgba(243,237,223,.72);letter-spacing:.02em}
 .loadout .stats b{color:var(--gold);font-weight:700}
+.loadout .stats i{color:var(--stone-deep);font-style:normal;font-size:.9em}
 #cardRow{display:flex;flex-direction:column;gap:.5em;width:100%;max-height:52vh;overflow-y:auto}
 .card{display:flex;align-items:center;gap:.85em;padding:.7em 1em;cursor:pointer;
   background:linear-gradient(100deg,rgba(229,178,79,.15),rgba(222,211,184,.04));
@@ -1164,8 +1165,8 @@ const BOSSES = [
    patterns:['spiral','fan'], p2:['spiral','fan','ring'],
    cry:'먼 훗날 당신이 찾으실까요?',
    repeat:3, trait:'세 소절 — 뜻을 세 번 맞혀야 방벽이 열린다',
-   tome:{id:'muwi',icon:'☴',name:'먼 후일',text:'발사 간격이 절반. 대신 위력도 절반',
-         set:t=>{t.cdMul=0.5;t.dmgMul=.5;}}},
+   tome:{id:'muwi',icon:'☴',name:'먼 후일',text:'발사 간격이 절반. 대신 위력 -20%',
+         set:t=>{t.cdMul=0.5;t.dmgMul=.8;}}},
 
   {ho:'자전', name:'정지용', color:'#52BFA0', move:'teleport',
    lines:{meet:'넓은 벌 동쪽 끝으로 옛이야기 지즐대는 실개천이 있었소. 여기엔 없구려.',
@@ -1244,8 +1245,8 @@ const BOSSES = [
    patterns:['sweep', 'ring', 'bolt'], p2:['bolt', 'beam', 'fan'],
    cry:'선비는 아첨하는 자로구나!',
    trait:'호질 — 짖으면 조준이 뒤집힌다',
-   tome:{id:'jilju',icon:'➤',name:'호질',text:'이동 속도 2배. 대신 최대 기력 -40%',
-         set:t=>{t.moveMul=2;t.energyMul=.6;}}},
+   tome:{id:'jilju',icon:'➤',name:'호질',text:'이동 속도 2배. 대신 최대 기력 -20%',
+         set:t=>{t.moveMul=2;t.energyMul=.8;}}},
   {ho:'구보', name:'박태원', color:'#5FBFB0', move:'sine',
    lines:{meet:'나는 하루 종일 걷고 있었소. 그대도 어디론가 가는 길이오?',
      talk:['위에서는 다방에 앉아 사람을 보았소. 여기는 지나가는 이가 그대뿐이오.','사람을 보는 법을 고현학이라 불렀소. 유식한 척한 것이오.','눈이 멀고서도 나는 썼소. 불러주면 누가 받아 적었지.'],
@@ -1266,8 +1267,8 @@ const BOSSES = [
    patterns:['rain', 'wall', 'squeeze'], p2:['fan', 'rise', 'sweep'],
    cry:'갈매나무라는 나무를 생각하는 것이었다.',
    trait:'흰 바람벽 — 가장자리가 구슬을 삼킨다',
-   tome:{id:'chimjam',icon:'⚖',name:'박시봉방',text:'기력이 낮을수록 모든 위력이 오른다. 대신 회복 불가',
-         set:t=>{t.desperate=1;t.noHeal=true;}}},
+   tome:{id:'chimjam',icon:'⚖',name:'박시봉방',text:'기력이 낮을수록 모든 위력이 오른다',
+         set:t=>{t.desperate=1;}}},
   {ho:'백릉', name:'채만식', color:'#D96F6F', move:'corner',
    lines:{meet:'윤 직원 영감께서 인력거를 타고 오셨소. 삯은 깎아야 제맛이지.',
      talk:['화적패가 아버지를 죽였을 때, 영감은 시체 앞에서 부르짖었소. 오냐, 우리만 빼놓고 어서 망해라.','손자가 사회주의를 한다더이다. 이 태평천하에 왜 그런 짓을 한단 말이오.','나도 붓을 굽힌 적이 있소. 그래서 여기 있는 것이 마땅하다 여기오.'],
@@ -1362,6 +1363,14 @@ const BOSSES = [
    ④ 구슬 — 슬롯에 든 종류가 번갈아 발사된다. 레벨 3이 상한.
    ══════════════════════════════════════════════════════════ */
 const BALLS = [
+  {id:'meteor',icon:'☄', name:'별똥', tier:2, line:'power',
+   text:lv=>`이 구슬만 치명타 확률 +${[0,10,16,22,28,34,40][lv]}%`,
+   dmg:[0,0,0,1,1,2,2,3,3], spd:[1,1,1,1,1,1,1,1,1],
+   critOwn:[0,0.10,0.16,0.22,0.28,0.34,0.40,0.46,0.52]},
+  {id:'salseong',icon:'✷',name:'살성', tier:2, line:'poison',
+   text:lv=>`상태이상이 걸린 석판에 치명타 확률 +${[0,18,26,34,40,46,52][lv]}%`,
+   dmg:[0,0,0,1,1,2,2,3,3], spd:[1,1,1,1,1,1,1,1,1],
+   critSick:[0,0.18,0.26,0.34,0.40,0.46,0.52,0.58,0.64]},
   {id:'stone', icon:'●', name:'돌구슬', tier:1, line:'power',
    text:lv=>`무난하다. 위력 +${[0,0,1,2,3,4,5][lv]}`,
    dmg:[0,0,1,2,3,4,5,6,7], spd:[1,1,1,1,1,1,1,1,1]},
@@ -1499,6 +1508,43 @@ const GEARS = [
    less:[0,1,1,1,1,2,2,2,3], vigor:[0,0.2,0.3,0.4,0.5,0.6,0.72,0.84,0.96]},
   {id:'thimble',icon:'◐',name:'골무', tier:2,
    text:lv=>`몸에 닿은 석판 피해 -${[0,40,60,80,85,88,91][lv]}%`, guard:[0,0.4,0.6,0.8,0.85,0.88,0.91,0.94,0.97]},
+  /* ── 치명타 ── 확률만 쌓는다. 배수는 3배로 고정이다 ── */
+  {id:'knife', icon:'刀', name:'인각도', tier:2, line:'power',
+   text:lv=>`치명타 확률 +${[0,5,10,15,20,25,30][lv]}%`,
+   crit:[0,0.05,0.10,0.15,0.20,0.25,0.30,0.35,0.40]},
+  {id:'firstice',icon:'❅',name:'살얼음', tier:3, line:'power',
+   text:lv=>`쏠 때마다 앞의 ${[0,1,1,2,2,3,3][lv]}발은 반드시 치명타`,
+   firstCrit:[0,1,1,2,2,3,3,4,4]},
+  {id:'needle',icon:'⌇', name:'침', tier:2, line:'poison',
+   text:lv=>`상태이상 한 겹마다 치명타 확률 +${[0,3,5,7,9,11,13][lv]}%`,
+   critPer:[0,0.03,0.05,0.07,0.09,0.11,0.13,0.15,0.17]},
+  {id:'pouch', icon:'⊙', name:'피주머니', tier:2, line:'rain',
+   text:lv=>`치명타가 터지면 기력 +${[0,1,2,3,4,5,6][lv]}`,
+   critHeal:[0,1,2,3,4,5,6,7,8]},
+  {id:'jamo',  icon:'字', name:'자모', tier:3, line:'poison',
+   text:lv=>`치명타가 터지면 상태이상이 ${[0,1,1,2,2,3,3][lv]}겹 쌓인다`,
+   critStack:[0,1,1,2,2,3,3,4,4]},
+  {id:'tinder',icon:'✸', name:'부싯깃', tier:2, line:'power',
+   text:lv=>`치명타가 터지면 옆 두 칸에 위력의 ${[0,25,35,45,55,65,75][lv]}%`,
+   critSplash:[0,0.25,0.35,0.45,0.55,0.65,0.75,0.85,0.95]},
+  {id:'burnglass',icon:'◉',name:'화경', tier:3, line:'power',
+   text:lv=>`치명타가 터지면 아래로 빛줄기가 뻗는다 (위력의 ${[0,40,55,70,85,100,115][lv]}%)<br>1초에 한 번까지`,
+   critBeam:[0,0.40,0.55,0.70,0.85,1.00,1.15,1.30,1.45]},
+  {id:'nakgwan',icon:'㊝',name:'낙관', tier:2, line:'power',
+   text:lv=>`치명타를 맞은 석판은 다음 한 대를 ${[0,1.3,1.5,1.7,1.9,2.1,2.3][lv]}배로 맞는다`,
+   critMark:[0,1.3,1.5,1.7,1.9,2.1,2.3,2.5,2.7]},
+  {id:'flintsteel',icon:'⚡',name:'부시', tier:2, line:'rain',
+   text:lv=>`치명타가 안 터지면 다음 확률 +${[0,4,7,10,13,16,19][lv]}%<br>터지면 처음으로 돌아간다`,
+   critPity:[0,0.04,0.07,0.10,0.13,0.16,0.19,0.22,0.25]},
+  {id:'abacus',icon:'筭', name:'서산', tier:2, line:'power',
+   text:lv=>`경보를 이어 맞힐 때마다 치명타 확률 +${[0,1,1.5,2,2.5,3,3.5][lv]}%<br>틀리면 처음으로 돌아간다`,
+   runCrit:[0,0.010,0.015,0.020,0.025,0.030,0.035,0.040,0.045]},
+  {id:'bundle',icon:'⛬', name:'봇짐', tier:2, line:'rain',
+   text:lv=>`층을 넘을 때 기력 +${[0,2,3,4,5,6,8][lv]}%`,
+   floorHeal:[0,0.02,0.03,0.04,0.05,0.06,0.08,0.09,0.10]},
+  {id:'morale',icon:'旗', name:'사기', tier:3, line:'power',
+   text:lv=>`기력이 가득 차 있으면 위력 +${[0,12,18,24,30,36,42][lv]}%`,
+   morale:[0,0.12,0.18,0.24,0.30,0.36,0.42,0.48,0.54]},
   {id:'scroll',icon:'⌸', name:'두루마리', tier:3,
    text:lv=>`카드 선택지 +${[0,1,2,3,4,5,6][lv]}`,             card:[0,1,2,3,4,5,6,7,8]},
 ];
@@ -1617,6 +1663,37 @@ const CONSUM = [
    ⑤-2 진화 구슬 — 만렙 구슬 + 짝이 되는 문방으로 융합한다
    ══════════════════════════════════════════════════════════ */
 const EVOS = [
+  /* ── 치명타 ── */
+  {id:'comet',  icon:'✹', name:'혜성', evo:true, from:'meteor', with:'knife',
+   text:()=>'치명타 확률 +60%. 터지면 다음 한 발도 반드시 터진다',
+   dmg:[0,0,0,2,2,3,3,4,4], spd:[1,1,1,1,1,1,1,1,1],
+   critOwn:[0,0,0,0.60,0.66,0.72,0.78,0.84,0.90], critChain:true},
+  {id:'yeokgwi',icon:'鬼', name:'역귀', evo:true, from:'salseong', with:'needle',
+   text:()=>'상태이상 석판에 치명타 확률 +80%. 터지면 그 상태이상이 옆으로 옮는다',
+   dmg:[0,0,0,1,1,2,2,3,3], spd:[1,1,1,1,1,1,1,1,1],
+   critSick:[0,0,0,0.80,0.88,0.96,1.04,1.12,1.20], critSpread:true},
+  {id:'meteorain',icon:'❋',name:'유성우', evo:true, from:'meteor', with:'flintsteel',
+   text:()=>'안 터질수록 확률이 크게 쌓인다. 터지면 옆 넉 칸이 함께 터진다',
+   dmg:[0,0,0,1,1,2,2,3,3], spd:[1,1,1,1,1,1,1,1,1],
+   critOwn:[0,0,0,0.15,0.18,0.21,0.24,0.27,0.30],
+   pityMul:[0,0,0,2.5,2.8,3.1,3.4,3.7,4.0], critWide:true},
+  /* ── 치명타 × 이미 있던 문방 ── */
+  {id:'byeoksan',icon:'⟡',name:'벽산', evo:true, from:'meteor', with:'anvil',
+   text:()=>'체력이 절반 아래인 석판에는 반드시 치명타가 터진다',
+   dmg:[0,0,0,2,2,3,3,4,4], spd:[1,1,1,1,1,1,1,1,1],
+   critOwn:[0,0,0,0.20,0.24,0.28,0.32,0.36,0.40], critLow:true},
+  {id:'seolhwa',icon:'❆', name:'설화', evo:true, from:'meteor', with:'incense',
+   text:()=>'치명타가 터질 때마다 이번 판 위력이 1씩 오른다. 쌓이면 그대로 간다',
+   dmg:[0,0,0,1,1,2,2,3,3], spd:[1,1,1,1,1,1,1,1,1],
+   critOwn:[0,0,0,0.25,0.30,0.35,0.40,0.45,0.50], critGrow:[0,0,0,1,1,2,2,2,3]},
+  {id:'seokhwa',icon:'✶', name:'석화', evo:true, from:'salseong', with:'mortar',
+   text:()=>'상태이상 한 겹마다 치명타 확률이 크게 오른다. 겹이 깊을수록 무섭다',
+   dmg:[0,0,0,1,1,2,2,3,3], spd:[1,1,1,1,1,1,1,1,1],
+   critPerOwn:[0,0,0,0.10,0.12,0.14,0.16,0.18,0.20]},
+  {id:'nakhwa', icon:'✾', name:'낙화', evo:true, from:'meteor', with:'dropper',
+   text:()=>'치명타가 터지면 그 자리에 새끼 구슬 셋이 쏟아진다',
+   dmg:[0,0,0,1,1,2,2,3,3], spd:[1,1,1,1,1,1,1,1,1],
+   critOwn:[0,0,0,0.30,0.35,0.40,0.45,0.50,0.55], critSow:[0,0,0,3,3,4,4,5,5]},
   {id:'plague', icon:'☣', name:'역병', evo:true, from:'blood', with:'seal',
    text:()=>'출혈 2겹씩. 옆 칸으로 옮는다',
    dmg:[0,0,0,1,1,1,1,2,2], spd:[1,1,1,1,1,1,1,1,1], bleed:[0,0,0,16,18,21,23,26,28], splash:[0,0,0,1,1,1,1,2,2], splashN:[0,0,0,2,2,3,3,3,4]},
@@ -2557,6 +2634,20 @@ function recalc(){
   S.aura       = gv('incense','aura')*CONFIG.auraMul;   // 향 — 구슬 위력에 얹는다
   S.shieldSec  = gv('mirror','shield');                 // 거울 — 방벽이 서 있는 시간
   S.finish     = gv('anvil','finish');       // 모루
+  /* ── 치명타 — 확률만 쌓이고 배수는 3배로 고정이다 ── */
+  S.crit       = gv('knife','crit');         // 인각도 — 모든 구슬
+  S.critPer    = gv('needle','critPer');     // 침 — 상태이상 한 겹마다
+  S.firstCrit  = gv('firstice','firstCrit'); // 살얼음 — 앞의 몇 발은 확정
+  S.critHeal   = gv('pouch','critHeal');     // 피주머니
+  S.critStack  = gv('jamo','critStack');     // 자모
+  S.critSplash = gv('tinder','critSplash');  // 부싯깃
+  S.critBeam   = gv('burnglass','critBeam'); // 화경
+  S.critMark   = gv('nakgwan','critMark');   // 낙관
+  S.critPity   = gv('flintsteel','critPity');// 부시
+  S.runCrit    = gv('abacus','runCrit');     // 서산 — 이어 맞힌 수만큼
+  S.floorHeal  = gv('bundle','floorHeal');   // 봇짐
+  S.moraleMul  = gv('morale','morale');      // 사기 — 기력이 가득할 때
+  S.beamCd     = S.beamCd||0;
   S.sizeMul    = 1;                          // 구슬 크기는 더 이상 변하지 않는다
   S.alertSlow  = (1-0.08*lvOf('focus')) * (1 - gv('lamp','lamp')) * (t.lampMul||1);
   S.healMul    = 1 + gv('charm','heal');
@@ -2867,6 +2958,7 @@ function tryFire(){
   if((S.fireLock||0)>0)return;              // 오답 뒤에는 잠깐 못 쏜다
   S.cool=gimOn('overload')?CONFIG.overloadCool:CONFIG.shotCooldown*S.rateMul;
   S.btnGlow=1;
+  S.shotIdx=0;                                // 살얼음 — 이번 발사의 몇 번째인가
   const base=Math.atan2(S.aimY,S.aimX);
   const extra=jailOn()?2:0;                   // 옥중가 — 구슬 둘이 더 나간다
   const N=S.shotBalls+extra;
@@ -2929,8 +3021,12 @@ function spawnBallAt(ang,slot,px,py,mid,chg){
   const a=ang+(Math.random()-.5)*2*(S.spread||CONFIG.spread);
   let sp=CONFIG.ballSpeed*S.speedMul*(d.spd?d.spd[lv]:1);
   if(mid) sp*=CONFIG.fanMidSpd;                  // 춘향 — 한가운데 화살
+  let must=(S.firstCrit||0)>(S.shotIdx||0);    // 살얼음 — 앞의 몇 발은 확정
+  if(S.nextMustCrit){ must=true; S.nextMustCrit=false; }  // 혜성 — 이어 터진다
+  S.shotIdx=(S.shotIdx||0)+1;
   S.balls.push({
     fired:true,                              // 손으로 쏜 구슬 — 경보를 깰 수 있다
+    mustCrit:must,
     x:px+Math.cos(ang)*30, y:py+Math.sin(ang)*30,
     vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, sp0:sp, boost:1,
     r:CONFIG.ballRadius*S.sizeMul,          // 구슬 크기는 변하지 않는다
@@ -2989,6 +3085,7 @@ function dmgOf(ball){
   if(d.pen)   v+=S.alertRight*at(d.pen,lv);
   if(d.stackPer) v=1+(S.stackUp||0);          // 먹쌓임 — 제 위력은 오직 쌓인 몫
   if(d.vampPower) v+=(S.vampPow||0);
+  if(d.critGrow)  v+=(S.critPow||0);         // 설화 — 터질 때마다 쌓인 몫
   if(d.scale) v=Math.round(v*(1+(1-S.energy/S.energyMax)*at(d.scale,lv)));
   return Math.max(1, Math.round(v*(S.dmgMul||1)*(S.growMul||1)*walkMul()*rageMul()));
 }
@@ -3155,6 +3252,99 @@ function chip(b,amount,color){          // 다른 석판에 간접 피해
 }
 /* 타수형 효과 — 위력을 보지 않는다 */
 const hasStatus=b=>!!(b.bleedN>0||b.poiN>0||b.freeze>0||b.brandT>0);
+/* ══ 치명타 ══════════════════════════════════════════
+   배수는 3배로 고정. 확률만 쌓는다.
+   100%를 넘으면 반드시 터지고, 넘친 몫만큼 한 번 더 터진다(9배)  */
+const CRIT_MUL=3;
+/* 상태이상 겹 — 서리·낙인은 겹이 없으니 한 겹으로 친다 */
+const sickStacks=b=>(b.bleedN||0)+(b.poiN||0)+(b.freeze>0?1:0)+(b.brandT>0?1:0);
+function critChance(b,ball){
+  let p=(S.crit||0)
+       + (S.runCrit||0)*(S.alertRun||0)          // 서산 — 이어 맞힌 수
+       + (S.critPer||0)*sickStacks(b)
+       + (ball&&ball.def&&ball.def.critOwn ? at(ball.def.critOwn, ball.lv||1) : 0)
+       + (S.critPity||0)*(S.critMiss||0)
+       + (ball&&ball.def&&ball.def.critPerOwn
+          ? sickStacks(b)*at(ball.def.critPerOwn, ball.lv||1) : 0)      // 석화
+       + (ball&&ball.def&&ball.def.pityMul
+          ? (S.critMiss||0)*0.02*at(ball.def.pityMul, ball.lv||1) : 0);
+  if(hasStatus(b) && ball&&ball.def&&ball.def.critSick) p+=at(ball.def.critSick, ball.lv||1);
+  return Math.max(0,p);
+}
+/* 터졌을 때 딸려오는 것들 — 문방을 모은 만큼 */
+function critFx(b,ball,mul,dv){
+  const cx=b.x+b.w/2, cy=b.y+b.h/2;
+  /* 붉게 터진다. 두 번 터졌으면 더 크게 */
+  const big=mul>CRIT_MUL;
+  burst(cx,cy, big?22:12, 'blood');
+  burst(cx,cy, big?10:5,  'paper');
+  S.crits=(S.crits||0)+1;
+  S.critFlash={x:cx,y:cy,t:big?0.42:0.28,big};
+  S.shake=Math.max(S.shake||0, big?7:4);
+  vibe(big?'boss':'right');
+  if(S.critHeal)  S.energy=Math.min(S.energyMax,S.energy+S.critHeal);
+  if(S.critMark)  b.critMark=S.critMark;                 // 낙관 — 다음 한 대
+  if(S.critStack){                                        // 자모 — 상태이상을 얹는다
+    const n=S.critStack;
+    if(b.poiN>0)       b.poiN   = Math.min((b.poiN||0)+n,  99);
+    else if(b.bleedN>0)b.bleedN = Math.min((b.bleedN||0)+n, 99);
+    else               b.poiN   = n;
+    b.poiT=Math.max(b.poiT||0, 3+(S.holdBonus||0));
+  }
+  const d=ball&&ball.def;
+  if(d&&d.critChain) S.nextMustCrit=true;                 // 혜성 — 다음 한 발도 확정
+  if(d&&d.critGrow) S.critPow=(S.critPow||0)+at(d.critGrow, ball.lv||1);  // 설화
+  if(d&&d.critSow) sow(cx,cy,at(d.critSow, ball.lv||1),CONFIG.ballSpeed*.5); // 낙화
+  if(d&&d.critSpread){                                    // 역귀 — 상태이상이 옆으로
+    for(const o of S.bricks){
+      if(!o||o===b||o.hp<=0||o.quiz) continue;
+      if(Math.abs(o.y-b.y)>b.h*0.6||Math.abs(o.x-b.x)>b.w*1.6) continue;
+      if(b.poiN>0){ o.poiN=Math.max(o.poiN||0,b.poiN); o.poiT=Math.max(o.poiT||0,b.poiT||3); }
+      if(b.bleedN>0){ o.bleedN=Math.max(o.bleedN||0,b.bleedN); o.bleedT=Math.max(o.bleedT||0,b.bleedT||3); }
+      if(b.freeze>0) o.freeze=Math.max(o.freeze||0,b.freeze);
+      burst(o.x+o.w/2,o.y+o.h/2,3,'poison');
+    }
+  }
+  if(d&&d.critWide){                                      // 유성우 — 옆 넉 칸이 함께 터진다
+    const share=Math.max(1,Math.round(dv*0.5/CRIT_MUL));
+    for(const o of S.bricks){
+      if(!o||o===b||o.hp<=0||o.quiz) continue;
+      if(Math.abs(o.y-b.y)>b.h*0.6||Math.abs(o.x-b.x)>b.w*2.6) continue;
+      o.hp-=share; o.hit=.14; burst(o.x+o.w/2,o.y+o.h/2,4,'blood');
+    }
+  }
+  if(S.critSplash){                                       // 부싯깃 — 옆 두 칸
+    const share=Math.max(1,Math.round(dv*S.critSplash/CRIT_MUL));
+    for(const o of S.bricks){
+      if(!o||o===b||o.hp<=0||o.quiz) continue;
+      if(Math.abs(o.y-b.y)>b.h*0.6) continue;
+      if(Math.abs(o.x-b.x)>b.w*1.6) continue;
+      o.hp-=share; o.hit=.12; burst(o.x+o.w/2,o.y+o.h/2,3,'blood');
+    }
+  }
+  if(S.critBeam && (S.beamCd||0)<=0){                      // 화경 — 아래로 뻗는다
+    S.beamCd=1;
+    const hurt=Math.max(1,Math.round(dv*S.critBeam/CRIT_MUL));
+    for(const o of S.bricks){
+      if(!o||o===b||o.hp<=0||o.quiz) continue;
+      if(o.y<b.y) continue;                                // 아래쪽만
+      if(Math.abs((o.x+o.w/2)-cx)>b.w*0.6) continue;
+      o.hp-=hurt; o.hit=.14; burst(o.x+o.w/2,o.y+o.h/2,4,'blood');
+    }
+    S.critBeamFx={x:cx,y:cy,t:0.3};
+  }
+}
+/* 몇 배로 터지는가 — 0 이면 안 터진 것이다 */
+function critRoll(b,ball){
+  if(ball && ball.mustCrit){ ball.mustCrit=false; return CRIT_MUL; }
+  if(ball&&ball.def&&ball.def.critLow && b.hp<=b.maxHp/2) return CRIT_MUL;  // 벽산
+  let p=critChance(b,ball), mul=1, hit=false;
+  while(p>=1){ mul*=CRIT_MUL; p-=1; hit=true; }      // 100%를 넘은 몫은 한 번 더
+  if(Math.random()<p){ mul*=CRIT_MUL; hit=true; }
+  if(hit){ S.critMiss=0; return mul; }
+  S.critMiss=(S.critMiss||0)+1;                      // 부시 — 안 터질수록 가까워진다
+  return 0;
+}
 /* 층마다 경보가 설 자리를 미리 뽑는다.
    30~90% 사이 아무 데나 — 층이 열릴 때 한 번 정해 두고 그대로 쓴다 */
 function rollAlertMarks(){
@@ -3384,10 +3574,14 @@ function hitBrick(b,ball){
   let dv=dmgOf(ball);
   if(b.brandT>0) dv=Math.round(dv*(1+(b.brandV||0.3)));      // 낙인
   if(S.finish&&b.hp<=b.maxHp/2) dv=Math.round(dv*(1+S.finish)); // 모루
+  if(S.moraleMul && S.energy>=S.energyMax) dv=Math.round(dv*(1+S.moraleMul)); // 사기
+  if(b.critMark){ dv=Math.round(dv*b.critMark); b.critMark=0; } // 낙관 — 다음 한 대
+  const critMul=critRoll(b,ball);                             // 치명타
+  if(critMul){ dv=Math.round(dv*critMul); critFx(b,ball,critMul,dv); }
   const wasSick=hasStatus(b);
   /* 일반 석판은 한 번에 최대 체력의 절반까지만 깎인다 — 일반전은 타격전이다 */
   let capped=0;
-  if(!b.quiz){
+  if(!b.quiz && !critMul){                    // 치명타는 상한을 뚫고 들어간다
     const cap=Math.max(1,Math.ceil(b.maxHp*CONFIG.hitCapPct));
     if(dv>cap){ capped=dv-cap; dv=cap; }
   }
@@ -4683,6 +4877,12 @@ function updateHazards(dt){
 }
 function squeezeIn(){ return S.squeeze? Math.sin(Math.min(1,S.squeeze.t/S.squeeze.dur)*Math.PI)*S.squeeze.max : 0; }
 
+/* 치명타 — 붉게 터진 자국과 화경의 쉬는 시간 */
+function updateCrit(dt){
+  if(S.beamCd>0) S.beamCd=Math.max(0,S.beamCd-dt);
+  if(S.critFlash){ S.critFlash.t-=dt; if(S.critFlash.t<=0) S.critFlash=null; }
+  if(S.critBeamFx){ S.critBeamFx.t-=dt; if(S.critBeamFx.t<=0) S.critBeamFx=null; }
+}
 function updateSweeps(dt){
   for(let i=S.sweeps.length-1;i>=0;i--){
     const w=S.sweeps[i];
@@ -5712,6 +5912,12 @@ function renderLoadout(id){
   const cd=(CONFIG.shotCooldown*S.rateMul).toFixed(2);
   const life=(CONFIG.ballLife+S.lifeBonus).toFixed(0);
   let extra='';
+  /* 치명타 — 모든 구슬에 걸리는 몫만 적는다.
+     구슬마다 다른 몫(별똥·살성)과 상태이상 겹은 그때그때 달라져서 못 적는다 */
+  const cp=Math.round(((S.crit||0)+(S.critPity||0)*(S.critMiss||0))*100);
+  if(cp>0) extra+=` · 치명타 <b>${cp}%</b>`;
+  if(S.critPer>0) extra+=` <i>(겹마다 +${Math.round(S.critPer*100)}%)</i>`;
+  if(S.firstCrit>0) extra+=` · 앞 <b>${S.firstCrit}발</b> 확정`;
   if(S.statusMul>1) extra+=` · 상태이상 <b>+${Math.round((S.statusMul-1)*100)}%</b>`;
   if(S.tome)        extra+=` · 천서 <b>발동</b>`;
   box.dataset.id=id;
@@ -6330,6 +6536,7 @@ function nextStage(){
   const wipe=!!S.isBoss;
   const keep=wipe?[]:S.bricks.filter(b=>b&&!b.quiz);
   for(const b of keep){ b.hit=0; }                // 있던 자리에 그대로 둔다
+  if(S.floorHeal) healPct(S.floorHeal);          // 봇짐 — 층을 넘으며 숨을 돌린다
   S.stage++;S.destroyed=0;S.clearedThisStage=[];
   S.bricks=[];S.balls=[];S.bullets=[];S.sparks=[];S.beams=[];S.queue=[];S.sweeps=[];S.nums=[];S.mines=[];S.drips=[];
   S.dark=null;S.fog=null;S.hook=null;S.pull=null;S.cross=null;S.blobs=[];S.rings=[];S.walls=null;S.sweepFx=[];
@@ -7143,12 +7350,12 @@ function update(dt){
 
   if(S.twins&&S.twins.length){                       // 쌍혼 — 혼마다 따로 굴린다
     eachBoss(()=>updateBoss(dt)); if(S.screen!=='play')return;
-    updateSweeps(dt); if(S.screen!=='play')return;
+    updateSweeps(dt); updateCrit(dt); if(S.screen!=='play')return;
     updateHazards(dt); if(S.screen!=='play')return;
     eachBoss(()=>updateTrait(dt)); if(S.screen!=='play')return;
   }else if(S.isBoss){
     updateBoss(dt); if(S.screen!=='play')return;
-    updateSweeps(dt); if(S.screen!=='play')return;
+    updateSweeps(dt); updateCrit(dt); if(S.screen!=='play')return;
     updateHazards(dt); if(S.screen!=='play')return;
     updateTrait(dt); if(S.screen!=='play')return;
     for(let i=S.bricks.length-1;i>=0;i--){          // 수호 석판 접촉
@@ -7523,6 +7730,28 @@ function draw(){
   for(const p of S.sparks){ctx.globalAlpha=Math.max(0,p.t*1.9);
     ctx.fillStyle=fxCol(p.c);ctx.fillRect(p.x-3,p.y-3,6,6);}
   ctx.globalAlpha=1;
+  /* 치명타 — 붉은 고리가 한 번 퍼진다 */
+  if(S.critFlash){
+    const f=S.critFlash, k=1-f.t/(f.big?0.42:0.28);
+    ctx.save();
+    ctx.globalAlpha=Math.max(0,1-k)*0.9;
+    ctx.strokeStyle=FX.blood; ctx.lineWidth=(f.big?9:5)*(1-k*0.5);
+    ctx.shadowColor=FX.blood; ctx.shadowBlur=26;
+    ctx.beginPath(); ctx.arc(f.x,f.y,(f.big?26:16)+k*(f.big?92:58),0,7); ctx.stroke();
+    if(f.big){                                   // 두 번 터졌다 — 고리가 하나 더
+      ctx.globalAlpha=Math.max(0,1-k)*0.55; ctx.lineWidth=4;
+      ctx.beginPath(); ctx.arc(f.x,f.y,10+k*46,0,7); ctx.stroke();
+    }
+    ctx.restore();
+  }
+  if(S.critBeamFx){                              // 화경 — 아래로 뻗은 자국
+    const f=S.critBeamFx, k=f.t/0.3;
+    ctx.save(); ctx.globalAlpha=k*0.7;
+    const g=ctx.createLinearGradient(0,f.y,0,DANGER_Y);
+    g.addColorStop(0,FX.blood); g.addColorStop(1,'rgba(196,52,42,0)');
+    ctx.fillStyle=g; ctx.fillRect(f.x-9,f.y,18,DANGER_Y-f.y);
+    ctx.restore();
+  }
   ctx.fillStyle='rgba(222,211,184,.86)';           // 새끼 구슬 — 한 번에 몰아 그린다
   ctx.beginPath();
   for(const b of S.balls){ if(!b.baby)continue;
@@ -11008,7 +11237,7 @@ refreshTitle=function(){
       `<div><b>${G.ink}</b>${G.stage}층에 흘린 먹</div>`;
 };
 
-const BUILD='c80';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c85';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
