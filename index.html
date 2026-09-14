@@ -10925,7 +10925,7 @@ function drawGrains(){
 /* ══════════════════════════════════════════════════════════
    죽은 자리 — 죽으면 그 판 먹의 절반을 그 층에 흘리고 간다
    ══════════════════════════════════════════════════════════ */
-/* 죽은 자리는 셋까지 남는다. 옛 판은 하나짜리로 적혀 있어 목록으로 읽어 준다 */
+/* 죽은 자리는 둘까지 남는다. 옛 판은 하나짜리로 적혀 있어 목록으로 읽어 준다 */
 function graveList(){
   const G=META.grave;
   if(!G) return [];
@@ -10957,13 +10957,13 @@ runEnd=function(won){
     const drop=Math.floor(gained*0.5);
     if(drop>0){
       META.ink-=drop;
-      const list=graveList();
+      const list=graveList().slice(0,2);        // 옛 판에 셋이 있으면 둘로 줄인다
       const same=list.find(g=>g.stage===st);
       let lost=0;
       if(same) same.ink+=drop;                     // 같은 층이면 한자리에 쌓인다
       else{
         list.push({stage:st, ink:drop});
-        if(list.length>3){                         // 셋까지. 넘치면 제일 적은 자리를 잃는다
+        if(list.length>2){                         // 둘까지. 넘치면 제일 적은 자리를 잃는다
           list.sort((a,b)=>a.ink-b.ink);
           lost=list.shift().ink;
         }
@@ -10975,7 +10975,7 @@ runEnd=function(won){
         g.innerHTML+=`<br><span style="font-size:.6em;color:var(--gold)">`
           +`먹 <b>${drop}</b>을 ${st}층에 흘렸다 — 다시 닿으면 되찾는다</span>`;
         if(lost>0) g.innerHTML+=`<br><span style="font-size:.6em;color:var(--stone-deep)">`
-          +`자리가 셋뿐이라 먹 ${lost}은 잃었다</span>`;
+          +`자리가 둘뿐이라 먹 ${lost}은 잃었다</span>`;
         const rest=list.filter(x=>x.stage!==st);
         if(rest.length) g.innerHTML+=`<br><span style="font-size:.6em;color:var(--stone-deep)">`
           +`남은 자리 — ${rest.map(x=>`${x.stage}층 ${x.ink}`).join(' · ')}</span>`;
@@ -11002,13 +11002,13 @@ draw=function(){ _draw4(); drawGrave(); drawGrains(); };
 const _refreshTitle=refreshTitle;
 refreshTitle=function(){
   _refreshTitle();
-  /* 죽은 자리는 셋까지 남는다 — 깊은 층부터 적는다 */
-  for(const G of graveList())
+  /* 죽은 자리는 둘까지 남는다 — 깊은 층부터 적는다 */
+  for(const G of graveList().slice(0,2))
     el('titleRec').innerHTML+=
       `<div><b>${G.ink}</b>${G.stage}층에 흘린 먹</div>`;
 };
 
-const BUILD='c73';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c74';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
@@ -11020,5 +11020,19 @@ requestAnimationFrame(loop);
 <script src="mini.js"></script>
 <script src="gamble.js"></script>
 <script src="mission.js"></script>
+<script>
+/* 붙임 파일이 하나라도 빠지면 조용히 사라진다. 어느 것이 빠졌는지 알려 준다 */
+addEventListener('load',()=>{
+  const miss=[];
+  if(typeof miniStart  !=='function') miss.push('mini.js');
+  if(typeof gambleStart!=='function') miss.push('gamble.js');
+  if(typeof renderMis  !=='function') miss.push('mission.js');
+  if(miss.length){
+    console.warn('못 찾은 파일: '+miss.join(', '));
+    const r=el('titleRec');
+    if(r) r.innerHTML+=`<div style="color:var(--vermilion)"><b>!</b>${miss.join(' · ')} 없음</div>`;
+  }
+});
+</script>
 </body>
 </html>
