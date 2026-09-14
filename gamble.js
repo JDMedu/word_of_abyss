@@ -106,6 +106,9 @@ function gambleStart(done){
        shake:0, flash:0, veil:0, jade:0, knock:0, red:0, back:true,
        lamp:0, line:null, lineT:0, t:0, done:done||null };
   gT=performance.now();
+  /* 본 게임의 흔들림·번쩍임을 꺼 둔다. 여기서는 update 가 안 돌아
+     저절로 잦아들지 않는다 — 보스를 잡은 직후에 앉으면 계속 흔들린다 */
+  if(S){ S.shake=0; S.flash=0; S.hitFlash=0; S.alertMsg=null; }
   const btn=el('ghGo');
   if(META.gamSeen || !btn){ gMeet(); return; }    // 설명은 처음 한 번만
   META.gamSeen=1; try{ saveMeta(); }catch(e){}
@@ -404,6 +407,7 @@ function gGesture(dt){
   GB.gat.a += GB.gat.v*dt*live;
 }
 function gTick(dt){
+  if(S && S.shake) S.shake=0;
   GB.t+=dt;
   gGesture(dt);
   GB.dustT=(GB.dustT||0)+dt*(1-gHush());          // 뜸 동안에는 먼지도 멎는다
