@@ -286,9 +286,10 @@ function misDot(){
 
 /* ── 본 게임에 얹는다 ───────────────────────────────── */
 (function(){
-  if(typeof el!=='function'||!el('btnPro')) return;
-  /* 단추 — 복선 옆에 둔다 */
+  if(typeof el!=='function'){ console.warn('mission.js — el 을 못 찾았다'); return; }
   const pro=el('btnPro');
+  if(!pro){ console.warn('mission.js — 제목 화면 단추 자리를 못 찾았다'); return; }
+  /* 단추 — 복선 옆에 둔다 */
   const btn=document.createElement('button');
   btn.className='btn ghost'; btn.id='btnMis'; btn.textContent='도전과제';
   pro.parentNode.insertBefore(btn, pro);
