@@ -231,7 +231,6 @@ function misClaimBonus(){
 }
 
 /* ── 화면 ───────────────────────────────────────────── */
-let misTab='오늘';
 function misRow(m,week){
   const now=misNow(m,week), done=misDone(m,week), got=misGot(m,week);
   const d=document.createElement('div');
@@ -248,34 +247,36 @@ function misRow(m,week){
   if(done&&!got) b.onclick=()=>misClaim(m,week);
   return d;
 }
+function misHead(text, note){
+  const d=document.createElement('div');
+  d.className='misHead';
+  d.innerHTML=`<span>${text}</span>${note?`<i>${note}</i>`:''}`;
+  return d;
+}
 function renderMis(){
-  const tabs=el('misTabs'); tabs.innerHTML='';
-  for(const t of ['오늘','이번 주']){
-    const b=document.createElement('button');
-    b.className='btn ghost'+(t===misTab?' on':'');
-    b.textContent=t; b.onclick=()=>{ misTab=t; renderMis(); };
-    tabs.appendChild(b);
-  }
-  const week=misTab==='이번 주';
   const list=el('misList'); list.innerHTML='';
-  for(const m of (week?misWeek():misToday())) list.appendChild(misRow(m,week));
+  const done=(a,w)=>a.filter(m=>misDone(m,w)).length;
 
-  const foot=el('misFoot'); foot.innerHTML='';
-  if(week){
-    const B=mBox(), all=misWeek().every(m=>misDone(m,1));
-    const d=document.createElement('div');
-    d.className='misItem'+(B.wBonus?' got':(all?' done':''));
-    d.innerHTML=`<div class="mi"><div class="mn">여섯을 다 이루면</div>
-        <div class="mh">작가의 조각 하나</div></div>
-      <button class="btn ${all&&!B.wBonus?'gold':'ghost'} mget"${all&&!B.wBonus?'':' disabled'}>${
-        B.wBonus?'✓':'조각'}</button>`;
-    const b=d.querySelector('.mget');
-    if(all&&!B.wBonus) b.onclick=misClaimBonus;
-    foot.appendChild(d);
-  }else{
-    foot.innerHTML=`<div id="misNote">새벽 네 시에 새 미션으로 바뀐다.<br>`
-      +`받지 않은 것은 그때 사라진다.</div>`;
-  }
+  const t=misToday();
+  list.appendChild(misHead('오늘', `${done(t,0)} / ${t.length}`));
+  for(const m of t) list.appendChild(misRow(m,0));
+
+  const w=misWeek(), B=mBox(), all=w.every(m=>misDone(m,1));
+  list.appendChild(misHead('이번 주', `${done(w,1)} / ${w.length}`));
+  for(const m of w) list.appendChild(misRow(m,1));
+
+  const d=document.createElement('div');                 // 여섯을 다 이루면
+  d.className='misItem bonus'+(B.wBonus?' got':(all?' done':''));
+  d.innerHTML=`<div class="mi"><div class="mn">여섯을 다 이루면</div>
+      <div class="mh">작가의 조각 하나</div></div>
+    <button class="btn ${all&&!B.wBonus?'gold':'ghost'} mget"${all&&!B.wBonus?'':' disabled'}>${
+      B.wBonus?'✓':'조각'}</button>`;
+  const bb=d.querySelector('.mget');
+  if(all&&!B.wBonus) bb.onclick=misClaimBonus;
+  list.appendChild(d);
+
+  el('misFoot').innerHTML=`<div id="misNote">오늘 것은 새벽 네 시에, `
+    +`이번 주 것은 월요일 새벽 네 시에 바뀐다.<br>받지 않은 것은 그때 사라진다.</div>`;
   misDot();
 }
 /* 제목 화면 단추의 금빛 점 */
@@ -293,7 +294,7 @@ function misDot(){
   const btn=document.createElement('button');
   btn.className='btn ghost'; btn.id='btnMis'; btn.textContent='도전과제';
   pro.parentNode.insertBefore(btn, pro);
-  btn.onclick=()=>{ misTab='오늘'; renderMis(); show('vMis'); };
+  btn.onclick=()=>{ renderMis(); show('vMis'); };
 
   /* 화면 */
   const host=el('vPro')?el('vPro').parentNode:document.body;
@@ -301,7 +302,6 @@ function misDot(){
   v.className='veil'; v.id='vMis';
   v.innerHTML=`<div class="eyebrow">도전과제</div>
     <h2>오늘의 <em>미션</em></h2>
-    <div id="misTabs"></div>
     <div id="misList"></div>
     <div id="misFoot"></div>
     <div class="row"><button class="btn gold" id="misBack">돌아간다</button></div>`;
@@ -312,7 +312,14 @@ function misDot(){
   st.textContent=
     '#vMis{justify-content:flex-start;padding-top:11%}'
    +'#vMis>*{flex-shrink:0}'
-   +'#misTabs{display:flex;gap:.4em;margin-bottom:.8em}'
+   +'.misHead{display:flex;justify-content:space-between;align-items:baseline;'
+   +'margin:1.1em 0 .1em;padding-bottom:.35em;border-bottom:1px solid rgba(229,178,79,.34)}'
+   +'.misHead:first-child{margin-top:.2em}'
+   +'.misHead span{font-family:var(--font-ui);font-size:.72em;font-weight:700;'
+   +'letter-spacing:.24em;color:var(--gold)}'
+   +'.misHead i{font-family:var(--font-ui);font-size:.7em;font-style:normal;color:var(--stone-deep)}'
+   +'.misItem.bonus{border-bottom:none}'
+   +'.misItem.bonus .mn{color:var(--gold)}'
    +'#misList{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;'
    +'width:100%;max-width:26em}'
    +'#misFoot{width:100%;max-width:26em;margin-top:.6em}'
