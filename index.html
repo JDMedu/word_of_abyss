@@ -11002,12 +11002,13 @@ draw=function(){ _draw4(); drawGrave(); drawGrains(); };
 const _refreshTitle=refreshTitle;
 refreshTitle=function(){
   _refreshTitle();
-  const G=META.grave;
-  if(G) el('titleRec').innerHTML+=
-    `<div><b>${G.ink}</b>${G.stage}층에 흘린 먹</div>`;
+  /* 죽은 자리는 셋까지 남는다 — 깊은 층부터 적는다 */
+  for(const G of graveList())
+    el('titleRec').innerHTML+=
+      `<div><b>${G.ink}</b>${G.stage}층에 흘린 먹</div>`;
 };
 
-const BUILD='c71';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c73';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
@@ -11018,5 +11019,6 @@ requestAnimationFrame(loop);
 </script>
 <script src="mini.js"></script>
 <script src="gamble.js"></script>
+<script src="mission.js"></script>
 </body>
 </html>
