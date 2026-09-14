@@ -60,6 +60,8 @@ function miniHit(n){
 
 /* ── 매 프레임 ──────────────────────────────────────── */
 function miniTick(dt){
+  /* 본 게임의 흔들림은 여기서 안 잦아든다 — 보스를 잡은 직후라 걸려 있다 */
+  if(S && S.shake) S.shake=0;
   MG.t+=dt; MG.left=Math.max(0,MINI.dur-MG.t);
   if(MG.penFx>0) MG.penFx=Math.max(0,MG.penFx-dt*1.6);
   MG.inv=Math.max(0,MG.inv-dt);
