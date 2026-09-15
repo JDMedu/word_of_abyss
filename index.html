@@ -1043,6 +1043,8 @@ const CONFIG = {
   overloadCool:0.08,      // 과부하 — 발사 쿨타임
   overloadDescent:3.0,    // 과부하 — 하강 배수
   overloadDrain:2.0,      // 과부하 — 초당 기력 소모
+  overloadDescentR:1.8,   // 과부하(무작위) — 고른 것이 아니라 순하다
+  overloadDrainR:1.0,     // 과부하(무작위) — 기력도 절반만
   scaleAccel:0.008,       // 역린 — 석판 하나당 하강 가속
   scaleCap:0.40,          // 역린 — 가속 상한
 
@@ -2511,7 +2513,7 @@ function kindRate(f){
 }
 const abyssMul   =()=>abyssHard()*(pactOn(6)?CONFIG.abyssTide:1);   // 거센 물살
 const descentSpd =()=>descentBase(S.stage)*S.descentMul*abyssMul()
-                        *(gimOn('overload')?CONFIG.overloadDescent:1)   // 과부하 — 세 배
+                        *(gimOn('overload')?(S.gimFlash?CONFIG.overloadDescentR:CONFIG.overloadDescent):1)  // 갈림길 세 배 · 무작위 1.8
                         *(1+(S.scaleUp||0))                             // 역린 — 깰수록 빨라진다
                         *(easeOn(S.stage)?CONFIG.easeDescent:1)         // 16층부터 숨통
                         *HASTE_FALL[hasteNow()];                        // 급한 걸음
@@ -5010,7 +5012,7 @@ function gimTick(dt){
 
   /* 과부하 — 기력이 저절로 탄다 */
   if(gimOn('overload')){
-    S.energy-=CONFIG.overloadDrain*dt;
+    S.energy-=(S.gimFlash?CONFIG.overloadDrainR:CONFIG.overloadDrain)*dt;
     if(S.energy<=0){ S.energy=1; S.invuln=0; hurt(2); if(S.screen!=='play')return; }
   }
 
@@ -7747,7 +7749,7 @@ function draw(){
     ctx.beginPath();ctx.arc(bm.x,bm.y,10,0,7);ctx.fill();
     ctx.shadowBlur=0;ctx.globalAlpha=1;
   }
-  drawSigil();                                   // 기술2 문양 — 석판보다 먼저 깔린다
+  drawSigil(false);                              // 오래 가는 셋 — 석판보다 먼저
   drawEchoes();
   for(const b of S.bricks)drawBrick(b);
   if(S.sweepFx&&S.sweepFx.length){                // 자람 연속 — 판을 훑는 줄
@@ -10878,7 +10880,8 @@ const SIG_R=352;
 const SIG_LIFE={none:3.5, kwon:12, gildong:7, chunhyang:1.7,
                 jeomsun:12, utturi:4.2, kimcheomji:20, yuchungryeol:1.7};
 let SGA=1;
-function sigStart(id){ const L=SIG_LIFE[id]; if(L) S.sigil={id, t:0, life:L}; }
+const SIG_BACK={jeomsun:1, kwon:1, kimcheomji:1};   // 오래 가는 셋만 석판 뒤에
+function sigStart(id){ const L=SIG_LIFE[id]; if(L) S.sigil={id, t:0, life:L+1.0}; }
 function sigTick(dt){ if(S.sigil){ S.sigil.t+=dt; if(S.sigil.t>=S.sigil.life) S.sigil=null; } }
 
 function sA(x){ ctx.globalAlpha=SGA*Math.max(0,Math.min(1,x)); }
@@ -11404,12 +11407,13 @@ SIG.none=function(k,T){
   ctx.beginPath();ctx.arc(0,0,29,0,7);ctx.stroke();ctx.setLineDash([]);
 };
 /* 그린다 — 석판보다 먼저 */
-function drawSigil(){
+function drawSigil(front){
   const g=S.sigil; if(!g||!SIG[g.id])return;
+  if(!!SIG_BACK[g.id] === !!front) return;          // 뒤엣것은 뒤에, 앞엣것은 앞에
   const k=Math.min(1,g.t/0.35), left=g.life-g.t;
   const base=(g.id==='kimcheomji')?0.35:0.55;
   let a=(k<1)?(0.55+0.45*k):base;
-  if(left<0.3) a*=Math.max(0,left/0.3);
+  if(left<0.4) a*=Math.max(0,left/0.4);             // 기술이 끝나고 1초 더 남았다 스러진다
   SGA=a;
   ctx.save();
   ctx.translate(VW/2,(CEIL_Y+DANGER_Y)/2);
@@ -11633,7 +11637,7 @@ startRunNow=function(){ _startRunNow2();
     t:3.2, ok:true}; }, 1200);
 };
 const _drawControls=drawControls;
-drawControls=function(){ drawAc6(); drawAcFx(); _drawControls(); drawActive(); };
+drawControls=function(){ drawSigil(true); drawAc6(); drawAcFx(); _drawControls(); drawActive(); };
 
 GUIDE.chars.push(
  {h:'세 번째 면모',t:`캐릭터마다 세 번째 면모가 하나씩 더 있습니다.<br>
@@ -12014,7 +12018,7 @@ refreshTitle=function(){
       `<div><b>${G.ink}</b>${G.stage}층에 흘린 먹</div>`;
 };
 
-const BUILD='c93';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c94';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
