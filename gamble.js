@@ -304,13 +304,38 @@ function gCheck(){
       if(over){
         const w=GB.wins;
         const t = w>=3?GLINE.win3 : w>=2?GLINE.win2 : GLINE.lose;
-        say('노름꾼', t, C['--gold'], ()=>{ if(w>=2) gambleEnd(w); else gPenalty(w); });
+        say('노름꾼', t, C['--gold'], ()=>{ if(w>=2) gReward(w); else gPenalty(w); });
         return;
       }
       say('노름꾼', won?GLINE.roundWin:GLINE.roundLose, C['--gold'],
           ()=>{ GB.round++; gRoundStart(); });
     };
   }, 1200);
+}
+
+/* ── 이긴 값 — 무엇을 얻었는지 눈으로 보여 준다 ────────── */
+function gReward(wins){
+  const ink=(wins>=3?GAM.ink3:GAM.ink2);
+  const have=(META.wshard||0)+1;                 // 이번 것까지 셈해서
+  const need=GAM.narrShard;
+  const left=Math.max(0,need-have);
+  const narr=!!META.narrator;
+  let t=`먹 <b style="color:var(--gold)">+${ink}</b>`
+      + `<br>작가의 조각 <b style="color:var(--gold)">+1</b>`
+      + ` <span style="font-size:.72em;color:var(--stone-deep)">모두 ${have}개</span>`;
+  if(!narr) t += left>0
+    ? `<div style="margin-top:.9em;font-size:.78em;color:var(--stone-deep)">`
+      +`서술자의 개입까지 ${left}개 남았다</div>`
+    : `<div style="margin-top:.9em;font-size:.82em;color:var(--jade)">`
+      +`조각 ${need}개가 찼다 — 대장간에서 서술자를 부를 수 있다</div>`;
+  if(wins<3) t += `<div style="margin-top:.6em;font-size:.72em;color:var(--stone-deep)">`
+      +`세 판을 다 이겼으면 먹 ${GAM.ink3}이었다</div>`;
+  if(typeof showResult==='function'){
+    showResult(wins>=3?'세 판을 다 이겼다':'두 판을 이겼다',
+               wins>=3?'⚅':'⚄',
+               wins>=3?'노름꾼이 상을 물렸다':'노름꾼이 졌다',
+               t, true, ()=>gambleEnd(wins));
+  }else gambleEnd(wins);
 }
 
 /* ── 진 값 — 구슬 하나를 버리거나 위력을 내준다 ────────── */
