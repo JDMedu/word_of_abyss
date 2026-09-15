@@ -938,9 +938,9 @@ const CONFIG = {
 
   /* 구슬 · 문방 슬롯 */
   ballSlotBase:3,        // 구슬 슬롯. 주머니로 6칸까지
-  ballLvBase:5,          // 구슬 최대 레벨. 연마로 6까지
+  ballLvBase:5,          // 구슬 최대 레벨. 연마로 8까지
   fuseAtLv:3,            // 이 레벨이 되면 융합할 수 있다
-  gearLvBase:5,          // 문방은 칸 제한 없이 레벨만 오른다. 경지로 6까지
+  gearLvBase:5,          // 문방은 칸 제한 없이 레벨만 오른다. 경지로 8까지
   tierWeight:[0,50,33,17],   // 별1 / 별2 / 별3 이 뽑힐 가중치
   /* 축 — 일(상태이상) 취(빠름) 월(위력) 장(구슬 수) */
   /* 관상 — 관상가가 오늘의 운을 봐 준다 */
@@ -1532,7 +1532,7 @@ const GEARS = [
    text:lv=>`치명타가 터지면 옆 두 칸에 위력의 ${[0,25,35,45,55,65,75][lv]}%`,
    critSplash:[0,0.25,0.35,0.45,0.55,0.65,0.75,0.85,0.95]},
   {id:'burnglass',icon:'◉',name:'화경', tier:3, line:'power',
-   text:lv=>`치명타가 터지면 아래로 빛줄기가 뻗는다 (위력의 ${[0,40,55,70,85,100,115][lv]}%)<br>1초에 한 번까지`,
+   text:lv=>`치명타가 터지면 위로 빛줄기가 뻗는다 (위력의 ${[0,40,55,70,85,100,115][lv]}%)<br>1초에 한 번까지`,
    critBeam:[0,0.40,0.55,0.70,0.85,1.00,1.15,1.30,1.45]},
   {id:'nakgwan',icon:'㊝',name:'낙관', tier:2, line:'power',
    text:lv=>`치명타를 맞은 석판은 다음 한 대를 ${[0,1.3,1.5,1.7,1.9,2.1,2.3][lv]}배로 맞는다`,
@@ -1894,25 +1894,28 @@ const GEARDEF=id=>GEARS.find(g=>g.id===id);
    ⑤-4 영구 강화 (대장간) — 비용 = 다음 레벨 × 단가
    ══════════════════════════════════════════════════════════ */
 const UPGRADES = [
-  {id:'vigor',  name:'기력',  desc:'시작 기력 +10',              unit:2.5, cap:8},
-  {id:'reload', name:'재장전',desc:'발사 쿨다운 -5%',            unit:3.5, cap:8},
-  {id:'foot',   name:'발놀림',desc:'이동 속도 +6%',              unit:4,   cap:6},
-  {id:'swift',  name:'날쌤',  desc:'구슬 속도 +6%',              unit:4.5, cap:6},
-  {id:'focus',  name:'정독',  desc:'경보 후보 하강 -8%',          unit:5.5, cap:5},
-  {id:'power',  name:'화력',  desc:'기본 위력 +1',               unit:8,   cap:6},
-  {id:'burst',  name:'연발',  desc:'시작 발사 수 +1',            unit:15,  cap:4},
-  {id:'pouch',  name:'주머니',desc:'구슬 슬롯 +1 (최대 6칸)',     unit:36,  cap:3},
+  {id:'vigor',  name:'기력',  desc:'시작 기력 +10',              unit:2.5, cap:10},
+  {id:'reload', name:'재장전',desc:'발사 쿨다운 -5%',            unit:3.5, cap:10},
+  {id:'foot',   name:'발놀림',desc:'이동 속도 +6%',              unit:4,   cap:8},
+  {id:'swift',  name:'날쌤',  desc:'구슬 속도 +6%',              unit:4.5, cap:8},
+  {id:'focus',  name:'정독',  desc:'경보 후보 하강 -8%',          unit:5.5, cap:7},
+  {id:'power',  name:'화력',  desc:'기본 위력 +1',               unit:8,   cap:8},
+  {id:'burst',  name:'연발',  desc:'시작 발사 수 +1',            unit:15,  cap:6},
+  {id:'pouch',  name:'주머니',desc:'구슬 슬롯 +1 (최대 8칸)',     unit:36,  cap:5},
   {id:'start',  name:'선발',  desc:'시작 층 +2',                 unit:38,  cap:4},
-  {id:'rub',    name:'탁본',  desc:'처음 만난 낱말 10개당 먹 +1', unit:45,  cap:3},
-  {id:'eye',    name:'안목',  desc:'카드를 한 장 더 보고 고른다',  unit:60,  cap:2},
-  {id:'bond',   name:'인연',  desc:'융합·진화한 구슬이 1레벨 높게', unit:60,  cap:2},
-  {id:'almanac',name:'책력',  desc:'문방 하나를 갖고 시작한다',    unit:65,  cap:2},
-  {id:'revive', name:'부활',  desc:'한 판에 한 번 되살아난다',     unit:75,  cap:2},
+  {id:'rub',    name:'탁본',  desc:'처음 만난 낱말 10개당 먹 +1', unit:45,  cap:5},
+  {id:'eye',    name:'안목',  desc:'카드를 한 장 더 보고 고른다',  unit:60,  cap:4},
+  {id:'bond',   name:'인연',  desc:'융합·진화한 구슬이 1레벨 높게', unit:60,  cap:4},
+  {id:'almanac',name:'책력',  desc:'문방 하나를 갖고 시작한다',    unit:65,  cap:4},
+  {id:'revive', name:'부활',  desc:'한 판에 한 번 되살아난다',     unit:75,  cap:4},
   {id:'resolve',name:'각오',  desc:'시작 기력 -25%. 첫 카드 +1',  unit:18,  cap:2},
   {id:'engrave',name:'각인',  desc:'지난 판의 첫 구슬을 갖고 시작', unit:90,  cap:1},
   {id:'picky',  name:'편식',  desc:'구슬 슬롯 -1. 모두 2레벨 시작', unit:110, cap:1},
-  {id:'mastery',name:'경지',  desc:'문방 최대 레벨 +1 (5→6)',     unit:130, cap:1},
-  {id:'temper', name:'연마',  desc:'구슬 최대 레벨 +1 (5→6)',     unit:140, cap:1},
+  {id:'mastery',name:'경지',  desc:'문방 최대 레벨 +1 (5→8)',     unit:130, cap:3},
+  {id:'temper', name:'연마',  desc:'구슬 최대 레벨 +1 (5→8)',     unit:140, cap:3},
+  /* ── 치명타 ── 확률만 오르고 배수는 3배로 고정이다 ── */
+  {id:'keen',   name:'예기',  desc:'치명타 확률 +2%',             unit:55,  cap:5},
+  {id:'edge',   name:'서슬',  desc:'치명타가 터지면 기력 +1',      unit:70,  cap:3},
 ];
 
 /* ══════════════════════════════════════════════════════════
@@ -2658,10 +2661,10 @@ function recalc(){
   S.shieldSec  = gv('mirror','shield');                 // 거울 — 방벽이 서 있는 시간
   S.finish     = gv('anvil','finish');       // 모루
   /* ── 치명타 — 확률만 쌓이고 배수는 3배로 고정이다 ── */
-  S.crit       = gv('knife','crit');         // 인각도 — 모든 구슬
+  S.crit       = gv('knife','crit') + 0.02*lvOf('keen');   // 인각도 · 예기
   S.critPer    = gv('needle','critPer');     // 침 — 상태이상 한 겹마다
   S.firstCrit  = gv('firstice','firstCrit'); // 살얼음 — 앞의 몇 발은 확정
-  S.critHeal   = gv('pouch','critHeal');     // 피주머니
+  S.critHeal   = gv('pouch','critHeal') + lvOf('edge');    // 피주머니 · 서슬
   S.critStack  = gv('jamo','critStack');     // 자모
   S.critSplash = gv('tinder','critSplash');  // 부싯깃
   S.critBeam   = gv('burnglass','critBeam'); // 화경
@@ -3156,8 +3159,9 @@ function ringOf(b,cx,cy){
   const gy=Math.max(0, Math.abs((b.y+b.h/2)-cy) - b.h/2);
   return Math.floor(Math.max(gx/CL, gy/RH)+0.35)+1;
 }
-function bodyBoom(cx,cy,gr){
+function bodyBoom(cx,cy,gr,fxGr){
   const g=Math.max(1,Math.min(4,gr||1));
+  const fg=Math.max(1,Math.min(4,fxGr||g));      /* 그림만 따로 — 약해도 크게 터진다 */
   const rings=CONFIG.bodyRings[g-1], rest=CONFIG.bodyRest[g-1]||0;
   let dealt=0;
   for(let i=S.bricks.length-1;i>=0;i--){
@@ -3178,17 +3182,17 @@ function bodyBoom(cx,cy,gr){
     }
   }
   if(S.screen!=='play') return;
-  const reach=cell()*(rings.length+0.5);
-  const all=rest>0;
+  const reach=cell()*(CONFIG.bodyRings[fg-1].length+0.5);
+  const all=(CONFIG.bodyRest[fg-1]||0)>0;
   S.rings=S.rings||[];
-  S.rings.push({x:cx,y:cy,r:12,max:reach,t:1.2,dur:1.2,gr:g});
-  if(g>=3) S.rings.push({x:cx,y:cy,r:12,max:reach*0.62,t:1.0,dur:1.0,gr:g});
-  if(all)  S.rings.push({x:cx,y:cy,r:12,max:Math.hypot(VW,VH),t:1.4,dur:1.4,gr:g});
-  burst(cx,cy,18+9*g,'jade');
-  S.shake=Math.max(S.shake,10+5*g);
-  vibe(g>=4?'boss':'right');
-  S.winFlash=Math.max(S.winFlash||0, all?0.9:0.3+0.12*g);
-  if(all) S.alertMsg={text:'몸돌 넷 — 구덩이가 흔들렸다',t:1.8,ok:true};
+  S.rings.push({x:cx,y:cy,r:12,max:reach,t:1.2,dur:1.2,gr:fg});
+  if(fg>=3) S.rings.push({x:cx,y:cy,r:12,max:reach*0.62,t:1.0,dur:1.0,gr:fg});
+  if(all)   S.rings.push({x:cx,y:cy,r:12,max:Math.hypot(VW,VH),t:1.4,dur:1.4,gr:fg});
+  burst(cx,cy,18+9*fg,'jade');
+  S.shake=Math.max(S.shake,10+5*fg);
+  vibe(fg>=4?'boss':'right');
+  S.winFlash=Math.max(S.winFlash||0, all?0.9:0.3+0.12*fg);
+  if(all&&g>=4) S.alertMsg={text:'몸돌 넷 — 구덩이가 흔들렸다',t:1.8,ok:true};
 }
 /* 우투리 — 날개가 펴져 있는 동안 */
 const rageMul=()=>(S&&S.rageOn>0)?CONFIG.rageMul:1;
@@ -3365,12 +3369,12 @@ function critFx(b,ball,mul,dv){
       o.hp-=share; o.hit=.12; burst(o.x+o.w/2,o.y+o.h/2,3,'blood');
     }
   }
-  if(S.critBeam && (S.beamCd||0)<=0){                      // 화경 — 아래로 뻗는다
+  if(S.critBeam && (S.beamCd||0)<=0){                      // 화경 — 위로 뻗는다
     S.beamCd=1;
     const hurt=Math.max(1,Math.round(dv*S.critBeam/CRIT_MUL));
     for(const o of S.bricks){
       if(!o||o===b||o.hp<=0||o.quiz) continue;
-      if(o.y<b.y) continue;                                // 아래쪽만
+      if(o.y>b.y) continue;                                // 위쪽만 — 석판은 위에서 온다
       if(Math.abs((o.x+o.w/2)-cx)>b.w*0.6) continue;
       o.hp-=hurt; o.hit=.14; burst(o.x+o.w/2,o.y+o.h/2,4,'blood');
     }
@@ -3622,6 +3626,11 @@ function hitBrick(b,ball){
     b.open=true; b.openT=CONFIG.bossFlipOpen; b.hit=.2;
     burst(ball.x,ball.y,6,'gold');
     return;
+  }
+  if(ball.whirl2 && !ball.sowed){                 // 먹 소용돌이 — 닿는 순간 새끼 둘
+    ball.sowed=1;
+    sow(ball.x, ball.y, 2, Math.max(180,Math.hypot(ball.vx,ball.vy)*0.7));
+    burst(ball.x, ball.y, 6, 'gnaw');
   }
   let dv=dmgOf(ball);
   if(b.brandT>0) dv=Math.round(dv*(1+(b.brandV||0.3)));      // 낙인
@@ -4339,9 +4348,15 @@ function charTick(dt){
     const want=p2On('kwon')?9:3;                     // 아홉 켤레
     if(!S.orbs) S.orbs=Array.from({length:want},(_,i)=>({a:i*Math.PI*2/want,r:130,hitT:0,x:0,y:0}));
     const free=(S.orbFree||0)>0;                     // 구두를 벗다 — 궤도를 벗어난다
+    let spd=free?4.4:2.2, rmul=free?2.9:1;
+    if(free&&S.orbT2){                               /* 기술2 — 넓어졌다 좁아지고, 점점 빨라진다 */
+      const el=(S.orbMax||12)-S.orbFree, k=Math.min(1,el/(S.orbMax||12));
+      spd=4.4+(9.0-4.4)*k;
+      rmul=1.6+1.6*(0.5+0.5*Math.sin(el*Math.PI*2/2.4));
+    }
     for(const o of S.orbs){
-      o.a+=dt*(free?4.4:2.2); o.hitT=Math.max(0,o.hitT-dt);
-      const rr=free?o.r*2.9:o.r;
+      o.a+=dt*spd; o.hitT=Math.max(0,o.hitT-dt);
+      const rr=o.r*rmul;
       o.x=S.px+Math.cos(o.a)*rr; o.y=S.py+Math.sin(o.a)*rr*.7;
       if(o.hitT>0) continue;
       if(S.boss&&!S.boss.ghost&&o.x>S.boss.x-14&&o.x<S.boss.x+S.boss.w+14
@@ -6635,6 +6650,7 @@ function nextStage(){
   S.twins=null; S.ghost=null; S.floorHurt=0;
   S.orbs=null; S.soupN=0; S.fires=[]; S.flowerHit=0;   // 층이 바뀌면 되돌아온다
   S.whirl=null; S.clones=null; S.baton=null; S.cross=null; S.bolt=null; S.orbFree=0;
+  S.cross7=null; S.sigil=null; S.acPulse=null; S.acEnd=0; S.orbT2=false;
   if(!(S.gim&&S.gim.id==='tide')) S.tideUp=0;
   loadLessonFor(S.stage);            // 층이 바뀌면 회차도 바뀐다
   saveRun();
@@ -7827,12 +7843,12 @@ function draw(){
     g.addColorStop(1,`rgba(196,52,42,${S.critVeil*0.7})`);
     ctx.fillStyle=g; ctx.fillRect(0,0,VW,VH);
   }
-  if(S.critBeamFx){                              // 화경 — 아래로 뻗은 자국
+  if(S.critBeamFx){                              // 화경 — 위로 뻗은 자국
     const f=S.critBeamFx, k=f.t/0.3;
     ctx.save(); ctx.globalAlpha=k*0.7;
-    const g=ctx.createLinearGradient(0,f.y,0,DANGER_Y);
+    const g=ctx.createLinearGradient(0,f.y,0,CEIL_Y);
     g.addColorStop(0,FX.blood); g.addColorStop(1,'rgba(196,52,42,0)');
-    ctx.fillStyle=g; ctx.fillRect(f.x-9,f.y,18,DANGER_Y-f.y);
+    ctx.fillStyle=g; ctx.fillRect(f.x-9,CEIL_Y,18,f.y-CEIL_Y);
     ctx.restore();
   }
   ctx.fillStyle='rgba(222,211,184,.86)';           // 새끼 구슬 — 한 번에 몰아 그린다
@@ -7844,13 +7860,14 @@ function draw(){
     if(b.baby) continue;
     /* 김첨지 — 실린 힘이 클수록 짙은 금빛이 된다 */
     const k=Math.max(0,Math.min(1,((b.chg||1)-1)/Math.max(0.001,chargeFull()-1)));
-    const col=k>0.02 ? `rgb(${243-(243-229)*k|0},${237-(237-178)*k|0},${223-(223-79)*k|0})`
-                     : C['--paper'];
+    const col=b.whirl2 ? '#9B6FD9'                 // 먹 소용돌이 — 보라빛
+             : (k>0.02 ? `rgb(${243-(243-229)*k|0},${237-(237-178)*k|0},${223-(223-79)*k|0})`
+                       : C['--paper']);
     for(let i=0;i<b.trail.length;i++){const t=b.trail[i];
       ctx.globalAlpha=i/b.trail.length*(.24+k*.3);ctx.fillStyle=col;
       ctx.beginPath();ctx.arc(t.x,t.y,b.r*(.68+k*.12),0,7);ctx.fill();}
     ctx.globalAlpha=1;
-    ctx.shadowColor=C['--gold'];ctx.shadowBlur=18+k*22;ctx.fillStyle=col;
+    ctx.shadowColor=b.whirl2?'#9B6FD9':C['--gold'];ctx.shadowBlur=18+k*22;ctx.fillStyle=col;
     ctx.beginPath();ctx.arc(b.x,b.y,b.r*(1+k*0.22),0,7);ctx.fill();ctx.shadowBlur=0;
   }
   drawBlobs();
@@ -9760,20 +9777,26 @@ function drawNewPats(){
 function drawHazards(){
   ctx.save();
   for(const q of S.pools){                       // 먹물 웅덩이
-    const mine=!!q.mine;
-    ctx.globalAlpha=Math.min(.5,q.t/2)*(mine?.95:.75);
+    const mine=!!q.mine, jm=!!q.jeom;               // 점순이 것만 두 배로 짙다
+    ctx.globalAlpha=Math.min(jm?1:.5,q.t/2)*(mine?.95:.75);
     const g=ctx.createRadialGradient(q.x,q.y,q.r*.2,q.x,q.y,q.r);
-    if(mine){ g.addColorStop(0,'rgba(20,92,58,.92)');
+    if(jm){   g.addColorStop(0,'rgba(8,52,30,1)');
+              g.addColorStop(.55,'rgba(18,86,52,.92)');
+              g.addColorStop(.85,'rgba(24,102,62,.55)');
+              g.addColorStop(1,'rgba(24,102,62,0)'); }
+    else if(mine){ g.addColorStop(0,'rgba(20,92,58,.92)');
               g.addColorStop(.6,'rgba(31,122,76,.45)');
               g.addColorStop(1,'rgba(31,122,76,0)'); }
     else { g.addColorStop(0,'rgba(10,14,26,.9)');g.addColorStop(1,'rgba(10,14,26,0)'); }
     ctx.fillStyle=g;ctx.beginPath();ctx.arc(q.x,q.y,q.r,0,7);ctx.fill();
-    ctx.globalAlpha=Math.min(.6,q.t/2);
-    ctx.strokeStyle=mine?'rgba(143,209,79,.75)':'rgba(142,123,216,.6)';ctx.lineWidth=2;
+    ctx.globalAlpha=Math.min(jm?1:.6,q.t/2);
+    ctx.strokeStyle=jm?'rgba(168,232,104,1)'
+                      :(mine?'rgba(143,209,79,.75)':'rgba(142,123,216,.6)');
+    ctx.lineWidth=jm?3.5:2;
     ctx.beginPath();ctx.arc(q.x,q.y,q.r,0,7);ctx.stroke();
     if(mine){                                    // 부글거리는 거품
-      ctx.globalAlpha=Math.min(.55,q.t/2);
-      ctx.fillStyle='rgba(143,209,79,.8)';
+      ctx.globalAlpha=Math.min(jm?1:.55,q.t/2);
+      ctx.fillStyle=jm?'rgba(190,255,130,1)':'rgba(143,209,79,.8)';
       for(let k=0;k<3;k++){
         const a=performance.now()/700+k*2.1+q.x;
         ctx.beginPath();
@@ -10729,12 +10752,12 @@ const acT2   =()=>S&&(S.ac||0)>=AC_NEED2;
 function acFire(id,t2){
   const P=()=>Math.max(1,S.ballDamage||1);
   if(id==='none'){                                   // 구슬 회오리
-    S.whirl={t:t2?3.5:2.1, next:0, gap:t2?0.10:0.06, n:t2?4:2,
+    S.whirl={t:t2?3.5:2.1, next:0, gap:t2?0.10:0.06, n:t2?4:2, t2:!!t2,
              a:Math.atan2(S.aimY,S.aimX)};
   }else if(id==='kwon'){                             // 구두를 벗다
     if(!S.orbs) S.orbs=[];
     while(S.orbs.length<9) S.orbs.push({a:Math.random()*7,r:130,hitT:0,x:0,y:0});
-    S.orbFree=t2?12.0:8.0; S.orbFreeMul=t2?6.67:4;
+    S.orbFree=t2?12.0:8.0; S.orbFreeMul=t2?6.67:4; S.orbT2=!!t2; S.orbMax=S.orbFree;
   }else if(id==='gildong'){                          // 활빈당
     const list=[], n=t2?16:8;
     for(let k=0;k<n;k++){
@@ -10743,12 +10766,14 @@ function acFire(id,t2){
     }
     S.clones={t:t2?7.0:5.0, list, t2:!!t2};
   }else if(id==='chunhyang'){                        // 어사출또
-    const c=cell(), arr=[], T0=t2?1.70:0.85;
+    const c=cell(), arr=[], T0=t2?3.40:0.85;
     const add=(x0,e0)=>arr.push({x0, x1:x0+c, e0, at:T0-e0-0.24, hit:false});
-    if(t2){                                          /* 판 전체를 좌→우, 다시 우→좌 */
+    if(t2){                                          /* 좌→우 · 우→좌 · 쉬고 한 번 더 */
       const N=cols();
-      for(let k=0;k<N;k++)   add(WALL_L+c*k, 0.10+k*0.035);
+      for(let k=0;k<N;k++)    add(WALL_L+c*k, 0.10+k*0.035);
       for(let k=N-1;k>=0;k--) add(WALL_L+c*k, 0.80+(N-1-k)*0.035);
+      for(let k=0;k<N;k++)    add(WALL_L+c*k, 2.05+k*0.035);
+      for(let k=N-1;k>=0;k--) add(WALL_L+c*k, 2.75+(N-1-k)*0.035);
     }else{                                           /* 다섯 칸, 왼쪽부터 0.04초씩 */
       const n=5, mid=Math.max(WALL_L+c*n/2, Math.min(WALL_R-c*n/2, S.px));
       for(let k=0;k<n;k++) add(mid-c*n/2+c*k, 0.16+k*0.04);
@@ -10758,7 +10783,7 @@ function acFire(id,t2){
     const my=(CEIL_Y+DANGER_Y)/2;
     const pts=t2?[[VW*0.28,my-150],[VW*0.72,my-150],[VW/2,my+130]]:[[VW/2,my]];
     for(const q of pts)
-      S.pools.push({x:q[0], y:q[1], r:CONFIG.inkPoolR*3,
+      S.pools.push({x:q[0], y:q[1], r:CONFIG.inkPoolR*3, jeom:true,
                     t:(t2?12:10)*(S.statusMul||1), pct:CONFIG.poolPct[3], mine:true, frz:false});
     const nn=t2?10:5, du=t2?12:8;
     for(const b of S.bricks){ if(!b||b.quiz||isSolid(b))continue;
@@ -10786,15 +10811,17 @@ function ac6Tick(dt){
     if(w.next<=0){
       w.next=w.gap||0.06; w.a+=0.55;
       const n=w.n||2;                                /* 기술2는 네 발 — 두 겹이 반대로 */
-      for(let k=0;k<n;k++)
+      for(let k=0;k<n;k++){
         spawnBallAt(w.a+k*Math.PI*2/n, S.cyc++, S.px, S.py, false, 0.6);
+        if(w.t2){ const nb=S.balls[S.balls.length-1]; if(nb) nb.whirl2=1; }
+      }
     }
     if(w.t<=0) S.whirl=null;
   }
   /* 구두를 벗다 */
   if((S.orbFree||0)>0){
     S.orbFree-=dt;
-    if(S.orbFree<=0){ S.orbFree=0; if(!p2On('kwon')) S.orbs=S.orbs.slice(0,3); }
+    if(S.orbFree<=0){ S.orbFree=0; S.orbT2=false; if(!p2On('kwon')) S.orbs=S.orbs.slice(0,3); }
   }
   /* 활빈당 */
   if(S.clones){
@@ -10877,8 +10904,10 @@ function ac6Tick(dt){
    화면 가운데에 가로 80%(지름 704)로 깔린다. 석판보다 먼저 그린다.
    0.35초에 걸쳐 가운데에서 바깥으로 새겨지고, 기술이 끝나면 스러진다. */
 const SIG_R=352;
-const SIG_LIFE={none:3.5, kwon:12, gildong:7, chunhyang:1.7,
+const SIG_LIFE={none:3.5, kwon:12, gildong:7, chunhyang:3.4,
                 jeomsun:12, utturi:4.2, kimcheomji:20, yuchungryeol:1.7};
+/* 5초마다 판 전체를 한 번 친다 — 오래 가는 둘만 */
+const AC_PULSE={jeomsun:2, kimcheomji:4};
 let SGA=1;
 const SIG_BACK={jeomsun:1, kwon:1, kimcheomji:1};   // 오래 가는 셋만 석판 뒤에
 const SIG_GLOW={chunhyang:'#E5B24F', yuchungryeol:'#9FD8C6', kimcheomji:'#D9C79A',
@@ -11023,7 +11052,7 @@ SIG.yuchungryeol=function(k,T){
 SIG.kimcheomji=function(k,T){
   const TB='#E8E2D0',NG='#D9C79A',HK='#A5793C',HD='#7A5722';
   const left=S.sigil?(S.sigil.life-S.sigil.t)/S.sigil.life:1;   /* 1 → 0 */
-  const spin=T*(0.35+1.9*left);                                  /* 느려진다 */
+  const spin=T*(0.175+0.95*left);                                /* 느려진다 — 절반 속도 */
   const gone=Math.round(36*(1-left)*0.78);                       /* 살이 사라진다 */
   const red=left<0.25;
   sRing(352,1.2,HK,.25*lv(k,352)); sRing(340,3.4,HD,.95*lv(k,340)); sRing(322,3.4,HD,.95*lv(k,322));
@@ -11551,7 +11580,12 @@ function useActive(){
   }else if(acFire(id,t2)){
     S.shout={text:nm,big:!!t2,t:1.6,max:1.6};
   }else return;
-  if(t2) sigStart(id);                         // 바닥에 문양이 새겨진다
+  if(t2){
+    sigStart(id);                              // 바닥에 문양이 새겨진다
+    S.acEnd=SIG_LIFE[id]||0;                   // 끝나는 순간 한 방
+    const n=AC_PULSE[id]||0;
+    S.acPulse=n?{t:5.0, left:n}:null;          // 5초마다 판 전체를 친다
+  }
   S.ac=0;
   const cd=CHARS.find(x=>x.id===id);
   S.acFx={t:t2?1.4:1.0,max:t2?1.4:1.0,col:(cd&&cd.color)||'#E5B24F'};
@@ -11563,6 +11597,29 @@ function useActive(){
 function acTick(dt){
   if(S.acFx){ S.acFx.t-=dt; if(S.acFx.t<=0) S.acFx=null; }
   if(S.acBuff>0) S.acBuff=Math.max(0,S.acBuff-dt);
+  const MY=(CEIL_Y+DANGER_Y)/2;
+  if(S.acPulse){                               /* 5초마다 판 전체에 몸돌 둘 */
+    S.acPulse.t-=dt;
+    if(S.acPulse.t<=0){
+      S.acPulse.t=5.0; S.acPulse.left--;
+      bodyBoom(VW/2, MY, 2);
+      if(S.screen!=='play') return;
+      S.shake=Math.max(S.shake,26); S.winFlash=Math.max(S.winFlash||0,.55); vibe('boss');
+      if(S.acPulse.left<=0) S.acPulse=null;
+    }
+  }
+  if(S.acEnd>0){                               /* 기술이 끝나는 순간 — 약하지만 크게 터진다 */
+    S.acEnd-=dt;
+    if(S.acEnd<=0){
+      S.acEnd=0;
+      bodyBoom(VW/2, MY, 1, 4);                /* 피해는 몸돌 하나 · 그림은 몸돌 넷 */
+      if(S.screen!=='play') return;
+      S.shake=Math.max(S.shake,60);
+      S.winFlash=Math.max(S.winFlash||0,1.0);
+      S.shout={text:'거두다',big:true,t:1.8,max:1.8};
+      vibe('active'); vibe('boss');
+    }
+  }
   ac6Tick(dt); sigTick(dt);
   const b=S.bolt; if(!b)return;
   b.next-=dt;
@@ -11648,7 +11705,8 @@ breakBrick=function(b,ball){
 };
 const _startRunNow2=startRunNow;
 startRunNow=function(){ _startRunNow2();
-  if(S){ S.ac=AC_NEED2; S.acBuff=0; S.bolt=null; S.cross7=null; S.sigil=null; S.quizPool=[]; }
+  if(S){ S.ac=AC_NEED2; S.acBuff=0; S.bolt=null; S.cross7=null; S.sigil=null;
+         S.acPulse=null; S.acEnd=0; S.orbT2=false; S.quizPool=[]; }
   const h=hasteLv();
   if(h>0&&S) setTimeout(()=>{ if(S) S.alertMsg={
     text:`급한 걸음 ${h}단 — ${HASTE_TO[h]}층까지 석판이 빨리 내려오고 ${HASTE_EVERY[h]}층마다 몰아서 고른다`,
@@ -12036,7 +12094,7 @@ refreshTitle=function(){
       `<div><b>${G.ink}</b>${G.stage}층에 흘린 먹</div>`;
 };
 
-const BUILD='c95';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c98';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
