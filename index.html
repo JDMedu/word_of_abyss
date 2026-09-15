@@ -10881,6 +10881,11 @@ const SIG_LIFE={none:3.5, kwon:12, gildong:7, chunhyang:1.7,
                 jeomsun:12, utturi:4.2, kimcheomji:20, yuchungryeol:1.7};
 let SGA=1;
 const SIG_BACK={jeomsun:1, kwon:1, kimcheomji:1};   // 오래 가는 셋만 석판 뒤에
+const SIG_GLOW={chunhyang:'#E5B24F', yuchungryeol:'#9FD8C6', kimcheomji:'#D9C79A',
+                jeomsun:'#E2593F',  gildong:'#52BFA0',      utturi:'#F5DC4E',
+                kwon:'#D6DEE6',     none:'#B8B2A4'};
+const hexA=(h,al)=>{ const n=parseInt(h.slice(1),16);
+  return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${al})`; };
 function sigStart(id){ const L=SIG_LIFE[id]; if(L) S.sigil={id, t:0, life:L+1.0}; }
 function sigTick(dt){ if(S.sigil){ S.sigil.t+=dt; if(S.sigil.t>=S.sigil.life) S.sigil=null; } }
 
@@ -11411,14 +11416,27 @@ function drawSigil(front){
   const g=S.sigil; if(!g||!SIG[g.id])return;
   if(!!SIG_BACK[g.id] === !!front) return;          // 뒤엣것은 뒤에, 앞엣것은 앞에
   const k=Math.min(1,g.t/0.35), left=g.life-g.t;
-  const base=(g.id==='kimcheomji')?0.35:0.55;
-  let a=(k<1)?(0.55+0.45*k):base;
+  let a=1.0;                                        // 흐리지 않는다 — 끝까지 또렷하다
   if(left<0.4) a*=Math.max(0,left/0.4);             // 기술이 끝나고 1초 더 남았다 스러진다
+  const T=performance.now()/1000, col=SIG_GLOW[g.id]||'#E5B24F';
+  const pu=0.72+0.28*Math.sin(T*1.8);               // 숨 쉬듯 밝아졌다 어두워진다
   SGA=a;
   ctx.save();
   ctx.translate(VW/2,(CEIL_Y+DANGER_Y)/2);
   ctx.lineCap='round'; ctx.lineJoin='round';
-  try{ SIG[g.id](k, performance.now()/1000); }catch(e){}
+  if(k>0.15){                                       // 바깥 무리 — 문양 둘레에 빛이 번진다
+    const R=SIG_R*Math.min(1,k*1.2), gr=ctx.createRadialGradient(0,0,R*0.64,0,0,R*1.18);
+    gr.addColorStop(0,   hexA(col,0));
+    gr.addColorStop(0.55,hexA(col,0.10*pu));
+    gr.addColorStop(0.82,hexA(col,0.26*pu));
+    gr.addColorStop(0.94,hexA(col,0.16*pu));
+    gr.addColorStop(1,   hexA(col,0));
+    ctx.globalAlpha=a; ctx.fillStyle=gr;
+    ctx.beginPath();ctx.arc(0,0,R*1.18,0,7);ctx.fill();
+  }
+  ctx.shadowColor=col; ctx.shadowBlur=13+5*pu;      // 획마다 번진다
+  try{ SIG[g.id](k, T); }catch(e){}
+  ctx.shadowBlur=0;
   ctx.restore();
   SGA=1; ctx.globalAlpha=1;
 }
@@ -12018,7 +12036,7 @@ refreshTitle=function(){
       `<div><b>${G.ink}</b>${G.stage}층에 흘린 먹</div>`;
 };
 
-const BUILD='c94';                       // 배포한 파일을 눈으로 확인하는 표시
+const BUILD='c95';                       // 배포한 파일을 눈으로 확인하는 표시
 try{ el('buildTag').textContent='빌드 '+BUILD; }catch(e){}
 console.log('어휘의 구덩이 · 빌드 '+BUILD);
 loadMeta();cacheColors();resize();newRun();S.screen='title';refreshTitle();
