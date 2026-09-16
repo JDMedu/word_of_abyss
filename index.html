@@ -1283,8 +1283,8 @@ const BOSSES = [
    patterns:['sweep', 'ring', 'bolt'], p2:['bolt', 'beam', 'fan'],
    cry:'선비는 아첨하는 자로구나!',
    trait:'호질 — 짖으면 조준이 뒤집힌다',
-   tome:{id:'jilju',icon:'➤',name:'호질',text:'이동 속도 2배. 대신 최대 기력 -20%',
-         set:t=>{t.moveMul=2;t.energyMul=.8;}}},
+   tome:{id:'jilju',icon:'↯',name:'호질',text:'석판이 몸에 닿으면 피해 -50%. 그 순간 무작위 석판 다섯에 번개',
+         set:t=>{t.touchMul=.5;}}},
   {ho:'구보', name:'박태원', color:'#5FBFB0', move:'sine',
    lines:{meet:'나는 하루 종일 걷고 있었소. 그대도 어디론가 가는 길이오?',
      talk:['위에서는 다방에 앉아 사람을 보았소. 여기는 지나가는 이가 그대뿐이오.','사람을 보는 법을 고현학이라 불렀소. 유식한 척한 것이오.','눈이 멀고서도 나는 썼소. 불러주면 누가 받아 적었지.'],
@@ -1863,7 +1863,7 @@ const DEEP_BOON = {
   yeokcheon:{f:'dmgMul',     dir:'up'},     // 위력 ×2
   goyo:     {f:'descentMul', dir:'down'},   // 하강 −35%
   hoeori:   {f:'accelMul',   dir:'up'},     // 가속 ×3
-  jilju:    {f:'moveMul',    dir:'up'},     // 이동 ×2
+  jilju:    {f:'touchMul',   dir:'down'},   // 몸에 닿는 피해 ×0.5
   ingo:     {f:'hurtMul',    dir:'down'},   // 받는 피해 ×0.5
   yeri:     {f:'dmgAdd',     dir:'up'},     // 위력 +5
   eunggyeol:{f:'statusMul',  dir:'up'},     // 상태이상 ×2
@@ -1944,7 +1944,8 @@ const GEARDEF=id=>GEARS.find(g=>g.id===id);
 const UPGRADES = [
   /* exp — 값이 오르는 가파르기. 안 적으면 COST_EXP(1.6).
      상한을 늘린 칸은 뒷단이 무거워지도록 따로 준다 */
-  {id:'vigor',  name:'기력',  desc:'시작 기력 +10',              unit:2.5, cap:15, exp:1.80},
+  {id:'vigor',  name:'기력',  desc:'시작 기력 8.4%씩 복리 (20단계 500)', unit:2.5, cap:20, exp:1.80,
+   tail:{from:15, top:2000}},   // 16단계부터는 20단계 2000먹을 향해 한 단계마다 같은 배로 오른다
   {id:'reload', name:'재장전',desc:'발사 쿨다운 -5%',            unit:3.5, cap:10, exp:1.90},
   {id:'foot',   name:'발놀림',desc:'이동 속도 +6%',              unit:4,   cap:8,  exp:2.17},
   {id:'swift',  name:'날쌤',  desc:'구슬 속도 +6%',              unit:4.5, cap:8,  exp:2.10},
@@ -2070,7 +2071,7 @@ const CHARS = [
    skill:'활의 명수',
    desc:'구슬 대신 <b>빛 화살</b>이 나간다. 판 높이의 절반쯤 날아가 사라진다<br>'
        +'지나가는 석판을 <b>모두 뚫는다</b>. 석판 하나는 화살 하나에 한 번만 맞는다<br>'
-       +'그 대신 위력과 구슬 수가 <b>절반</b> (1발 이상)',
+       +'그 대신 위력과 구슬 수가 <b>70%</b> (1발 이상)',
    floor:0, cost:600, color:'#EE8A3A',
    note:'튕기지 않는다 — 벽이나 석판에 튕길 때 생기는 효과는 나지 않는다. 벽·천장·방패 석판·말뚝·몸돌에 닿으면 화살이 사라진다',
    p2:'삼지창', p2desc:'화살이 <b>세 갈래</b>(가운데와 좌우 15°)로 나간다<br>가운데 줄기만 <b>천장까지</b> 날아간다'},
@@ -2398,7 +2399,13 @@ function pickWord(exclude, rate){
 
 const lvOf   = id=>META.up[id]||0;
 const COST_EXP=1.6;
-const costAt = (u,n)=>(u.id==='vigor'&&n===1)?1:Math.round(u.unit*Math.pow(n,u.exp||COST_EXP));
+const costAt = (u,n)=>{
+  if(u.id==='vigor'&&n===1) return 1;
+  const T=u.tail, f=k=>Math.round(u.unit*Math.pow(k,u.exp||COST_EXP));
+  if(!T||n<=T.from) return f(n);
+  if(n>=u.cap) return T.top;
+  return Math.round(f(T.from)*Math.pow(T.top/f(T.from),(n-T.from)/(u.cap-T.from)));
+};
 const costOf = u=>costAt(u,lvOf(u.id)+1);
 const costTotal=u=>{let t=0;for(let n=1;n<=u.cap;n++)t+=costAt(u,n);return t;};
 const costSpent=u=>{let t=0;for(let n=1;n<=lvOf(u.id);n++)t+=costAt(u,n);return t;};
@@ -2455,7 +2462,8 @@ addEventListener('orientationchange',()=>setTimeout(resize,120));
 let S=null;
 function newRun(){
 
-  const ebase=CONFIG.energyMax+10*lvOf('vigor');
+  const vl=lvOf('vigor');                         // 기력 — 복리, 앞 단계는 예전 값보다 낮아지지 않게
+  const ebase=Math.max(CONFIG.energyMax+10*vl, Math.round(CONFIG.energyMax*Math.pow(5,vl/20)));
   let start=1+2*lvOf('start');
   if(isBossStage(start)) start++;                 // 보스로 시작하지는 않게
   S={ screen:'play', stage:start, startStage:start, isBoss:false,
@@ -2740,7 +2748,7 @@ function recalc(){
   if(fateHas('bind'))  S.shotBalls=Math.max(1,S.shotBalls/2);         // 저주 · 결박
   if(hongOrd()==='army') S.shotBalls+=Math.max(1,Math.ceil(S.shotBalls*0.3));   // 홍계월 · 군사
   if(META.char==='myeongseon') S.shotBalls=Math.max(1,Math.round(S.shotBalls*0.3));   // 명선이 — 적게
-  if(META.char==='jumong') S.shotBalls=Math.max(1,Math.round(S.shotBalls*0.5));       // 고주몽 — 절반
+  if(META.char==='jumong') S.shotBalls=Math.max(1,Math.round(S.shotBalls*0.7));       // 고주몽 — 70%
   const jf=jaraForm();                                               // 자라 — 폼
   if(jf==='rabbit') S.shotBalls+=2;
   if(jf==='jara')   S.shotBalls=Math.max(1,S.shotBalls-2);
@@ -2808,7 +2816,7 @@ function recalc(){
                  * (fateHas('halo')?2:1) * (fateHas('blunt')?0.6:1)    // 후광 · 무딤
                  * (omenHas('sunup')?2:1);                            // 큰빛 · 해오름
   if(hongOrd()==='sword') S.dmgMul*=1.3;                             // 홍계월 · 장검
-  if(META.char==='jumong') S.dmgMul*=0.5;                            // 고주몽 — 절반
+  if(META.char==='jumong') S.dmgMul*=0.7;                            // 고주몽 — 70%
   S.dmgMul*=chm;                                                     // 이춘풍
   if(jf==='rabbit') S.dmgMul*=0.7; if(jf==='jara') S.dmgMul*=1.5;    // 자라 폼
   /* 월 — 한 방이 무거워질수록 석판을 꿰뚫는다. 넘친 위력이 버려지지 않게 */
@@ -3757,16 +3765,50 @@ function drawMyeong(){
 }
 
 /* ══ 고주몽 — 화살 그림 · 햇빛 화살 · 과녁 ═══════════════ */
+/* 위력 2면 0, 20이면 1 — 이 사이에서 굵기와 빛이 고르게 자란다 */
+const arrowPow=b=>Math.max(0,Math.min(1,((b.base||2)-2)/18));
 function drawArrowBall(b){
-  const sp=Math.hypot(b.vx,b.vy)||1, ux=b.vx/sp, uy=b.vy/sp;
-  ctx.save(); ctx.shadowColor='#EE8A3A'; ctx.shadowBlur=16;
-  const g=ctx.createLinearGradient(b.x-ux*70,b.y-uy*70,b.x,b.y);
-  g.addColorStop(0,'rgba(238,138,58,0)'); g.addColorStop(1,'rgba(247,196,142,.9)');
-  ctx.strokeStyle=g; ctx.lineWidth=4; ctx.lineCap='round';
-  ctx.beginPath(); ctx.moveTo(b.x-ux*70,b.y-uy*70); ctx.lineTo(b.x,b.y); ctx.stroke();
-  ctx.fillStyle='#F3EDDF'; ctx.beginPath();
-  ctx.moveTo(b.x+ux*16,b.y+uy*16); ctx.lineTo(b.x-uy*7,b.y+ux*7); ctx.lineTo(b.x+uy*7,b.y-ux*7); ctx.fill();
+  const sp=Math.hypot(b.vx,b.vy)||1, ux=b.vx/sp, uy=b.vy/sp, nx=-uy, ny=ux;
+  const k=arrowPow(b), len=90+60*k, w=3+5*k, glow=16+34*k, t=performance.now()/1000;
+  const tx=b.x-ux*len, ty=b.y-uy*len;
+  ctx.save(); ctx.globalCompositeOperation='lighter'; ctx.lineCap='round';
+  /* 바깥 번짐 */
+  let g=ctx.createLinearGradient(tx,ty,b.x,b.y);
+  g.addColorStop(0,'rgba(238,138,58,0)'); g.addColorStop(1,`rgba(238,138,58,${.35+.3*k})`);
+  ctx.strokeStyle=g; ctx.lineWidth=w*3.2; ctx.shadowColor='#EE8A3A'; ctx.shadowBlur=glow;
+  ctx.beginPath(); ctx.moveTo(tx,ty); ctx.lineTo(b.x,b.y); ctx.stroke();
+  /* 속심 — 희게 */
+  g=ctx.createLinearGradient(tx,ty,b.x,b.y);
+  g.addColorStop(0,'rgba(255,240,215,0)'); g.addColorStop(1,'rgba(255,244,225,.95)');
+  ctx.strokeStyle=g; ctx.lineWidth=w; ctx.shadowBlur=glow*.5;
+  ctx.beginPath(); ctx.moveTo(tx,ty); ctx.lineTo(b.x,b.y); ctx.stroke();
+  /* 깃 — 꼬리 쪽 작은 V 두 개 */
+  ctx.strokeStyle=`rgba(247,196,142,${.35+.3*k})`; ctx.lineWidth=1.5+k; ctx.shadowBlur=0;
+  for(const d of [.72,.84]){
+    const fx=b.x-ux*len*d, fy=b.y-uy*len*d, f=6+5*k;
+    ctx.beginPath();
+    ctx.moveTo(fx+nx*f-ux*f,fy+ny*f-uy*f); ctx.lineTo(fx,fy); ctx.lineTo(fx-nx*f-ux*f,fy-ny*f-uy*f);
+    ctx.stroke();
+  }
+  /* 촉 둘레 빛 */
+  const hr=12+18*k;
+  const rg=ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,hr);
+  rg.addColorStop(0,`rgba(255,236,200,${.55+.35*k})`); rg.addColorStop(1,'rgba(238,138,58,0)');
+  ctx.fillStyle=rg; ctx.beginPath(); ctx.arc(b.x,b.y,hr,0,7); ctx.fill();
+  /* 반짝이 — 위력이 오르면 꼬리를 따라 흩날린다 */
+  const n=Math.round(4*k);
+  ctx.fillStyle='rgba(255,230,190,.9)';
+  for(let i=0;i<n;i++){
+    const d=(i+1)/(n+1), s=Math.sin(t*9+i*2.1+b.x*.01)*(4+6*k);
+    ctx.beginPath(); ctx.arc(b.x-ux*len*d+nx*s,b.y-uy*len*d+ny*s,1.2+1.3*k,0,7); ctx.fill();
+  }
   ctx.restore();
+  /* 촉 — 크기도 조금 자란다 */
+  const hs=1+.5*k;
+  ctx.save(); ctx.shadowColor='#EE8A3A'; ctx.shadowBlur=10+12*k; ctx.fillStyle='#FFF7EA';
+  ctx.beginPath();
+  ctx.moveTo(b.x+ux*16*hs,b.y+uy*16*hs); ctx.lineTo(b.x+nx*7*hs,b.y+ny*7*hs); ctx.lineTo(b.x-nx*7*hs,b.y-ny*7*hs);
+  ctx.fill(); ctx.restore();
 }
 /* 줄기 — 판 너비를 여덟으로 나눈 폭. 보스는 닿은 줄기마다 맞는다 */
 function jumongBeams(t2){
@@ -4030,7 +4072,7 @@ function drawChun(){
   const st=S.chun, R=st.roll, col='#5A7BD0';
   ctx.save();
   if(R){
-    const y=dangerY()-70, X=VW/2-60, rolling=R.t<1;       // 三 단추를 비켜 왼쪽으로
+    const y=CEIL_Y+320, X=VW/2, rolling=R.t<1;          // 연속 표시 자리 — 연속 글자가 위에 뜬다
     for(let i=0;i<R.n;i++){
       const x=X+(R.n===2?(i?48:-48):0);
       const bounce=rolling?-Math.abs(Math.sin(R.t*12))*30*(1-R.t):0;
@@ -8436,8 +8478,10 @@ function update(dt){
         burst(b.x+b.w/2,b.y+b.h/2,18,'stone');
         S.shake=Math.max(S.shake,10);
         /* 골무 — 몸에 닿든 경계선을 넘든 똑같이 덜 아프다 */
-        hurt((touched?CONFIG.brickTouchDamage:CONFIG.brickDamage)*(1-(S.touchCut||0))*diff());
+        const tz=touched&&S.tome&&S.tome.touchMul;    // 호질 — 몸에 닿을 때만
+        hurt((touched?CONFIG.brickTouchDamage:CONFIG.brickDamage)*(1-(S.touchCut||0))*(tz?S.tome.touchMul:1)*diff());
         if(S.screen!=='play')return;
+        if(tz) S.zapPend=(S.zapPend||0)+1;             // 번개는 이 줄을 다 돈 뒤에
         if(wasQuiz&&S.alert){resolveAlert(false);if(S.screen!=='play')return;}
       }
     }
@@ -8645,7 +8689,7 @@ function draw(){
     }
   }
 
-  drawGrowPop();
+  drawChun(); drawGrowPop();                        // 이춘풍 주사위는 연속 글자 아래에
   if(S.twins&&S.twins.length){                    // 쌍혼 — 둘 다 그린다
     const k=S.boss; for(const b of S.twins){ S.boss=b; drawBoss(); } S.boss=k;
   }else if(S.boss)drawBoss();
@@ -12913,6 +12957,7 @@ function acTick(dt){
       vibe('active'); vibe('boss');
     }
   }
+  if(S.zapPend>0){ S.zapPend--; tomeZap(); if(S.screen!=='play') return; }
   ac6Tick(dt); sigTick(dt);
   const b=S.bolt; if(!b)return;
   b.next-=dt;
@@ -12932,6 +12977,18 @@ function acTick(dt){
     }
     if(b.left<=0) S.bolt=null;
   }
+}
+/* 호질 — 무작위 석판 다섯에 번개. 최대 체력의 60% */
+function tomeZap(){
+  const t=S.bricks.filter(x=>x&&!x.quiz&&!isSolid(x));
+  for(let n=0;n<5&&t.length;n++){
+    const q=t.splice(Math.floor(Math.random()*t.length),1)[0], qx=q.x+q.w/2, qy=q.y+q.h/2;
+    S.beams.push({x:qx, y:qy, t:.22, bolt:true});
+    chip(q, Math.max(1,Math.ceil((q.maxHp||q.hp)*0.6)), 'bolt');
+    burst(qx, qy, 10, 'bolt');
+    if(S.screen!=='play') return;
+  }
+  S.shake=Math.max(S.shake,9);
 }
 /* 터뜨린 순간 — 화면 가장자리가 타오른다 */
 function drawAcFx(){
@@ -13007,7 +13064,7 @@ startRunNow=function(){ _startRunNow2();
     t:3.2, ok:true}; }, 1200);
 };
 const _drawControls=drawControls;
-drawControls=function(){ drawSigil(true); drawMyeong(); drawJumong(); drawChun(); drawJara(); drawAc6(); drawAcFx(); _drawControls(); drawActive(); };   // 공습 조준은 문양 위에
+drawControls=function(){ drawSigil(true); drawMyeong(); drawJumong(); drawJara(); drawAc6(); drawAcFx(); _drawControls(); drawActive(); };   // 공습 조준은 문양 위에
 
 GUIDE.chars.push(
  {h:'세 번째 면모',t:`캐릭터마다 세 번째 면모가 하나씩 더 있습니다.<br>
