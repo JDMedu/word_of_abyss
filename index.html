@@ -2045,7 +2045,53 @@ const CHARS = [
    desc:'10초마다 겨눈 쪽으로 빛줄기를 내지른다<br>줄기에 닿는 석판이 모두 한꺼번에 상한다',
    floor:40, cost:480, color:'#8E7BD8',
    p2:'천사마', p2desc:'장성검이 <b>세 갈래</b>로 갈라진다<br>지나간 자리에 3초간 불길이 남아 석판을 태운다'},
-  
+  {id:'honggyewol', name:'홍계월', work:'홍계월전',
+   skill:'대원수',
+   desc:'20초마다 군령이 바뀐다. 같은 군령은 잇따라 나오지 않는다<br>'
+       +'준마 — 이동 속도 <b>+30%</b> · 장검 — 위력 <b>+30%</b><br>'
+       +'군사 — 구슬 수 <b>+30%</b> (1발 이상) · 활 — 치명타 확률 <b>+30%</b><br>'
+       +'화살 — 구슬 속도 <b>+30%</b> · 북소리 — 발사 간격 <b>−30%</b><br>'
+       +'투구 — 탄 1발을 막는 갑옷 1겹. 20초가 지나면 벗겨진다',
+   floor:0, cost:500, color:'#D9667F',
+   note:'「출정」과 「대원수의 깃발」로 쌓인 겹은 미늘에 세지 않는다',
+   p2:'남장', p2desc:'발사할 때마다 <b>첫 구슬</b>이 맞힌 석판에 상태이상 <b>2겹</b><br>'
+       +'종류(중독·출혈·서리·낙인·좀먹)는 군령과 함께 20초마다 바뀐다'},
+  {id:'myeongseon', name:'명선이', work:'기억 속의 들꽃',
+   memWho:'명선이의 기억 — 마을 아이가 말한다',
+   skill:'느린 구슬 · 번짐',
+   desc:'구슬이 <b>아주 느리게</b>(속도 20%) 나가고 <b>다섯 배</b> 오래 떠 있다. 구슬 수는 30% (1발 이상)<br>'
+       +'맞은 석판의 위아래·양옆 한 칸에 위력의 <b>30%</b>가 번진다<br>'
+       +'보스에게는 위력 <b>두 배</b> · 잃은 기력의 절반만큼 위력이 오른다 (최대 +50%)',
+   floor:0, cost:420, color:'#F4CF3A',
+   note:'터렛은 경보 석판을 치지 못한다. 번진 피해는 경보 석판에 들어가지 않고, 다시 번지지도 않는다',
+   p2:'들꽃', p2desc:'경계선 위 가운데에 <b>터렛</b>이 선다<br>1초에 한 발씩, 아무 쪽으로 보통 구슬을 쏜다'},
+  {id:'jumong', name:'고주몽', work:'주몽 신화',
+   skill:'활의 명수',
+   desc:'구슬 대신 <b>빛 화살</b>이 나간다. 판 높이의 절반쯤 날아가 사라진다<br>'
+       +'지나가는 석판을 <b>모두 뚫는다</b>. 석판 하나는 화살 하나에 한 번만 맞는다<br>'
+       +'그 대신 위력과 구슬 수가 <b>절반</b> (1발 이상)',
+   floor:0, cost:600, color:'#EE8A3A',
+   note:'튕기지 않는다 — 벽이나 석판에 튕길 때 생기는 효과는 나지 않는다. 벽·천장·방패 석판·말뚝·몸돌에 닿으면 화살이 사라진다',
+   p2:'삼지창', p2desc:'화살이 <b>세 갈래</b>(가운데와 좌우 15°)로 나간다<br>가운데 줄기만 <b>천장까지</b> 날아간다'},
+  {id:'chunpung', name:'이춘풍', work:'이춘풍전',
+   skill:'주사위',
+   desc:'30초마다 주사위를 굴린다. 나온 눈이 <b>10초</b> 동안 모든 능력에 걸린다<br>'
+       +'1 <b>−30%</b> · 2 <b>−10%</b> · 3 그대로 · 4 <b>+30%</b> · 5 <b>+50%</b> · 6 <b>+100%</b><br>'
+       +'모든 능력 — 이동 속도 · 발사 간격 · 구슬 속도 · 위력 · 구슬 수 · 치명타 확률',
+   floor:0, cost:700, color:'#5A7BD0',
+   p2:'쌍륙', p2desc:'주사위를 <b>두 개</b> 굴려 두 효과를 더한다<br>가장 낮으면 −60%, 가장 높으면 +200%'},
+  {id:'jara', name:'자라', work:'별주부전',
+   skill:'폼 전환',
+   desc:'가운데 둥근 단추로 폼을 바꾼다 (키보드 F). 바꾼 뒤 <b>2초</b>는 못 바꾼다<br>'
+       +'<b>토끼</b> — 이동 +30% · 발사 간격 −30% · 구슬 속도 +30% · 위력 −30% · 구슬 수 +2<br>'
+       +'<b>자라</b> — 이동 −30% · 발사 간격 +30% · 구슬 속도 −50% · 위력 +50% · 구슬 수 −2 (1발 이상)<br>'
+       +'자라 폼은 <b>등딱지</b> 1겹이 탄 1발을 막는다. 10층마다 다시 붙는다',
+   floor:0, abyss:2, cost:800, color:'#3FA3B5',
+   note:'등딱지는 자라 폼일 때만 막는다. 몸돌은 심연에서만 나온다',
+   p2:'용왕', p2desc:'<b>용왕 폼</b>이 더해진다<br>'
+       +'구슬이 석판에 맞을 때마다 새끼 구슬 1개 · 기력이 낮을수록 위력 상승 (최대 +100%)<br>'
+       +'몸돌을 깨면 기력 +2 · 10초마다 기력 −1 (1 아래로는 안 떨어진다)'},
+
 ];
 const charDef=id=>CHARS.find(c=>c.id===id)||CHARS[0];
 
@@ -2691,6 +2737,14 @@ function recalc(){
   if(omenHas('hand'))  S.shotBalls+=2;                                // 볕 · 곁손
   if(fateHas('clone')) S.shotBalls*=2;                                // 축복 · 분신
   if(fateHas('bind'))  S.shotBalls=Math.max(1,S.shotBalls/2);         // 저주 · 결박
+  if(hongOrd()==='army') S.shotBalls+=Math.max(1,Math.ceil(S.shotBalls*0.3));   // 홍계월 · 군사
+  if(META.char==='myeongseon') S.shotBalls=Math.max(1,Math.round(S.shotBalls*0.3));   // 명선이 — 적게
+  if(META.char==='jumong') S.shotBalls=Math.max(1,Math.round(S.shotBalls*0.5));       // 고주몽 — 절반
+  const jf=jaraForm();                                               // 자라 — 폼
+  if(jf==='rabbit') S.shotBalls+=2;
+  if(jf==='jara')   S.shotBalls=Math.max(1,S.shotBalls-2);
+  const chm=chunMul();                                               // 이춘풍 — 주사위
+  if(chm!==1) S.shotBalls=Math.max(1,Math.round(S.shotBalls*chm));
   const wantShots=S.shotBalls*S.ax['장'];                             // 장
   S.shotBalls  = Math.max(1, Math.min(CONFIG.shotsCap, Math.round(wantShots)));
   S.spawnMul   = Math.max(1, wantShots/Math.max(1,S.shotBalls));      // 넘친 몫은 분열·새끼로
@@ -2700,6 +2754,9 @@ function recalc(){
   if(omenHas('swift')) S.rateMul*=0.5;                                // 큰빛 · 날램
   if(fateHas('wind')) S.rateMul*=0.5;                                 // 축복 · 순풍
   if(fateHas('mud'))  S.rateMul*=1.6;                                 // 저주 · 탁류
+  if(hongOrd()==='drum') S.rateMul*=0.7;                             // 홍계월 · 북소리
+  if(chm!==1) S.rateMul/=chm;                                        // 이춘풍 — 좋으면 간격이 짧아진다
+  if(jf==='rabbit') S.rateMul*=0.7; if(jf==='jara') S.rateMul*=1.3;  // 자라 폼
   const wantRate=S.rateMul/S.ax['취'];                                // 취
   S.rateMul    = Math.max(CONFIG.rateFloor, wantRate);
   S.fastMul    = Math.max(1, CONFIG.rateFloor/Math.max(1e-6,wantRate));  // 넘친 몫은 속도로
@@ -2722,6 +2779,8 @@ function recalc(){
   S.finish     = gv('anvil','finish');       // 모루
   /* ── 치명타 — 확률만 쌓이고 배수는 3배로 고정이다 ── */
   S.crit       = gv('knife','crit') + 0.02*lvOf('keen');   // 인각도 · 예기
+  if(hongOrd()==='bow') S.crit+=0.3;         // 홍계월 · 활
+  S.crit*=chm;                               // 이춘풍
   S.critPer    = gv('needle','critPer');     // 침 — 상태이상 한 겹마다
   S.firstCrit  = gv('firstice','firstCrit'); // 살얼음 — 앞의 몇 발은 확정
   S.critHeal   = gv('pouch','critHeal') + lvOf('edge');    // 피주머니 · 서슬
@@ -2747,12 +2806,22 @@ function recalc(){
   S.dmgMul     = (t.dmgMul||1) * S.ax['월']                           // 월
                  * (fateHas('halo')?2:1) * (fateHas('blunt')?0.6:1)    // 후광 · 무딤
                  * (omenHas('sunup')?2:1);                            // 큰빛 · 해오름
+  if(hongOrd()==='sword') S.dmgMul*=1.3;                             // 홍계월 · 장검
+  if(META.char==='jumong') S.dmgMul*=0.5;                            // 고주몽 — 절반
+  S.dmgMul*=chm;                                                     // 이춘풍
+  if(jf==='rabbit') S.dmgMul*=0.7; if(jf==='jara') S.dmgMul*=1.5;    // 자라 폼
   /* 월 — 한 방이 무거워질수록 석판을 꿰뚫는다. 넘친 위력이 버려지지 않게 */
   S.pierceBonus= Math.max(0, Math.floor(Math.log2(Math.max(1,S.ax['월']))));
   S.moveMul    = (1+0.06*lvOf('foot')) * (t.moveMul||1) * rageMul();
+  if(hongOrd()==='horse') S.moveMul*=1.3;                            // 홍계월 · 준마
+  S.moveMul*=chm;                                                    // 이춘풍
+  if(jf==='rabbit') S.moveMul*=1.3; if(jf==='jara') S.moveMul*=0.7;  // 자라 폼
   S.speedMul   = (S.speedMulBase||1) * (1+0.06*lvOf('swift')) * (1+gv('flint','speed'))
                  * (t.speedMul||1) * Math.pow(S.fastMul||1,0.5)
                  * (omenHas('gale')?1.5:1) * (omenHas('heavy')?0.2:1);   // 바람결 · 무거운발
+  if(hongOrd()==='arrow') S.speedMul*=1.3;                           // 홍계월 · 화살
+  S.speedMul*=chm;                                                   // 이춘풍
+  if(jf==='rabbit') S.speedMul*=1.3; if(jf==='jara') S.speedMul*=0.5; // 자라 폼
   const fl2=gearLv('flint');
   S.accel     *= (t.accelMul||1);
   const emax   = Math.max(20, Math.round((S.energyBase + gv('charm','maxhp') + (t.energyFlat||0))
@@ -3067,7 +3136,11 @@ function spawnBall(ang,slot,mid,chg){
       }
     }else spawnBallAt(ang,slot,VW-S.px,S.py,mid,chg);
   }
-  spawnBallAt(ang,slot,S.px,S.py,mid,chg);
+  if(META.char==='jumong'&&p2On('jumong')){           // 삼지창 — 세 갈래, 가운데만 천장까지
+    spawnBallAt(ang,slot,S.px,S.py,mid,chg,false,true);
+    spawnBallAt(ang-0.26,slot,S.px,S.py,mid,chg);
+    spawnBallAt(ang+0.26,slot,S.px,S.py,mid,chg);
+  }else spawnBallAt(ang,slot,S.px,S.py,mid,chg);
   const eq=S.ballSlots[slot%S.ballSlots.length];      // 광인 — 기력을 태우고 하나 더
   if(eq&&eq.def.mad){
     let extra=1;
@@ -3099,25 +3172,31 @@ function sow(x,y,count,sp,spreadAll,sows){
     spawnBaby(x,y,a,sp,sows);
   }
 }
-function spawnBallAt(ang,slot,px,py,mid,chg){
+function spawnBallAt(ang,slot,px,py,mid,chg,tur,far){   // tur — 명선이 터렛 탄 · far — 고주몽 가운데 줄기
   if(S.balls.length>=CONFIG.maxBalls)return;
   const eq=S.ballSlots[slot%S.ballSlots.length]; if(!eq)return;
   const d=eq.def, lv=eq.lv;
   const a=ang+(Math.random()-.5)*2*(S.spread||CONFIG.spread);
   let sp=CONFIG.ballSpeed*S.speedMul*(d.spd?d.spd[lv]:1);
   if(mid) sp*=CONFIG.fanMidSpd;                  // 춘향 — 한가운데 화살
-  let must=(S.firstCrit||0)>(S.shotIdx||0);    // 살얼음 — 앞의 몇 발은 확정
-  if(S.nextMustCrit){ must=true; S.nextMustCrit=false; }  // 혜성 — 이어 터진다
-  S.shotIdx=(S.shotIdx||0)+1;
+  const slow=META.char==='myeongseon'&&!tur;     // 명선이 — 느리게, 오래 뜬다. 터렛 탄은 보통
+  if(slow) sp*=0.2;
+  const nam=!(S.shotIdx||0)&&p2On('honggyewol');   // 남장 — 이번 발사의 첫 구슬
+  let must=false;
+  if(!tur){                                    // 터렛 탄은 발사 순번에 들지 않는다
+    must=(S.firstCrit||0)>(S.shotIdx||0);      // 살얼음 — 앞의 몇 발은 확정
+    if(S.nextMustCrit){ must=true; S.nextMustCrit=false; }  // 혜성 — 이어 터진다
+    S.shotIdx=(S.shotIdx||0)+1;
+  }
   S.balls.push({
-    fired:true,                              // 손으로 쏜 구슬 — 경보를 깰 수 있다
-    mustCrit:must,
+    fired:!tur,                              // 손으로 쏜 구슬 — 경보를 깰 수 있다 (터렛 탄은 못 깬다)
+    mustCrit:must, nam:nam&&!tur,
     x:px+Math.cos(ang)*30, y:py+Math.sin(ang)*30,
     vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, sp0:sp, boost:1,
     r:CONFIG.ballRadius*S.sizeMul,          // 구슬 크기는 변하지 않는다
     life:META.char==='jeomsun'
          ? (CONFIG.jeomsunCells*cell())/Math.max(1,sp)     // 점순이 — 다섯 칸만 난다
-         : (CONFIG.ballLife+S.lifeBonus)*(S.lifeMul||1)*(d.longLife||1),
+         : (CONFIG.ballLife+S.lifeBonus)*(S.lifeMul||1)*(d.longLife||1)*(slow?5:1),
     def:d, lv,
     base:Math.round((S.ballDamage+(d.dmg?d.dmg[lv]:0))
          *(META.char==='jeomsun'?CONFIG.jeomsunDmg:1)*(chg||1)),
@@ -3126,6 +3205,12 @@ function spawnBallAt(ang,slot,px,py,mid,chg){
     home:d.home?at(d.home,lv):0,
     bounces:0, wallB:0, floorLeft:CONFIG.floorBounceMax, skip:null, trail:[],
     stick:p2On('none')?1:0, seekB:null});
+  if(META.char==='jumong'&&!tur){                // 고주몽 — 빛 화살
+    const B=S.balls[S.balls.length-1];
+    B.arrow=true; B.hits=new Set(); B.stick=0; B.pierce=0; B.home=0;
+    B.aLeft=far?Infinity:(DANGER_Y-CEIL_Y)/2;     // 판 높이의 절반을 날고 사라진다
+    B.life=99;
+  }
 }
 /* 지금 연속이 몇 배를 만드는가 */
 function comboMul(){
@@ -3172,7 +3257,24 @@ function dmgOf(ball){
   if(d.vampPower) v+=(S.vampPow||0);
   if(d.critGrow)  v+=(S.critPow||0);         // 설화 — 터질 때마다 쌓인 몫
   if(d.scale) v=Math.round(v*(1+(1-S.energy/S.energyMax)*at(d.scale,lv)));
-  return Math.max(1, Math.round(v*(S.dmgMul||1)*(S.growMul||1)*walkMul()*rageMul()));
+  return Math.max(1, Math.round(v*(S.dmgMul||1)*(S.growMul||1)*walkMul()*rageMul()*myeongLow()*kingPow()));
+}
+/* 용왕 폼 — 기력이 낮을수록 위력이 오른다. 50%까지는 1%에 0.6%, 그 아래는 표를 곧게 잇는다 (최대 +100%) */
+const KING_T=[[50,30],[45,39],[40,48],[35,56],[30,65],[25,74],[20,83],[15,91],[10,100]];
+function kingPow(){
+  if(jaraForm()!=='king'||!(S.energyMax>0))return 1;
+  const e=Math.max(0,Math.min(100,S.energy/S.energyMax*100));
+  let add;
+  if(e>=50) add=(100-e)*0.6;
+  else if(e<=10) add=100;
+  else{ let i=0; while(KING_T[i+1][0]>e) i++;
+    const [e0,a0]=KING_T[i],[e1,a1]=KING_T[i+1]; add=a0+(a1-a0)*(e0-e)/(e0-e1); }
+  return 1+add/100;
+}
+/* 명선이 — 잃은 기력의 절반만큼 위력이 오른다 (최대 +50%) */
+function myeongLow(){
+  if(!S||META.char!=='myeongseon'||!(S.energyMax>0))return 1;
+  return 1+Math.min(0.5,Math.max(0,1-S.energy/S.energyMax)/2);
 }
 
 /* 김첨지 — 실린 힘. 0.4초마다 한 눈금, 3초면 가득 찬다 */
@@ -3477,6 +3579,560 @@ function critRoll(b,ball){
   S.critMiss=(S.critMiss||0)+1;                      // 부시 — 안 터질수록 가까워진다
   return 0;
 }
+/* ══ 홍계월 — 대원수 ══════════════════════════════════
+   20초마다 군령이 바뀐다. 같은 군령은 잇따라 나오지 않는다.
+   남장(두 번째 면모)의 상태이상 종류도 같은 시계로 바뀐다. */
+const HONG_SEC=20;
+const HONG_ORD=[
+  {id:'horse', name:'준마',   eff:'이동 속도 30% 증가'},
+  {id:'sword', name:'장검',   eff:'위력 30% 증가'},
+  {id:'army',  name:'군사',   eff:'구슬 수 30% 증가'},
+  {id:'bow',   name:'활',     eff:'치명타 확률 30% 증가'},
+  {id:'arrow', name:'화살',   eff:'구슬 속도 30% 증가'},
+  {id:'drum',  name:'북소리', eff:'발사 간격 30% 감소'},
+  {id:'helm',  name:'투구',   eff:'탄 1발을 막는 갑옷 1겹'}];
+const HONG_SICK=[{id:'poison',name:'중독'},{id:'bleed',name:'출혈'},
+  {id:'frost',name:'서리'},{id:'brand',name:'낙인'},{id:'gnaw',name:'좀먹'}];
+const hongOrd=()=>(S&&META.char==='honggyewol'&&S.hongOrd>=0)?HONG_ORD[S.hongOrd].id:'';
+function pickOther(n,cur){ let k; do{ k=Math.floor(Math.random()*n); }while(n>1&&k===cur); return k; }
+function hongTick(dt){
+  if(S.hongOrd==null){ S.hongOrd=-1; S.hongSick=-1; S.hongT=0; }
+  S.hongT-=dt;
+  if(S.hongT<=0){
+    S.hongT=HONG_SEC;
+    S.hongOrd=pickOther(HONG_ORD.length,S.hongOrd);
+    S.hongSick=pickOther(HONG_SICK.length,S.hongSick);
+    S.hongHelm=(HONG_ORD[S.hongOrd].id==='helm')?1:0;   // 투구는 20초가 지나면 벗겨진다
+    recalc();
+    const o=HONG_ORD[S.hongOrd];
+    S.alertMsg={text:`홍계월 — ${o.name} · ${o.eff}`
+      +(p2On('honggyewol')?` / 첫 구슬: ${HONG_SICK[S.hongSick].name}`:''),t:2.2,ok:true};
+  }
+  if(S.hongFlag){                                   // 대원수의 깃발 — 10초 뒤 한 번 더
+    S.hongFlag.t-=dt;
+    if(S.hongFlag.t<=0){ S.hongFlag=null; hongSickAll(5); S.shake=Math.max(S.shake,20); }
+  }
+}
+/* 상태이상 n겹을 얹는다. 1겹 = 중독 1겹 · 출혈 1겹 · 서리 1초 · 낙인 받는 피해 +10% · 좀먹 최대 체력 −4%
+   미늘은 여기서 세지 않는다 — 셀 곳(남장)에서 따로 센다 */
+function hongSickOn(b,kind,n){
+  if(!b||b.quiz||isSolid(b))return;
+  if(kind==='poison'){
+    b.poiN=Math.min(99,(b.poiN||0)+n);
+    b.poiT=Math.max(b.poiT||0,holdT(CONFIG.poisonTime)); b.poiLv=Math.max(b.poiLv||0,1);
+  }else if(kind==='bleed'){
+    b.bleedN=Math.min(99,(b.bleedN||0)+n);
+    b.bleedT=Math.max(b.bleedT||0,CONFIG.bleedTime*(S.statusMul||1)); b.bleedLv=Math.max(b.bleedLv||0,1);
+  }else if(kind==='frost'){
+    b.freeze=Math.min(CONFIG.freezeMax,(b.freeze||0)+n);
+  }else if(kind==='brand'){                         // 낙인 — 세기는 +100%까지
+    const v=(b.brandT>0?(b.brandV||0):0)+0.1*n;
+    b.brandV=Math.min(1,v); b.brandT=Math.max(b.brandT||0,holdT(CONFIG.brandTime));
+  }else if(kind==='gnaw'){                          // 좀먹 — 한 석판에 처음 체력의 60%까지
+    b.hongMax0=b.hongMax0||b.maxHp||b.hp;
+    const was=b.hongCut||0, cut=Math.min(0.6,was+0.04*n);
+    if(cut>was){
+      b.hongCut=cut;
+      const old=Math.max(1,b.maxHp||b.hp), nm=Math.max(1,Math.round(old-b.hongMax0*(cut-was)));
+      b.hp=Math.max(Math.min(b.hp,1),Math.round(b.hp*nm/old));   // 지금 체력도 같은 비율로, 1 아래로는 안 깎는다
+      b.maxHp=nm;
+      burst(b.x+b.w/2,b.y+b.h/2,5,'gnaw');
+    }
+  }
+}
+function hongSickAll(n){
+  for(const b of S.bricks) for(const k of HONG_SICK) hongSickOn(b,k.id,n);
+}
+
+/* ══ 명선이 — 번짐 · 터렛 · 공습 ══════════════════════ */
+function myeongSt(){ return S.myeong||(S.myeong={cd:1, side:0, air:null, fx:[], flash:0}); }
+/* 맞은 석판의 위아래·양옆 한 칸에 30%. 경보·말뚝·몸돌에는 안 들어가고, 다시 번지지 않는다 */
+function myeongSpread(b,dv){
+  const amt=Math.max(1,Math.round(dv*0.3)), cx=b.x+b.w/2, cy=b.y+b.h/2, cw=cell(), rh=rowStep();
+  const near=S.bricks.filter(x=>{
+    if(x===b||x.quiz||isSolid(x))return false;
+    const dx=Math.abs(x.x+x.w/2-cx), dy=Math.abs(x.y+x.h/2-cy);
+    return (dy<rh*0.5&&Math.abs(dx-cw)<cw*0.5)||(dx<cw*0.5&&Math.abs(dy-rh)<rh*0.5);
+  });
+  const st=myeongSt();
+  for(const n of near){
+    st.fx.push({x:n.x+n.w/2, y:n.y+n.h/2, t:0.4});
+    chip(n,amt,'gold');
+    if(S.screen!=='play')return;
+  }
+  if(st.fx.length>40) st.fx.splice(0,st.fx.length-40);
+}
+const MY_TURRET_Y=()=>dangerY()-40;
+function myeongTurrets(){
+  const st=myeongSt(), xs=[];
+  if(p2On('myeongseon')) xs.push(VW/2);                       // 들꽃 — 가운데
+  if(st.side>0) xs.push(WALL_L+34, WALL_R-34);                 // 쥐바라숭꽃 — 좌우 끝
+  return xs;
+}
+function myeongTick(dt){
+  const st=myeongSt();
+  if(st.side>0) st.side=Math.max(0,st.side-dt);
+  const xs=myeongTurrets();
+  if(xs.length&&S.ballSlots.length){
+    st.cd-=dt;
+    if(st.cd<=0){
+      st.cd=1;
+      const n=st.side>0?2:1, y=MY_TURRET_Y();                // 쥐바라숭꽃 동안은 터렛마다 두 발
+      for(const x of xs) for(let k=0;k<n;k++)
+        spawnBallAt(-Math.PI/2+(Math.random()-.5)*2.6, S.cyc++, x, y, false, 1, true);
+      st.flash=0.15;
+    }
+  }
+  if(st.flash>0) st.flash-=dt;
+  for(let i=st.fx.length-1;i>=0;i--){ st.fx[i].t-=dt; if(st.fx[i].t<=0) st.fx.splice(i,1); }
+  if(st.air){                                                   // 공습 — 3초 겨누고 터진다
+    st.air.t+=dt;
+    if(st.air.t>=3&&!st.air.hit){
+      st.air.hit=true;
+      for(let i=S.bricks.length-1;i>=0;i--){
+        const b=S.bricks[i]; if(!b||b.quiz||isSolid(b))continue;
+        chip(b, Math.max(1,Math.ceil((b.maxHp||b.hp)*0.9)), 'gold');
+        if(S.screen!=='play')return;
+      }
+      if(S.boss&&!S.boss.ghost) hitBossFlat(bossPct(0.4), S.boss.x+S.boss.w/2, S.boss.y+S.boss.h/2);
+      S.shake=Math.max(S.shake,40); vibe('boss');
+    }
+    if(st.air&&st.air.t>=6) st.air=null;
+  }
+}
+function drawMyeong(){
+  if(!S||S.screen!=='play'||META.char!=='myeongseon'||!S.myeong)return;
+  const st=S.myeong, Y='#F4CF3A', L='#FAE58F', P='#F3EDDF';
+  ctx.save(); ctx.lineCap='round';
+  for(const f of st.fx){                                       // 번짐 — 노란 고리
+    const k=1-f.t/0.4;
+    ctx.globalAlpha=Math.max(0,1-k); ctx.strokeStyle=Y; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.arc(f.x,f.y,10+k*26,0,7); ctx.stroke();
+  }
+  ctx.globalAlpha=1;
+  const ty=MY_TURRET_Y();
+  for(const x of myeongTurrets()){                             // 터렛 — 민들레 포대
+    ctx.save(); ctx.translate(x,ty);
+    ctx.shadowColor=Y; ctx.shadowBlur=st.flash>0?22:8;
+    ctx.strokeStyle=Y; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(-20,22); ctx.lineTo(20,22); ctx.moveTo(0,22); ctx.lineTo(0,2); ctx.stroke();
+    ctx.strokeStyle=P; ctx.lineWidth=1.6; ctx.beginPath();
+    for(let i=0;i<14;i++){ const a=i/14*Math.PI*2; ctx.moveTo(0,-6); ctx.lineTo(Math.cos(a)*15,-6+Math.sin(a)*15); }
+    ctx.stroke();
+    ctx.fillStyle=L; ctx.beginPath(); ctx.arc(0,-6,3.5,0,7); ctx.fill();
+    ctx.restore();
+  }
+  const a=st.air;
+  if(a){
+    const cx=VW/2, cy=(CEIL_Y+DANGER_Y)/2;
+    if(a.t<3){                                                 // 조준 — 초당 1·2·3번 (3번을 넘기지 않는다)
+      const hz=a.t<1?1:(a.t<2?2:3);
+      if((a.t*hz)%1<0.5){
+        ctx.strokeStyle='#E2593F'; ctx.lineWidth=5; ctx.shadowColor='#E2593F'; ctx.shadowBlur=14;
+        ctx.beginPath(); ctx.arc(cx,cy,110,0,7);
+        ctx.moveTo(cx-150,cy); ctx.lineTo(cx-70,cy); ctx.moveTo(cx+70,cy); ctx.lineTo(cx+150,cy);
+        ctx.moveTo(cx,cy-150); ctx.lineTo(cx,cy-70); ctx.moveTo(cx,cy+70); ctx.lineTo(cx,cy+150);
+        ctx.stroke(); ctx.shadowBlur=0;
+      }
+    }else{                                                     // 버섯구름
+      const k=Math.min(1,(a.t-3)/1.2), fade=a.t>4.5?Math.max(0,1-(a.t-4.5)/1.5):1;
+      ctx.globalAlpha=fade*0.85;
+      ctx.fillStyle='rgba(120,90,60,.8)';
+      ctx.fillRect(cx-26*k,cy-70*k,52*k,220*k);
+      const g=ctx.createRadialGradient(cx,cy-110*k,0,cx,cy-110*k,170*k+1);
+      g.addColorStop(0,'#FFF6D8'); g.addColorStop(.5,Y); g.addColorStop(1,'rgba(160,80,40,0)');
+      ctx.fillStyle=g;
+      for(const [dx,dy] of [[0,-110],[-90,-80],[90,-80],[0,-170]]){
+        ctx.beginPath(); ctx.arc(cx+dx*k,cy+dy*k,100*k,0,7); ctx.fill();
+      }
+      ctx.globalAlpha=1;
+      const fl=Math.max(0,0.45-(a.t-3)*2.2);                   // 섬광 — 한 번, 짧게, 반투명
+      if(fl>0){ ctx.fillStyle=`rgba(255,255,255,${fl})`; ctx.fillRect(0,0,VW,VH); }
+    }
+  }
+  ctx.restore();
+}
+
+/* ══ 고주몽 — 화살 그림 · 햇빛 화살 · 과녁 ═══════════════ */
+function drawArrowBall(b){
+  const sp=Math.hypot(b.vx,b.vy)||1, ux=b.vx/sp, uy=b.vy/sp;
+  ctx.save(); ctx.shadowColor='#EE8A3A'; ctx.shadowBlur=16;
+  const g=ctx.createLinearGradient(b.x-ux*70,b.y-uy*70,b.x,b.y);
+  g.addColorStop(0,'rgba(238,138,58,0)'); g.addColorStop(1,'rgba(247,196,142,.9)');
+  ctx.strokeStyle=g; ctx.lineWidth=4; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(b.x-ux*70,b.y-uy*70); ctx.lineTo(b.x,b.y); ctx.stroke();
+  ctx.fillStyle='#F3EDDF'; ctx.beginPath();
+  ctx.moveTo(b.x+ux*16,b.y+uy*16); ctx.lineTo(b.x-uy*7,b.y+ux*7); ctx.lineTo(b.x+uy*7,b.y-ux*7); ctx.fill();
+  ctx.restore();
+}
+/* 줄기 — 판 너비를 여덟으로 나눈 폭. 보스는 닿은 줄기마다 맞는다 */
+function jumongBeams(t2){
+  const list=[], W=(WALL_R-WALL_L)/8, rs=rowStep();
+  for(let k=0;k<8;k++) list.push({v:true, x0:WALL_L+W*k, x1:WALL_L+W*(k+1), e0:k*0.04, done:false});
+  if(t2){                                           // 가로 — 석판 줄마다, 보스 몸을 지나는 줄마다
+    const ys=S.bricks.filter(b=>b&&!b.quiz&&!isSolid(b)).map(b=>b.y+b.h/2);
+    if(S.boss&&!S.boss.ghost) for(let y=S.boss.y+rs/2;y<S.boss.y+S.boss.h;y+=rs) ys.push(y);
+    ys.sort((a,b)=>a-b);
+    const rows=[]; for(const y of ys) if(!rows.length||y-rows[rows.length-1]>rs*0.5) rows.push(y);
+    rows.forEach((y,i)=>list.push({v:false, y, e0:0.5+i*0.05, done:false}));
+  }
+  S.jubeam={t:0, list, pct:t2?0.5:0.4, bp:t2?0.10:0.06};
+}
+function jumongTick(dt){
+  const J=S.jubeam; if(!J)return;
+  J.t+=dt;
+  const rs=rowStep();
+  for(const m of J.list){
+    if(m.done||J.t<m.e0+0.24)continue;
+    m.done=true;
+    for(let i=S.bricks.length-1;i>=0;i--){
+      const b=S.bricks[i]; if(!b||b.quiz||isSolid(b))continue;
+      const cx=b.x+b.w/2, cy=b.y+b.h/2;
+      if(m.v?(cx>=m.x0&&cx<m.x1):(Math.abs(cy-m.y)<rs/2)){
+        chip(b, Math.max(1,Math.ceil((b.maxHp||b.hp)*J.pct)), 'gold');
+        if(S.screen!=='play')return;
+      }
+    }
+    const B=S.boss;
+    if(B&&!B.ghost){
+      const touch=m.v?(m.x1>B.x&&m.x0<B.x+B.w):(m.y>B.y&&m.y<B.y+B.h);
+      if(touch){ hitBossFlat(bossPct(J.bp), m.v?(m.x0+m.x1)/2:B.x+B.w/2, m.v?B.y+B.h/2:m.y);
+                 if(S.screen!=='play')return; }
+    }
+    S.shake=Math.max(S.shake,m.v?5:8);
+  }
+  if(J.t>3) S.jubeam=null;
+}
+function drawJumong(){
+  const J=S&&S.jubeam; if(!J)return;
+  const rs=rowStep();
+  for(const m of J.list){
+    const el=J.t-m.e0; if(el<0)continue;
+    const p=Math.min(1,el/0.24), fade=m.done?Math.max(0,1-(J.t-m.e0-0.24)/0.35):1;
+    if(fade<=0)continue;
+    ctx.save(); ctx.globalAlpha=fade;
+    let g;
+    if(m.v){
+      const cx=(m.x0+m.x1)/2, yt=CEIL_Y+(DANGER_Y-CEIL_Y)*p;
+      g=ctx.createLinearGradient(m.x0,0,m.x1,0);
+      g.addColorStop(0,'rgba(238,138,58,0)'); g.addColorStop(.5,'rgba(238,138,58,.28)'); g.addColorStop(1,'rgba(238,138,58,0)');
+      ctx.fillStyle=g; ctx.fillRect(m.x0,CEIL_Y,m.x1-m.x0,yt-CEIL_Y);
+      ctx.strokeStyle='#F3EDDF'; ctx.lineWidth=5; ctx.shadowColor='#EE8A3A'; ctx.shadowBlur=22;
+      ctx.beginPath(); ctx.moveTo(cx,CEIL_Y); ctx.lineTo(cx,yt); ctx.stroke();
+      ctx.fillStyle='#F7C48E'; ctx.beginPath(); ctx.moveTo(cx,yt+14); ctx.lineTo(cx-9,yt-6); ctx.lineTo(cx+9,yt-6); ctx.fill();
+    }else{
+      const xr=WALL_L+(WALL_R-WALL_L)*p;
+      g=ctx.createLinearGradient(0,m.y-rs/2,0,m.y+rs/2);
+      g.addColorStop(0,'rgba(238,138,58,0)'); g.addColorStop(.5,'rgba(238,138,58,.28)'); g.addColorStop(1,'rgba(238,138,58,0)');
+      ctx.fillStyle=g; ctx.fillRect(WALL_L,m.y-rs/2,xr-WALL_L,rs);
+      ctx.strokeStyle='#F3EDDF'; ctx.lineWidth=5; ctx.shadowColor='#EE8A3A'; ctx.shadowBlur=22;
+      ctx.beginPath(); ctx.moveTo(WALL_L,m.y); ctx.lineTo(xr,m.y); ctx.stroke();
+    }
+    ctx.restore();
+  }
+}
+
+/* ══ 이춘풍 · 자라 — 그림 ══════════════════════════════ */
+const CJ_FACE=['','1','2','3','4','5','6'];
+function drawDie(x,y,s,n,rot,col){
+  ctx.save(); ctx.translate(x,y); ctx.rotate(rot||0);
+  ctx.shadowColor=col; ctx.shadowBlur=14;
+  ctx.fillStyle='#141a2b'; ctx.strokeStyle=col; ctx.lineWidth=Math.max(2,s*0.06);
+  ctx.beginPath();
+  if(ctx.roundRect) ctx.roundRect(-s/2,-s/2,s,s,s*0.18); else ctx.rect(-s/2,-s/2,s,s);
+  ctx.fill(); ctx.stroke(); ctx.shadowBlur=0;
+  const q=s*0.26, r=s*0.085;
+  const P={1:[[0,0]],2:[[-q,-q],[q,q]],3:[[-q,-q],[0,0],[q,q]],4:[[-q,-q],[q,-q],[-q,q],[q,q]],
+    5:[[-q,-q],[q,-q],[0,0],[-q,q],[q,q]],6:[[-q,-q],[q,-q],[-q,0],[q,0],[-q,q],[q,q]]}[n]||[];
+  ctx.fillStyle=(n===1||n===4)?'#E2593F':'#F3EDDF';          // 1과 4는 붉은 눈
+  ctx.beginPath(); for(const [px,py] of P){ ctx.moveTo(px+(n===1?r*1.6:r),py); ctx.arc(px,py,n===1?r*1.6:r,0,7); } ctx.fill();
+  ctx.restore();
+}
+/* 자라 폼 — 몸 뒤에 그리는 것 */
+function drawFormBack(form,noShell,t,ghost){
+  const col=form==='rabbit'?'#FFFFFF':(form==='king'?'#E5B24F':'#3FA3B5');
+  if(!ghost){
+  ctx.save();
+  ctx.globalAlpha=.22+.08*Math.sin(t*3); ctx.fillStyle=col; ctx.shadowColor=col; ctx.shadowBlur=30;
+  ctx.beginPath(); ctx.arc(0,-6,48,0,7); ctx.fill();
+  ctx.restore();
+  }
+  if(form==='jara'){                                         // 등딱지
+    ctx.save();
+    ctx.fillStyle='rgba(20,60,70,.9)'; ctx.strokeStyle=noShell?'rgba(159,214,223,.45)':'#9FD6DF'; ctx.lineWidth=3;
+    if(noShell) ctx.setLineDash([6,5]);
+    ctx.beginPath(); ctx.ellipse(0,2,46,40,0,0,7); ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
+    ctx.lineWidth=1.6; ctx.strokeStyle=noShell?'rgba(63,163,181,.5)':'#3FA3B5';
+    ctx.beginPath();
+    const hx=(cx,cy,r)=>{ ctx.moveTo(cx+r,cy); for(let i=1;i<6;i++) ctx.lineTo(cx+Math.cos(i*Math.PI/3)*r,cy+Math.sin(i*Math.PI/3)*r); ctx.closePath(); };
+    hx(0,2,11); for(let i=0;i<6;i++){ const a=i*Math.PI/3+Math.PI/6; hx(Math.cos(a)*26,2+Math.sin(a)*22,10); }
+    ctx.stroke();
+    if(noShell){                                              // 금 간 모습
+      ctx.strokeStyle='#E2593F'; ctx.lineWidth=2.4; ctx.beginPath();
+      ctx.moveTo(-42,-12); ctx.lineTo(-30,-2); ctx.lineTo(-36,10); ctx.lineTo(-24,20);
+      ctx.moveTo(40,-16); ctx.lineTo(30,-4); ctx.lineTo(38,12); ctx.stroke();
+    }
+    ctx.restore();
+  }
+}
+/* 자라 폼 — 몸 앞(머리 둘레)에 그리는 것 */
+function drawFormFront(form){
+  ctx.save(); ctx.lineCap='round'; ctx.lineJoin='round';
+  if(form==='rabbit'){                                       // 긴 귀 둘
+    for(const sx of [-1,1]){
+      ctx.save(); ctx.translate(sx*8,-50); ctx.rotate(sx*0.18);
+      ctx.fillStyle='#F3EDDF'; ctx.strokeStyle='#FFFFFF'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.ellipse(0,-6,6,18,0,0,7); ctx.fill();
+      ctx.fillStyle='#F0B4C2'; ctx.beginPath(); ctx.ellipse(0,-5,2.6,12,0,0,7); ctx.fill();
+      ctx.restore();
+    }
+  }else if(form==='king'){                                   // 금관 · 수염
+    ctx.fillStyle='#E5B24F'; ctx.strokeStyle='#F5DC4E'; ctx.lineWidth=1.5;
+    ctx.shadowColor='#E5B24F'; ctx.shadowBlur=10;
+    ctx.beginPath(); ctx.moveTo(-14,-42); ctx.lineTo(-14,-54); ctx.lineTo(-7,-47); ctx.lineTo(0,-58);
+    ctx.lineTo(7,-47); ctx.lineTo(14,-54); ctx.lineTo(14,-42); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.shadowBlur=0;
+    ctx.fillStyle='#E2593F'; ctx.beginPath(); ctx.arc(0,-49,2.4,0,7); ctx.fill();
+    ctx.strokeStyle='#F5DC4E'; ctx.lineWidth=2.4; ctx.beginPath();
+    ctx.moveTo(-8,-24); ctx.bezierCurveTo(-22,-22,-30,-12,-40,-16);
+    ctx.moveTo(8,-24); ctx.bezierCurveTo(22,-22,30,-12,40,-16); ctx.stroke();
+  }
+  ctx.restore();
+}
+/* 전환 단추 — 지금 폼의 얼굴. cool 0~1이면 흑백 + 줄어드는 시계 */
+function drawFormBtn(x,y,r,form,cool){
+  const gray=cool>0;
+  const col=gray?'#8a8a8a':(form==='rabbit'?'#F3EDDF':(form==='king'?'#E5B24F':'#3FA3B5'));
+  ctx.save();
+  ctx.fillStyle='rgba(5,8,15,.82)'; ctx.strokeStyle=col; ctx.lineWidth=3;
+  if(!gray){ ctx.shadowColor=col; ctx.shadowBlur=14; }
+  ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.fill(); ctx.stroke(); ctx.shadowBlur=0;
+  if(gray){
+    ctx.strokeStyle='#d0d0d0'; ctx.lineWidth=5; ctx.lineCap='round';
+    ctx.beginPath(); ctx.arc(x,y,r+7,-Math.PI/2,-Math.PI/2+Math.PI*2*cool); ctx.stroke();
+  }
+  ctx.translate(x,y+6); ctx.scale(r/44,r/44);
+  ctx.fillStyle=gray?'#b5b5b5':'#F3EDDF';
+  ctx.beginPath(); ctx.arc(0,0,16,0,7); ctx.fill();
+  ctx.fillStyle='#141a2b'; ctx.beginPath(); ctx.arc(-5,-2,2,0,7); ctx.arc(5,-2,2,0,7); ctx.fill();
+  if(form==='rabbit'){
+    ctx.fillStyle=gray?'#b5b5b5':'#F3EDDF';
+    ctx.beginPath(); ctx.ellipse(-6,-26,4,12,-0.2,0,7); ctx.ellipse(6,-26,4,12,0.2,0,7); ctx.fill();
+  }else if(form==='king'){
+    ctx.fillStyle=gray?'#9a9a9a':'#E5B24F';
+    ctx.beginPath(); ctx.moveTo(-11,-13); ctx.lineTo(-11,-24); ctx.lineTo(-5,-18); ctx.lineTo(0,-27);
+    ctx.lineTo(5,-18); ctx.lineTo(11,-24); ctx.lineTo(11,-13); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle=gray?'#9a9a9a':'#F5DC4E'; ctx.lineWidth=2; ctx.beginPath();
+    ctx.moveTo(-6,5); ctx.quadraticCurveTo(-18,6,-24,12); ctx.moveTo(6,5); ctx.quadraticCurveTo(18,6,24,12); ctx.stroke();
+  }else{
+    ctx.strokeStyle=gray?'#9a9a9a':'#3FA3B5'; ctx.lineWidth=2.4;
+    ctx.beginPath(); ctx.arc(0,4,22,Math.PI*1.15,Math.PI*1.85); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-18,12); ctx.lineTo(-24,18); ctx.moveTo(18,12); ctx.lineTo(24,18); ctx.stroke();
+  }
+  ctx.restore();
+}
+/* 용궁의 물결 — y 위치까지 차오른 물 */
+function drawWave(y,bottom,t,alpha){
+  ctx.save(); ctx.globalAlpha=alpha;
+  const g=ctx.createLinearGradient(0,y-30,0,bottom);
+  g.addColorStop(0,'rgba(159,214,223,.55)'); g.addColorStop(.25,'rgba(63,163,181,.35)'); g.addColorStop(1,'rgba(63,163,181,.08)');
+  ctx.fillStyle=g;
+  ctx.beginPath(); ctx.moveTo(WALL_L,bottom);
+  for(let x=WALL_L;x<=WALL_R;x+=20) ctx.lineTo(x,y+Math.sin(x/60+t*6)*14);
+  ctx.lineTo(WALL_R,bottom); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='#F3EDDF'; ctx.lineWidth=4; ctx.shadowColor='#3FA3B5'; ctx.shadowBlur=18;
+  ctx.beginPath();
+  for(let x=WALL_L;x<=WALL_R;x+=20){ const yy=y+Math.sin(x/60+t*6)*14; x===WALL_L?ctx.moveTo(x,yy):ctx.lineTo(x,yy); }
+  ctx.stroke();
+  ctx.restore();
+}
+
+/* ══ 이춘풍 — 주사위 · 큰 주사위 · 판돈 ═══════════════════ */
+const CHUN_PCT={1:-0.3,2:-0.1,3:0,4:0.3,5:0.5,6:1.0};
+const CHUN_BIG={1:'기력 −20%',2:'기력 10% 회복',3:'구슬 강화 1',4:'구슬·문방 강화 1',
+  5:'기력 20% 회복 · 최대기력 +10%',6:'구슬·문방 강화 1 · 기력 20% 회복 · 최대기력 +10%'};
+const die6=()=>1+Math.floor(Math.random()*6);
+function chunSt(){ return S.chun||(S.chun={next:10, roll:null, on:0, mul:1, big:null}); }
+function chunMul(){
+  if(!S||META.char!=='chunpung'||!S.chun||!(S.chun.on>0))return 1;
+  return S.chun.mul;
+}
+function chunUp(n,gear){                            // 만렙이 아닌 것 중에서 하나씩
+  for(let k=0;k<n;k++){
+    const bs=S.ballSlots.filter(b=>b.lv<maxBallLv());
+    if(bs.length) bs[Math.floor(Math.random()*bs.length)].lv++;
+    if(gear){ const gs=S.gearSlots.filter(g=>g.lv<maxGearLv());
+      if(gs.length) gs[Math.floor(Math.random()*gs.length)].lv++; }
+  }
+}
+function chunBigHit(B){
+  const m=B.t2?2:1;
+  for(let i=S.bricks.length-1;i>=0;i--){
+    const b=S.bricks[i]; if(!b||b.quiz||isSolid(b))continue;
+    chip(b, Math.max(1,Math.ceil((b.maxHp||b.hp)*(B.t2?0.9:0.7))), 'gold');
+    if(S.screen!=='play')return;
+  }
+  if(S.boss&&!S.boss.ghost) hitBossFlat(bossPct(B.t2?0.4:0.3), S.boss.x+S.boss.w/2, S.boss.y+S.boss.h/2);
+  if(S.screen!=='play')return;
+  const f=B.final;
+  if(f===1) S.energy=Math.max(1,S.energy-S.energyMax*0.2*m);          // 1 아래로는 안 떨어진다
+  if(f===2) healPct(0.1*m);
+  if(f===3) chunUp(m,false);
+  if(f===4) chunUp(m,true);
+  if(f===5||f===6){
+    if(f===6) chunUp(m,true);
+    S.energyBase=Math.round(S.energyBase*Math.pow(1.1,m));            // 최대기력 +10% — 늘어난 값에 다시 붙는다
+    recalc(); healPct(0.2*m);
+  }
+  recalc();
+  S.alertMsg={text:`큰 주사위 ${f}${B.t2?' × 2':''} — ${CHUN_BIG[f]}`,t:2.4,ok:f!==1};
+  if(f===1||f===6) skillSay(f===1?'d1':'d6');
+  S.shake=Math.max(S.shake,30); vibe('boss');
+}
+function chunTick(dt){
+  const st=chunSt();
+  st.next-=dt;
+  if(st.next<=0){                                   // 30초마다 굴린다
+    st.next=30;
+    const n=p2On('chunpung')?2:1;
+    st.roll={t:0, n, faces:Array.from({length:n},die6), final:Array.from({length:n},die6), done:false};
+  }
+  const R=st.roll;
+  if(R){
+    R.t+=dt;
+    if(R.t<1){ if(Math.floor(R.t*14)!==Math.floor((R.t-dt)*14)) R.faces=R.faces.map(die6); }
+    else if(!R.done){
+      R.done=true;
+      const sum=R.final.reduce((a,f)=>a+CHUN_PCT[f],0);
+      st.mul=Math.max(0.1,1+sum); st.on=10; recalc();
+      const pc=Math.round(sum*100);
+      R.msg=`${R.final.join(' · ')} — 모든 능력 ${pc>0?'+':(pc<0?'−':'')}${Math.abs(pc)}%`;
+      S.alertMsg={text:`이춘풍 ${R.msg}`,t:2.0,ok:pc>=0};
+      if(R.final.includes(1)) skillSay('d1');
+      if(R.final.includes(6)) skillSay('d6');
+    }
+    if(R.t>=11) st.roll=null;
+  }
+  if(st.on>0){ st.on-=dt; if(st.on<=0){ st.on=0; st.mul=1; recalc(); } }
+  const B=st.big;
+  if(B){
+    B.t+=dt;
+    if(B.t<1){ if(Math.floor(B.t*12)!==Math.floor((B.t-dt)*12)) B.face=die6(); }
+    else if(!B.hit){ B.hit=true; chunBigHit(B); if(S.screen!=='play')return; }
+    if(B.t>=2.4) st.big=null;
+  }
+}
+function drawChun(){
+  if(!S||S.screen!=='play'||META.char!=='chunpung'||!S.chun)return;
+  const st=S.chun, R=st.roll, col='#5A7BD0';
+  ctx.save();
+  if(R){
+    const y=dangerY()-70, X=VW/2-60, rolling=R.t<1;       // 三 단추를 비켜 왼쪽으로
+    for(let i=0;i<R.n;i++){
+      const x=X+(R.n===2?(i?48:-48):0);
+      const bounce=rolling?-Math.abs(Math.sin(R.t*12))*30*(1-R.t):0;
+      drawDie(x,y+bounce,64,rolling?R.faces[i]:R.final[i],rolling?R.t*14*(i?-1:1):0,col);
+    }
+    if(!rolling&&st.on>0){
+      const k=Math.max(0,st.on/10), rr=58+(R.n-1)*40;
+      ctx.lineWidth=5; ctx.lineCap='round';
+      ctx.strokeStyle='rgba(222,211,184,.2)'; ctx.beginPath(); ctx.arc(X,y,rr,0,7); ctx.stroke();
+      ctx.strokeStyle=col; ctx.beginPath(); ctx.arc(X,y,rr,-Math.PI/2,-Math.PI/2+Math.PI*2*k); ctx.stroke();
+      ctx.font=`700 24px 'Gowun Batang',serif`; ctx.fillStyle='#A9BDEB'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.shadowColor='rgba(0,0,0,.9)'; ctx.shadowBlur=8;
+      ctx.fillText(R.msg,X,y-rr-18);
+    }
+  }
+  const B=st.big;
+  if(B){
+    const cy=(CEIL_Y+DANGER_Y)/2, rolling=B.t<1;
+    drawDie(VW/2,cy,rolling?140+Math.sin(B.t*20)*20:180,rolling?B.face:B.final,rolling?B.t*9:0,col);
+    if(!rolling){
+      ctx.globalAlpha=Math.max(0,1-(B.t-1)/1.2);
+      ctx.font=`700 52px 'Gowun Batang',serif`; ctx.fillStyle='#F3EDDF'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.shadowColor=col; ctx.shadowBlur=18;
+      ctx.fillText(B.t2?`${B.final} × 2`:`${B.final}`,VW/2,cy+140);
+    }
+  }
+  ctx.restore();
+}
+
+/* ══ 자라 — 폼 전환 · 등딱지 · 용왕 · 신선 · 물결 ═══════════ */
+const JARA_FORMS=['jara','rabbit','king'], JARA_NAME={jara:'자라',rabbit:'토끼',king:'용왕'};
+const BTN_FORM={x:172+152, y:1188, r:44};             // 三 단추(BTN_A)와 좌우로 마주 보게 — 가운데에 선 인물을 가리지 않는다
+function jaraSt(){ return S.jara||(S.jara={form:'jara', cool:0, shell:1, ten:Math.floor((S.stage||1)/10), drain:10, trail:[], wave:null}); }
+function jaraForm(){ return (S&&META.char==='jara'&&S.jara)?S.jara.form:''; }
+function jaraSwitch(){
+  if(!S||S.screen!=='play'||META.char!=='jara')return;
+  const st=jaraSt(); if(st.cool>0){ vibe('wrong'); return; }
+  const list=p2On('jara')?JARA_FORMS:JARA_FORMS.slice(0,2);
+  st.form=list[(list.indexOf(st.form)+1)%list.length];
+  st.cool=2; recalc(); vibe('open');
+  const f=MEM.skill&&MEM.skill.jara&&MEM.skill.jara.form;
+  const line=f&&f[st.form];
+  S.skillMsg={text:line||`${JARA_NAME[st.form]} 폼`, col:'#3FA3B5', t:1.2};
+}
+function jaraTick(dt){
+  const st=jaraSt();
+  if(st.cool>0) st.cool=Math.max(0,st.cool-dt);
+  const ten=Math.floor(S.stage/10);                    // 10층마다 등딱지가 다시 붙는다
+  if(ten>st.ten){ st.ten=ten; if(st.shell<1){ st.shell=1; S.alertMsg={text:'등딱지가 다시 붙었다',t:1.4,ok:true}; } }
+  if(st.form==='rabbit'){ st.trail.push({x:S.px,y:S.py}); if(st.trail.length>6) st.trail.shift(); }
+  else st.trail.length=0;
+  if(st.form==='king'){                                // 용왕 — 10초마다 기력 −1
+    st.drain-=dt;
+    if(st.drain<=0){ st.drain=10; S.energy=Math.max(1,S.energy-1); }
+  }else st.drain=10;
+  const W=st.wave;
+  if(W){                                               // 용궁의 물결 — 1초 동안 아래에서 위로
+    W.t+=dt;
+    const y=dangerY()-(dangerY()-CEIL_Y)*Math.min(1,W.t/1.0);
+    for(let i=S.bricks.length-1;i>=0;i--){
+      const b=S.bricks[i]; if(!b||b.quiz||isSolid(b)||W.hit.has(b))continue;
+      if(y<b.y+b.h/2){ W.hit.add(b); chip(b,Math.max(1,Math.ceil((b.maxHp||b.hp)*0.5)),'gold');
+        if(S.screen!=='play')return; }
+    }
+    const B=S.boss;
+    if(B&&!B.ghost&&!W.boss&&y<B.y+B.h/2){ W.boss=true;
+      hitBossFlat(bossPct(0.10),B.x+B.w/2,B.y+B.h/2); if(S.screen!=='play')return; }
+    if(W.t>=1.6) st.wave=null;
+  }
+}
+function jaraFire(t2){
+  const st=jaraSt();
+  if(t2){
+    healPct(0.3);
+    st.wave={t:0, hit:new Set(), boss:false};
+  }else{
+    healPct(0.2);
+    S.armor=Math.min((S.armorMax||0)+1,(S.armor||0)+1);   // 대장간 최대치보다 한 겹까지
+    S.armFx=0.7;
+    for(let i=S.bricks.length-1;i>=0;i--){
+      const b=S.bricks[i]; if(!b||b.quiz||isSolid(b))continue;
+      chip(b,Math.max(1,Math.ceil((b.maxHp||b.hp)*0.2)),'gold');
+      if(S.screen!=='play')return;
+    }
+    if(S.boss&&!S.boss.ghost) hitBossFlat(bossPct(0.03),S.boss.x+S.boss.w/2,S.boss.y+S.boss.h/2);
+  }
+}
+function drawJara(){
+  if(!S||S.screen!=='play'||META.char!=='jara'||!S.jara)return;
+  const st=S.jara;
+  if(st.wave){
+    const W=st.wave, y=dangerY()-(dangerY()-CEIL_Y)*Math.min(1,W.t/1.0);
+    drawWave(y,dangerY()+40,performance.now()/1000,Math.max(0,Math.min(1,(1.6-W.t)/0.5)));
+  }
+  drawFormBtn(BTN_FORM.x,BTN_FORM.y,BTN_FORM.r,st.form,st.cool/2);
+}
+
+/* 기술 대사 — 알림 바로 아래 줄에 인물 색으로. t1 세 번째 면모 · t2 기술2 · 드문 대사 10% */
+function skillSay(key){
+  const m=MEM.skill&&MEM.skill[META.char]; if(!m)return;
+  const rare=(key==='t1'||key==='t2')&&m.rare&&m.rare.length&&Math.random()<0.1;
+  const list=rare?m.rare:m[key]; if(!list||!list.length)return;
+  S.skillMsg={text:list[Math.floor(Math.random()*list.length)], col:charDef(META.char).color, t:1.8};
+}
+
 /* 층마다 경보가 설 자리를 미리 뽑는다.
    30~90% 사이 아무 데나 — 층이 열릴 때 한 번 정해 두고 그대로 쓴다 */
 function rollAlertMarks(){
@@ -3512,6 +4168,9 @@ function dotPer(b, kind){
 }
 function applyEffects(b,ball){
   if(b.quiz)return;                     // 경보 후보에는 상태이상이 안 걸린다
+  if(ball.nam&&S.hongSick>=0){          // 홍계월 남장 — 2겹
+    armTally('armSick','minul'); hongSickOn(b,HONG_SICK[S.hongSick].id,2);
+  }
   const d=ball.def, lv=ball.lv;
   if(d.poison){                                  // 중독
     armTally('armSick','minul');                 // 미늘 — 상태이상 한 겹
@@ -3695,7 +4354,7 @@ function hitBrick(b,ball){
   if(b.quiz&&!ball.fired){                   // 경보는 손으로 쏜 구슬로만 깬다
     b.hit=.08; return;                       // 새끼·분열·씨앗 따위는 스쳐도 그만
   }
-  if(b.kind==='shield'&&ball.vy<0){          // 방패 — 아래에서 올라오는 것은 막는다
+  if(b.kind==='shield'&&ball.vy<0&&!ball.arrow){   // 방패 — 아래에서 올라오는 것은 막는다 (화살은 맞히고 멈춘다)
     b.hit=.12; burst(ball.x,ball.y,3,'stone');
     S.alertMsg=S.alertMsg||{text:'막혔다',t:.7,ok:false};
     return;
@@ -3727,6 +4386,9 @@ function hitBrick(b,ball){
   const over=capped+Math.max(0,dv-Math.max(0,b.hp));   // 상한에 막힌 몫 + 체력을 넘긴 몫
   b.hp-=dv;b.hit=.16;
   burst(ball.x,ball.y,4,'stone');
+  if(META.char==='myeongseon'&&!b.quiz){ myeongSpread(b,dv); if(S.screen!=='play')return; }   // 번짐
+  if(jaraForm()==='king'&&!ball.baby&&!b.quiz)                       // 용왕 — 맞을 때마다 새끼 하나 (새끼는 새끼를 안 낳는다)
+    spawnBaby(ball.x,ball.y,Math.random()*Math.PI*2,Math.hypot(ball.vx,ball.vy)*0.8||CONFIG.ballSpeed*0.5);
   /* 월 — 남는 위력은 버려지지 않고 옆으로 퍼진다 */
   if(over>0 && (S.ax&&S.ax['월']>1.05)){
     const share=Math.round(over*CONFIG.spillPct/CONFIG.spillN);
@@ -3819,7 +4481,7 @@ function hitBoss(ball){
   let mul=open?CONFIG.bossVulnMul:(1-cut);
   if(B.open>0) mul*=CONFIG.bossOpenMul;
   if(B.small) mul*=2;
-  const dv=dmgOf(ball)*mul;
+  const dv=dmgOf(ball)*mul*(META.char==='myeongseon'?2:1);   // 명선이 — 보스에게 두 배
   B.hp-=dv;B.hit=.14;
   popNum(ball.x,ball.y-14,dv,open);
   burst(ball.x,ball.y,4,'gold');
@@ -3877,7 +4539,46 @@ function homeIn(ball,dt){          // 나침반: 가까운 석판 쪽으로 조�
   const sp=Math.hypot(ball.vx,ball.vy);
   ball.vx=Math.cos(a)*sp; ball.vy=Math.sin(a)*sp;
 }
+/* 고주몽 — 빛 화살. 튕기지 않고 뚫는다. 석판·보스는 화살 하나에 한 번만 맞는다 */
+function arrowMove(ball,dt){
+  const sp=Math.hypot(ball.vx,ball.vy)||1;
+  const steps=Math.max(1,Math.ceil(sp*dt/(ball.r*.7))), h=dt/steps;
+  for(let s=0;s<steps;s++){
+    ball.x+=ball.vx*h; ball.y+=ball.vy*h; ball.aLeft-=sp*h;
+    const sq=squeezeIn();
+    if(ball.aLeft<=0||ball.x<WALL_L+sq||ball.x>WALL_R-sq||ball.y<CEIL_Y||ball.y>VH){
+      ball.life=-1; return; }
+    for(const b of [...S.bricks]){
+      if(ball.hits.has(b)||!overlaps(ball,b))continue;
+      ball.hits.add(b);
+      if(isSolid(b)){ burst(ball.x,ball.y,5,'stone'); ball.life=-1; return; }   // 말뚝·몸돌 — 막힌다
+      const shield=b.kind==='shield';
+      hitBrick(b,ball);
+      if(S.screen!=='play')return;
+      if(shield){ burst(ball.x,ball.y,6,'stone'); ball.life=-1; return; }      // 방패 — 맞고 나서 멈춘다
+    }
+    if(S.boss&&S.boss.clones) for(const c of S.boss.clones){
+      if(!c.alive||ball.hits.has(c)||!overlaps(ball,c))continue;
+      ball.hits.add(c);
+      c.hp-=dmgOf(ball); burst(ball.x,ball.y,4,'gold');
+      if(c.hp<=0){ c.alive=false; burst(c.x+c.w/2,c.y+c.h/2,30,'gold');
+        enrage(CONFIG.rageSec+CONFIG.bossRagePerBoss*(S.bossStep||0)); }
+    }
+    if(S.blobs) for(const q of S.blobs){
+      if(ball.hits.has(q))continue;
+      if(ball.x>q.x&&ball.x<q.x+q.w&&ball.y>q.y&&ball.y<q.y+q.h){
+        ball.hits.add(q); q.hp-=dmgOf(ball); q.hit=1; burst(ball.x,ball.y,4,'stone'); }
+    }
+    if(S.twins&&S.twins.length){
+      eachBoss(b=>{ if(!ball.hits.has(b)&&overlaps(ball,b)){ ball.hits.add(b); hitBoss(ball); } });
+    }else if(S.boss&&!ball.hits.has(S.boss)&&overlaps(ball,S.boss)){
+      ball.hits.add(S.boss); hitBoss(ball);
+    }
+    if(S.screen!=='play')return;
+  }
+}
 function moveBall(ball,dt){
+  if(ball.arrow){ arrowMove(ball,dt); return; }
   if(ball.stick){ if(!inkSeek(ball,dt)) return; }      // 신기전 — 좇아가 터진다
   homeIn(ball,dt);
   const steps=Math.max(1,Math.ceil(Math.hypot(ball.vx,ball.vy)*dt/(ball.r*.7)));
@@ -4453,6 +5154,11 @@ function charTick(dt){
       }
     }
   }
+  if(c.id==='honggyewol') hongTick(dt);    // 대원수
+  if(c.id==='myeongseon') myeongTick(dt);  // 명선이
+  if(c.id==='jumong') jumongTick(dt);      // 고주몽
+  if(c.id==='chunpung') chunTick(dt);      // 이춘풍
+  if(c.id==='jara') jaraTick(dt);          // 자라
   if(c.id==='gildong'){                    // 분신
     S.shadowT=(S.shadowT||0)-dt;
     if(S.shadowT<=0){ S.shadowT=10; S.shadow=2.0; }
@@ -5262,6 +5968,20 @@ function updateBullets(dt){
       }
     }
     if(!b.bounced&&Math.hypot(b.x-S.px,b.y-(S.py-6))<b.r+14){   // 되쏜 탄은 나를 안 친다
+      if(S.invuln<=0 && jaraForm()==='jara' && S.jara.shell>0){   // 자라 등딱지 — 자라 폼일 때만
+        S.jara.shell=0; S.bullets.splice(i,1);
+        S.armHit=0.5; S.shake=Math.max(S.shake,8);
+        burst(b.x,b.y,10,'paper'); vibe('hurt');
+        S.alertMsg={text:'등딱지가 막았다',t:1.4,ok:true};
+        continue;
+      }
+      if(S.invuln<=0 && (S.hongHelm||0)>0){       // 홍계월 투구 — 대장간 갑옷보다 먼저
+        S.hongHelm=0; S.bullets.splice(i,1);
+        S.armHit=0.5; S.shake=Math.max(S.shake,8);
+        burst(b.x,b.y,10,'paper'); vibe('hurt');
+        S.alertMsg={text:'투구가 막았다',t:1.4,ok:true};
+        continue;
+      }
       if(S.invuln<=0 && (S.armor||0)>0){          // 갑옷 — 한 겹이 한 발을 막는다
         S.armor--; S.bullets.splice(i,1);
         S.armHit=0.5; S.shake=Math.max(S.shake,8);
@@ -6744,7 +7464,11 @@ function nextStage(){
   S.twins=null; S.ghost=null; S.floorHurt=0;
   S.orbs=null; S.soupN=0; S.fires=[]; S.flowerHit=0;   // 층이 바뀌면 되돌아온다
   S.whirl=null; S.clones=null; S.baton=null; S.cross=null; S.bolt=null; S.orbFree=0;
-  S.cross7=null; S.sigil=null; S.acPulse=null; S.acEnd=0; S.orbT2=false;
+  S.cross7=null; S.sigil=null; S.acPulse=null; S.acEnd=0; S.orbT2=false; S.hongFlag=null;
+  if(S.myeong) S.myeong.air=null;       // 공습은 층을 넘기지 않는다
+  S.jubeam=null;
+  if(S.chun) S.chun.big=null;
+  if(S.jara) S.jara.wave=null;
   if(!(S.gim&&S.gim.id==='tide')) S.tideUp=0;
   loadLessonFor(S.stage);            // 층이 바뀌면 회차도 바뀐다
   saveRun();
@@ -6804,7 +7528,7 @@ let memAfter=null;
 function sayMem(text,after){
   memAfter=after;
   const c=charDef(META.char);
-  el('memWho').textContent=(deepOpen(c.id)?'':'')+c.name;
+  el('memWho').textContent=c.memWho||c.name;              // 명선이처럼 말하는 이가 따로 있으면 그 제목
   el('memBox').style.borderColor=c.color;
   el('vMem').style.background=
     `radial-gradient(circle at 50% 62%, ${c.color}26, rgba(5,8,15,.97) 62%)`;
@@ -7502,6 +8226,7 @@ function update(dt){
   S.phaseFx=Math.max(0,S.phaseFx-dt*0.9);
   if(S.alert){ S.alert.t+=dt; S.alert.shown=(S.alert.shown||0)+dt; }
   if(S.alertMsg){S.alertMsg.t-=dt;if(S.alertMsg.t<=0)S.alertMsg=null;}
+  if(S.skillMsg){S.skillMsg.t-=dt;if(S.skillMsg.t<=0)S.skillMsg=null;}
   if(S.growPop){S.growPop.t-=dt;if(S.growPop.t<=0)S.growPop=null;}
   if(S.shout){S.shout.t-=dt;if(S.shout.t<=0)S.shout=null;}
   if(S.kindMsg){S.kindMsg.t-=dt;if(S.kindMsg.t<=0)S.kindMsg=null;}
@@ -7977,6 +8702,7 @@ function draw(){
   ctx.fill();
   for(const b of S.balls){
     if(b.baby) continue;
+    if(b.arrow){ drawArrowBall(b); continue; }
     /* 김첨지 — 실린 힘이 클수록 짙은 금빛이 된다 */
     const k=Math.max(0,Math.min(1,((b.chg||1)-1)/Math.max(0.001,chargeFull()-1)));
     const col=b.whirl2 ? '#9B6FD9'                 // 먹 소용돌이 — 보라빛
@@ -8523,8 +9249,20 @@ function drawAlertOverlay(){
     ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.shadowColor='rgba(0,0,0,.9)';ctx.shadowBlur=18;
     ctx.font=`700 46px 'Gowun Batang',serif`;
+    const mw=WALL_R-WALL_L-24, tw=ctx.measureText(m.text).width;
+    if(tw>mw) ctx.font=`700 ${Math.floor(46*mw/tw)}px 'Gowun Batang',serif`;   // 길면 줄여서 한 줄에
     ctx.fillStyle=m.ok?C['--gold']:C['--vermilion'];
     ctx.fillText(m.text,VW/2,BANNER.t+(BANNER.b-BANNER.t)/2);
+    ctx.restore();
+  }
+  if(S.skillMsg){                                  // 기술 대사 — 알림 바로 아래 줄
+    const m=S.skillMsg,a=Math.min(1,m.t*2.5);
+    ctx.save();ctx.globalAlpha=a;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.shadowColor='rgba(0,0,0,.9)';ctx.shadowBlur=18;
+    ctx.font=`700 46px 'Gowun Batang',serif`;
+    ctx.fillStyle=m.col;
+    ctx.fillText(m.text,VW/2,BANNER.t+(BANNER.b-BANNER.t)/2+58);
     ctx.restore();
   }
 }
@@ -10147,6 +10885,15 @@ function drawHero(){
   ctx.save();
   ctx.translate(x,y);ctx.scale(K,K);
   if(blink)ctx.globalAlpha=.35;
+  const jf=jaraForm();
+  if(jf==='rabbit'&&S.jara.trail.length>1){          // 토끼 — 짧은 잔상
+    ctx.save();
+    S.jara.trail.forEach((q,i)=>{ if(i===S.jara.trail.length-1)return;
+      ctx.globalAlpha=0.07*(i+1); ctx.fillStyle='#F3EDDF';
+      roundRect((q.x-x)/K-22,(q.y-y)/K-14,44,42,9); ctx.fill(); });
+    ctx.restore();
+  }
+  if(jf) drawFormBack(jf,S.jara.shell<1,performance.now()/1000);
   ctx.fillStyle='rgba(0,0,0,.4)';ctx.beginPath();ctx.ellipse(0,26,30,10,0,0,7);ctx.fill();
   let cc=charDef(META.char).color;
   if(S.rageOn>0){                            // 우투리 — 날개가 펴지면 몸이 붉게 탄다
@@ -10169,6 +10916,7 @@ function drawHero(){
   ctx.fillStyle=cc;ctx.shadowColor=cc;ctx.shadowBlur=S.rageOn>0?30:16;
   roundRect(-22,-14,44,42,9);ctx.fill();ctx.shadowBlur=0;
   ctx.fillStyle=C['--paper'];ctx.beginPath();ctx.arc(0,-30,17,0,7);ctx.fill();
+  if(jf) drawFormFront(jf);
   ctx.translate(0,-4);ctx.rotate(Math.atan2(S.aimY,S.aimX)+Math.PI/2);
   ctx.fillStyle=C['--gold'];ctx.fillRect(-7,-46,14,20);
   ctx.restore();
@@ -10349,6 +11097,25 @@ function drawHud(){
     ctx.font=`700 22px 'Gowun Batang',serif`;
     ctx.fillStyle=S.fate.bless?C['--gold']:C['--vermilion'];
     ctx.fillText(`${S.fate.def.icon} ${S.fate.def.name} ${S.fate.left}층`,ex+2,ey+100);
+  }
+  if(hongOrd()){                                 // 홍계월 — 몸 둘레에 20초 시계, 발밑에 지금 군령
+    const o=HONG_ORD[S.hongOrd], k=Math.max(0,S.hongT/HONG_SEC), py=S.py-6;
+    ctx.save();
+    ctx.lineWidth=4; ctx.lineCap='round';
+    ctx.strokeStyle='rgba(222,211,184,.18)';
+    ctx.beginPath();ctx.arc(S.px,py,34,0,7);ctx.stroke();
+    ctx.strokeStyle='#D9667F';
+    ctx.beginPath();ctx.arc(S.px,py,34,-Math.PI/2,-Math.PI/2+Math.PI*2*k);ctx.stroke();
+    ctx.textAlign='center';
+    ctx.shadowColor='rgba(0,0,0,.9)';ctx.shadowBlur=8;
+    ctx.font=`700 22px 'Gowun Batang',serif`;ctx.fillStyle='#F0B4C2';
+    const tx=Math.max(WALL_L+130,Math.min(WALL_R-130,S.px));
+    ctx.fillText(`${o.name}, ${o.eff}`,tx,py+56);
+    if(p2On('honggyewol')&&S.hongSick>=0){
+      ctx.font=`600 18px 'IBM Plex Sans KR',sans-serif`;ctx.fillStyle='rgba(243,237,223,.8)';
+      ctx.fillText(`첫 구슬: ${HONG_SICK[S.hongSick].name} 2겹`,tx,py+80);
+    }
+    ctx.restore();
   }
   ctx.textAlign='right';
   ctx.font=`700 34px 'Gowun Batang',serif`;ctx.fillStyle=C['--gold'];
@@ -10888,7 +11655,19 @@ const ACTIVE={
  jeomsun:     {name:'감자밭',    desc:'화면 한가운데에 지름 세 배의 먹웅덩이가 10초간 남는다<br>잠긴 석판은 중독과 출혈에 걸린 채 갉힌다'},
  utturi:      {name:'용마의 번개', desc:'2초간 0.2초마다 무작위 석판에 벼락이 내리꽂힌다<br>한 번에 그 석판 체력의 60%'},
  kimcheomji:  {name:'막걸리',      desc:'기력을 최대치의 20% 되찾고<br>12초간 위력이 두 배가 된다'},
- yuchungryeol:{name:'장성검 · 십자',desc:'가로와 세로로 한 번씩 크게 벤다<br>그 안의 석판은 체력과 상관없이 부서진다'}
+ yuchungryeol:{name:'장성검 · 십자',desc:'가로와 세로로 한 번씩 크게 벤다<br>그 안의 석판은 체력과 상관없이 부서진다'},
+ honggyewol:  {name:'출정',        desc:'모든 석판에 중독·출혈·서리·낙인·좀먹을 <b>각 3겹</b><br>보스에게는 최대 체력의 15%',
+               desc2:'「대원수의 깃발」 — 모든 석판에 다섯 가지를 <b>각 5겹</b><br>10초 뒤, 그때 있는 석판에 <b>5겹</b>을 한 번 더<br>보스에게는 최대 체력의 30%'},
+ jara:        {name:'신선',        desc:'기력 <b>20%</b> 회복 · 갑옷 <b>1겹</b> (대장간 최대치보다 한 겹까지 더)<br>모든 석판 최대 체력의 <b>20%</b>, 보스 <b>3%</b>',
+               desc2:'「용궁의 물결」 — 기력 <b>30%</b> 회복<br>물결이 아래에서 위로 쓸고 올라가며 석판 <b>50%</b>, 보스 <b>10%</b>'},
+ chunpung:    {name:'큰 주사위',   desc:'화면 가운데에서 큰 주사위를 굴린다. 모든 석판 최대 체력의 <b>70%</b>, 보스 <b>30%</b><br>'
+                 +'1 기력 −20% · 2 기력 10% 회복 · 3 구슬 강화 1 · 4 구슬·문방 강화 1<br>'
+                 +'5 기력 20% 회복, 최대기력 +10% · 6 구슬·문방 강화 1, 기력 20% 회복, 최대기력 +10%',
+               desc2:'「판돈」 — 큰 주사위 결과를 <b>두 배</b>로 받는다 (1이면 기력 −40%)<br>모든 석판 <b>90%</b>, 보스 <b>40%</b>'},
+ jumong:      {name:'햇빛 화살',   desc:'판 너비를 여덟으로 나눈 <b>빛줄기 여덟</b>이 위에서 떨어진다<br>닿는 석판마다 최대 체력의 <b>40%</b>, 보스는 닿은 줄기마다 <b>6%</b>',
+               desc2:'「과녁」 — 세로 여덟 줄기가 떨어지고, 0.5초 뒤 <b>가로 줄기</b>가 줄마다 쓸고 간다<br>줄기 하나에 석판 <b>50%</b>, 보스는 닿은 줄기마다 <b>10%</b>. 겹치는 칸은 두 번 맞는다'},
+ myeongseon:  {name:'쥐바라숭꽃',  desc:'30초 동안 <b>좌우 끝</b>에도 터렛이 서고, 터렛마다 <b>두 발</b>씩 쏜다',
+               desc2:'「공습」 — 3초 동안 겨눈 뒤 터진다<br>모든 석판에 최대 체력의 <b>90%</b>, 보스에게 <b>40%</b>'}
 };
 const acDef  = id=>ACTIVE[id]||null;
 const p3Open = id=>!!(META.p3&&META.p3[id]);
@@ -10951,6 +11730,20 @@ function acFire(id,t2){
         list:D.map((d,i)=>({cx:VW/2+d[0]*W, cy:cy+d[1]*H*0.5, at:1.50-i*0.15, hit:false}))};
     }else S.cross={t:0.75, cx:S.px, cy, hit:false,
              hw:cell()*1.5, hh:rowStep()};           // 세로 세 칸 · 가로 두 줄
+  }else if(id==='honggyewol'){                      // 출정 · 대원수의 깃발
+    hongSickAll(t2?5:3);
+    S.hongFlag=t2?{t:10}:S.hongFlag;
+    if(S.boss&&!S.boss.ghost)                        // 보스는 상태이상 대신 한 번 친다
+      hitBossFlat(bossPct(t2?0.30:0.15), S.boss.x+S.boss.w/2, S.boss.y+S.boss.h/2);
+  }else if(id==='jara'){                            // 신선 · 용궁의 물결
+    jaraFire(t2);
+  }else if(id==='chunpung'){                        // 큰 주사위 · 판돈
+    chunSt().big={t:0, face:die6(), final:die6(), t2:!!t2, hit:false};
+  }else if(id==='jumong'){                          // 햇빛 화살 · 과녁
+    jumongBeams(t2);
+  }else if(id==='myeongseon'){                      // 쥐바라숭꽃 · 공습
+    const st=myeongSt();
+    if(t2) st.air={t:0, hit:false}; else st.side=30;
   }else return false;
   return true;
 }
@@ -11052,24 +11845,28 @@ function ac6Tick(dt){
 }
 /* ── 기술2 바닥 문양 ─────────────────────────────────────────
    화면 가운데에 가로 80%(지름 704)로 깔린다. 석판보다 먼저 그린다.
-   0.35초에 걸쳐 가운데에서 바깥으로 새겨지고, 기술이 끝나면 스러진다. */
+   0.35초에 걸쳐 바깥에서 가운데로 새겨지고, 기술이 끝나면 스러진다. */
 const SIG_R=352;
 const SIG_LIFE={none:3.5, kwon:12, gildong:7, chunhyang:3.4,
-                jeomsun:12, utturi:4.2, kimcheomji:20, yuchungryeol:1.7};
+                jeomsun:12, utturi:4.2, kimcheomji:20, yuchungryeol:1.7,
+                honggyewol:10.5, myeongseon:3.0, jumong:1.0, chunpung:1.0, jara:1.0};   // 명선이 — 공습이 터지는 순간에 맞춘다
 /* 5초마다 판 전체를 한 번 친다 — 오래 가는 둘만 */
 const AC_PULSE={jeomsun:2, kimcheomji:4};
 let SGA=1;
-const SIG_BACK={jeomsun:1, kwon:1, kimcheomji:1};   // 오래 가는 셋만 석판 뒤에
+let SGT=0;                                      // 문양이 새겨진 뒤 흐른 시간 — 고주몽 십자선
+const SIG_BACK={jeomsun:1, kwon:1, kimcheomji:1, honggyewol:1};   // 오래 가는 넷만 석판 뒤에
 const SIG_GLOW={chunhyang:'#E5B24F', yuchungryeol:'#9FD8C6', kimcheomji:'#D9C79A',
                 jeomsun:'#E2593F',  gildong:'#52BFA0',      utturi:'#F5DC4E',
-                kwon:'#D6DEE6',     none:'#B8B2A4'};
+                kwon:'#D6DEE6',     none:'#B8B2A4',
+                honggyewol:'#D9667F', myeongseon:'#F4CF3A', jumong:'#EE8A3A',
+                chunpung:'#5A7BD0', jara:'#3FA3B5'};
 const hexA=(h,al)=>{ const n=parseInt(h.slice(1),16);
   return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${al})`; };
 function sigStart(id){ const L=SIG_LIFE[id]; if(L) S.sigil={id, t:0, life:L+1.0}; }
 function sigTick(dt){ if(S.sigil){ S.sigil.t+=dt; if(S.sigil.t>=S.sigil.life) S.sigil=null; } }
 
 function sA(x){ ctx.globalAlpha=SGA*Math.max(0,Math.min(1,x)); }
-function lv(k,r){ return k>=1?1:Math.max(0,Math.min(1,(k*1.4-r/SIG_R)/0.20)); }
+function lv(k,r){ return k>=1?1:Math.max(0,Math.min(1,(k*1.4-(SIG_R-r)/SIG_R)/0.20)); }   // 바깥에서 안으로 새겨진다
 function sRing(r,w,c,al){ sA(al);ctx.strokeStyle=c;ctx.lineWidth=w;
   ctx.beginPath();ctx.arc(0,0,r,0,7);ctx.stroke(); }
 function sSp(n,r0,r1,c,w,al,rot){ sA(al);ctx.strokeStyle=c;ctx.lineWidth=w;ctx.beginPath();
@@ -11147,6 +11944,298 @@ SIG.chunhyang=function(k,T){
     ctx.save();ctx.translate(50,42);ctx.scale(-1,1);sHorse(1.2,G);ctx.restore();
     ctx.restore(); }
   sA(lv(k,24));ctx.strokeStyle=G;ctx.lineWidth=2.6;ctx.beginPath();ctx.arc(0,0,22,0,7);ctx.stroke();
+  ctx.strokeStyle=L;ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(0,0,13,0,7);ctx.stroke();
+  ctx.fillStyle=P;ctx.beginPath();ctx.arc(0,0,5,0,7);ctx.fill();
+};
+/* 홍계월 — 대원수의 깃발 · 단청 */
+SIG.honggyewol=function(k,T){
+  const Y='#D9667F',L='#F0B4C2',P='#F3EDDF';
+  sRing(352,1.2,Y,.22*lv(k,352)); sRing(340,3,Y,lv(k,340)); sRing(330,1.2,L,.55*lv(k,330));
+  sSp(96,330,340,L,1.1,.45*lv(k,340),T*.09);
+  sSp(24,312,340,Y,2,.8*lv(k,340),T*.09);
+  sRing(312,1.8,Y,.8*lv(k,312));
+  const a=lv(k,292); if(a>0) sAt(32,292,T*.21,()=>{ sA(a);          /* 창끝 — 시계 방향 */
+    ctx.strokeStyle=P;ctx.lineWidth=2;ctx.beginPath();
+    ctx.moveTo(0,-21);ctx.lineTo(7,-7);ctx.lineTo(3,1);ctx.lineTo(-3,1);ctx.lineTo(-7,-7);ctx.closePath();ctx.stroke();
+    ctx.strokeStyle=L;ctx.lineWidth=1.4;ctx.beginPath();
+    sLn(0,-17,0,-2); sLn(-8,5,8,5); sLn(0,5,0,21);
+    ctx.moveTo(-4,8);ctx.quadraticCurveTo(-10,13,-6,19);
+    ctx.moveTo(4,8);ctx.quadraticCurveTo(10,13,6,19);ctx.stroke(); });
+  sRing(268,2.2,Y,.85*lv(k,268)); sRing(262,1,L,.4*lv(k,262));
+  const b=lv(k,242); if(b>0) sAt(20,242,-T*.24,()=>{ sA(b);         /* 투구 — 반시계 방향 */
+    ctx.strokeStyle=Y;ctx.lineWidth=2.2;ctx.beginPath();
+    ctx.moveTo(-15,6);ctx.bezierCurveTo(-15,-16,15,-16,15,6);
+    sLn(-20,6,20,6);
+    ctx.moveTo(-15,6);ctx.lineTo(-18,20);ctx.lineTo(-9,23);
+    ctx.moveTo(15,6);ctx.lineTo(18,20);ctx.lineTo(9,23);ctx.stroke();
+    ctx.strokeStyle=P;ctx.lineWidth=1.3;ctx.beginPath();
+    sLn(0,-10,0,-22); sLn(-4,-21,4,-21);
+    ctx.moveTo(0,-22);ctx.quadraticCurveTo(-7,-28,-2,-33);
+    sLn(-11,-1,11,-1); sLn(-13,13,-8,14); sLn(13,13,8,14);ctx.stroke(); });
+  sRing(216,2,Y,.8*lv(k,216));
+  sSp(144,200,212,L,.8,.32*lv(k,212),-T*.30);
+  sSp(24,200,212,P,1.6,.75*lv(k,212),-T*.30);
+  sRing(198,2,Y,.85*lv(k,198)); sRing(192,1,L,.4*lv(k,192));
+  const c=lv(k,180); if(c>0) sAt(16,120,T*.42,(i)=>{ sA(c);          /* 삼각 깃발 — 꽃잎 자리 */
+    const big=(i%4===0),LL=big?74:62,FW=big?34:27,FH=big?38:30;
+    ctx.strokeStyle=big?P:Y;ctx.lineWidth=big?2.4:1.7;ctx.beginPath();
+    sLn(0,-2,0,-LL); ctx.moveTo(0,-LL);ctx.lineTo(FW,-LL+FH*.5);ctx.lineTo(0,-LL+FH);ctx.stroke();
+    ctx.strokeStyle=L;ctx.lineWidth=1.2;ctx.beginPath();
+    ctx.moveTo(3,-LL+6);ctx.lineTo(FW*.6,-LL+FH*.5);ctx.lineTo(3,-LL+FH-6);
+    sLn(-4,-LL-5,0,-LL); sLn(4,-LL-5,0,-LL);ctx.stroke(); });
+  sRing(116,2.4,Y,lv(k,116));
+  sSp(48,104,114,L,1,.55*lv(k,114),-T*.5);
+  sRing(100,1.2,L,.5*lv(k,100));
+  const h=lv(k,90); if(h>0){ const br=1+.03*Math.sin(T*1.5);
+    sA(h); ctx.save();ctx.scale(br,br);
+    for(const s of [1,-1]){ ctx.save();ctx.rotate(s*Math.PI/4);     /* 엇갈린 칼 둘 */
+      ctx.strokeStyle=L;ctx.lineWidth=2.2;ctx.beginPath();
+      ctx.moveTo(0,-88);ctx.lineTo(5,-78);ctx.lineTo(5,36);ctx.lineTo(-5,36);ctx.lineTo(-5,-78);ctx.closePath();ctx.stroke();
+      ctx.strokeStyle=P;ctx.lineWidth=.9;ctx.beginPath();sLn(0,-74,0,30);ctx.stroke();
+      ctx.strokeStyle=Y;ctx.lineWidth=2.4;ctx.beginPath();sLn(-15,40,15,40);sLn(0,44,0,70);ctx.stroke();
+      ctx.lineWidth=1.3;ctx.beginPath();sLn(-3,50,3,50);sLn(-3,58,3,58);sLn(-3,66,3,66);
+      ctx.moveTo(5,75);ctx.arc(0,75,5,0,7);ctx.stroke();
+      ctx.restore(); }
+    ctx.strokeStyle=P;ctx.lineWidth=2.4;ctx.beginPath();              /* 「帥」 깃발 */
+    sLn(-30,-72,-30,74);
+    ctx.moveTo(-30,-66);ctx.lineTo(38,-66);ctx.lineTo(29,-40);ctx.lineTo(38,-14);ctx.lineTo(-30,-14);ctx.stroke();
+    ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(-25,-78);ctx.arc(-30,-78,5,0,7);ctx.stroke();
+    ctx.strokeStyle=Y;ctx.lineWidth=1.2;ctx.beginPath();
+    ctx.moveTo(-24,-60);ctx.lineTo(28,-60);ctx.lineTo(22,-40);ctx.lineTo(28,-20);ctx.lineTo(-24,-20);ctx.closePath();ctx.stroke();
+    ctx.strokeStyle=L;ctx.beginPath();for(let i=0;i<6;i++)sLn(-24+i*10,-14,-22+i*10,-4);ctx.stroke();
+    ctx.font="700 30px 'Gowun Batang',serif";ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.strokeStyle=P;ctx.lineWidth=1.3;ctx.strokeText('帥',0,-40);
+    ctx.restore(); }
+  sA(lv(k,24));ctx.strokeStyle=Y;ctx.lineWidth=2.6;ctx.beginPath();ctx.arc(0,0,22,0,7);ctx.stroke();
+  ctx.strokeStyle=L;ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(0,0,13,0,7);ctx.stroke();
+  ctx.fillStyle=P;ctx.beginPath();ctx.arc(0,0,5,0,7);ctx.fill();
+};
+/* 명선이 — 민들레 · 만다라 */
+SIG.myeongseon=function(k,T){
+  const Y='#F4CF3A',L='#FAE58F',P='#F3EDDF';
+  sRing(352,1.2,Y,.22*lv(k,352)); sRing(340,3,Y,lv(k,340)); sRing(330,1.2,L,.55*lv(k,330));
+  sSp(96,330,340,L,1.1,.45*lv(k,340),T*.09);
+  sSp(24,312,340,Y,2,.8*lv(k,340),T*.09);
+  sRing(312,1.8,Y,.8*lv(k,312));
+  const a=lv(k,292); if(a>0) sAt(32,292,T*.21,(i)=>{ sA(a);         /* 씨앗 — 시계 방향, 떠오르듯 */
+    ctx.translate(0,-3*Math.sin(T*1.4+i*.7));
+    ctx.strokeStyle=L;ctx.lineWidth=1.4;ctx.beginPath();
+    sLn(0,15,0,-4); ctx.moveTo(2.4,20);ctx.ellipse(0,20,2.4,5,0,0,7);ctx.stroke();
+    ctx.strokeStyle=P;ctx.lineWidth=1.1;ctx.beginPath();
+    for(let q=0;q<9;q++){ const an=-Math.PI/2+(q-4)*.3, ex=Math.cos(an)*16, ey=-4+Math.sin(an)*16;
+      sLn(0,-4,ex,ey);
+      sLn(ex,ey,ex+Math.cos(an-.45)*4.5,ey+Math.sin(an-.45)*4.5);
+      sLn(ex,ey,ex+Math.cos(an+.45)*4.5,ey+Math.sin(an+.45)*4.5); }
+    ctx.stroke(); });
+  sRing(268,2.2,Y,.85*lv(k,268)); sRing(262,1,L,.4*lv(k,262));
+  const b=lv(k,242); if(b>0) sAt(20,242,-T*.24,()=>{ sA(b);         /* 톱니 잎 — 반시계 방향 */
+    const R=[[0,26],[5,18],[3,13],[11,6],[5,2],[12,-7],[5,-10],[9,-19],[3,-22],[0,-31]];
+    ctx.strokeStyle=Y;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,26);
+    for(const p of R.slice(1))ctx.lineTo(p[0],p[1]);
+    for(const p of R.slice(0,-1).reverse())ctx.lineTo(-p[0],p[1]);ctx.stroke();
+    ctx.strokeStyle=P;ctx.lineWidth=1.2;ctx.beginPath();
+    sLn(0,28,0,-27); sLn(0,9,7,4); sLn(0,9,-7,4); sLn(0,-5,8,-10); sLn(0,-5,-8,-10);ctx.stroke(); });
+  sRing(216,2,Y,.8*lv(k,216));
+  sSp(144,200,212,L,.8,.32*lv(k,212),-T*.30);
+  sSp(24,200,212,P,1.6,.75*lv(k,212),-T*.30);
+  sRing(198,2,Y,.85*lv(k,198)); sRing(192,1,L,.4*lv(k,192));
+  const c=lv(k,180); if(c>0){                                       /* 가는 꽃잎 두 겹 */
+    sAt(32,114,-T*.30+Math.PI/32,()=>{ sA(c*.8);
+      ctx.strokeStyle=L;ctx.lineWidth=1.2;sPet(46,6);ctx.stroke(); });
+    sAt(32,118,T*.42,(i)=>{ sA(c); const big=(i%4===0),LL=big?68:60;
+      ctx.strokeStyle=big?P:Y;ctx.lineWidth=big?2.2:1.6;sPet(LL,8);ctx.stroke();
+      ctx.strokeStyle=L;ctx.lineWidth=1;ctx.beginPath();
+      sLn(0,-5,0,-LL*.85); sLn(-2.5,-LL+2,-2,-LL-4); sLn(0,-LL,0,-LL-6); sLn(2.5,-LL+2,2,-LL-4);ctx.stroke(); }); }
+  sRing(116,2.4,Y,lv(k,116));
+  sSp(48,104,114,L,1,.55*lv(k,114),-T*.5);
+  sRing(100,1.2,L,.5*lv(k,100));
+  const h=lv(k,90); if(h>0){ const br=1+.03*Math.sin(T*1.5);        /* 솜털 공 */
+    sA(h); ctx.save();ctx.scale(br,br);ctx.rotate(T*.05);
+    const RR=i=>(i%3===0)?84:(i%3===1)?74:64;
+    ctx.strokeStyle=L;ctx.lineWidth=.9;ctx.beginPath();
+    for(let i=0;i<60;i++){const an=i*Math.PI/30,r=RR(i);sLn(Math.cos(an)*32,Math.sin(an)*32,Math.cos(an)*r,Math.sin(an)*r);}
+    ctx.stroke();
+    ctx.strokeStyle=P;ctx.lineWidth=.9;ctx.beginPath();
+    for(let i=0;i<60;i++){const an=i*Math.PI/30,r=RR(i),x=Math.cos(an)*r,y=Math.sin(an)*r;
+      for(const d of [-.55,0,.55])sLn(x,y,x+Math.cos(an+d)*6,y+Math.sin(an+d)*6);}
+    ctx.stroke();
+    ctx.strokeStyle=Y;ctx.lineWidth=1.6;ctx.beginPath();ctx.arc(0,0,32,0,7);ctx.stroke();
+    ctx.restore(); }
+  sA(lv(k,24));ctx.strokeStyle=Y;ctx.lineWidth=2.6;ctx.beginPath();ctx.arc(0,0,22,0,7);ctx.stroke();
+  ctx.strokeStyle=L;ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(0,0,13,0,7);ctx.stroke();
+  ctx.fillStyle=P;ctx.beginPath();ctx.arc(0,0,5,0,7);ctx.fill();
+};
+
+/* 고주몽 — 활터 과녁 · 해 */
+SIG.jumong=function(k,T){
+  const Y='#EE8A3A',L='#F7C48E',P='#F3EDDF';
+  sRing(352,1.2,Y,.22*lv(k,352)); sRing(340,3,Y,lv(k,340)); sRing(330,1.2,L,.55*lv(k,330));
+  sSp(96,330,340,L,1.1,.45*lv(k,340),T*.09);
+  sSp(24,312,340,Y,2,.8*lv(k,340),T*.09);
+  sRing(312,1.8,Y,.8*lv(k,312));
+  const a=lv(k,292); if(a>0) sAt(32,292,T*.21,()=>{ sA(a);             /* 화살 — 촉이 바깥, 시계 방향 */
+    ctx.strokeStyle=P;ctx.lineWidth=1.8;ctx.beginPath();
+    ctx.moveTo(0,-24);ctx.lineTo(5,-14);ctx.lineTo(-5,-14);ctx.closePath();ctx.stroke();
+    ctx.strokeStyle=L;ctx.lineWidth=1.4;ctx.beginPath();
+    sLn(0,-14,0,20);
+    sLn(0,12,-5,17); sLn(0,12,5,17); sLn(0,17,-5,22); sLn(0,17,5,22);ctx.stroke(); });
+  sRing(268,2.2,Y,.85*lv(k,268)); sRing(262,1,L,.4*lv(k,262));
+  const b=lv(k,242); if(b>0) sAt(20,242,-T*.24,()=>{ sA(b);            /* 활 — 반시계 방향 */
+    ctx.strokeStyle=Y;ctx.lineWidth=2.2;ctx.beginPath();
+    ctx.moveTo(-17,8);ctx.bezierCurveTo(-14,-6,-6,-12,0,-12);ctx.bezierCurveTo(6,-12,14,-6,17,8);ctx.stroke();
+    ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(-17,8);ctx.lineTo(-20,12);ctx.moveTo(17,8);ctx.lineTo(20,12);ctx.stroke();
+    ctx.strokeStyle=P;ctx.lineWidth=1;ctx.beginPath();sLn(-17,8,17,8);ctx.stroke();
+    ctx.strokeStyle=L;ctx.lineWidth=1.2;ctx.beginPath();sLn(0,8,0,-20);sLn(-3,-16,0,-20);sLn(3,-16,0,-20);ctx.stroke(); });
+  sRing(216,2,Y,.8*lv(k,216));
+  sSp(144,200,212,L,.8,.32*lv(k,212),-T*.30);
+  sSp(24,200,212,P,1.6,.75*lv(k,212),-T*.30);
+  sRing(198,2,Y,.85*lv(k,198)); sRing(192,1,L,.4*lv(k,192));
+  const c=lv(k,180); if(c>0){                                           /* 과녁 — 동심원 넷과 눈금 */
+    const R=[182,164,146,128];
+    R.forEach((r,i)=>sRing(r,i%2?1.6:2.6,i%2?L:(i===0?P:Y),c*(i%2?.7:1)));
+    sSp(72,164,182,L,1,.55*c,T*.42);
+    sSp(48,146,164,Y,1.4,.7*c,-T*.30);
+    sSp(36,128,146,P,1,.5*c,T*.42);
+    sSp(8,128,182,P,2.2,.9*c,T*.42);
+  }
+  sRing(116,2.4,Y,lv(k,116));
+  sSp(48,104,114,L,1,.55*lv(k,114),-T*.5);
+  sRing(100,1.2,L,.5*lv(k,100));
+  const h=lv(k,90); if(h>0){ const br=1+.03*Math.sin(T*1.5);             /* 해 안의 세발까마귀 */
+    sA(h); ctx.save();ctx.scale(br,br);
+    ctx.strokeStyle=Y;ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,84,0,7);ctx.stroke();
+    ctx.strokeStyle=L;ctx.lineWidth=1;ctx.beginPath();
+    for(let i=0;i<36;i++){const an=i*Math.PI/18;sLn(Math.cos(an)*76,Math.sin(an)*76,Math.cos(an)*(i%3?80:82),Math.sin(an)*(i%3?80:82));}
+    ctx.stroke();
+    ctx.strokeStyle=P;ctx.lineWidth=2;ctx.beginPath();
+    ctx.ellipse(0,6,20,13,-.15,0,7);                          // 몸
+    ctx.moveTo(26,-12);ctx.arc(19,-12,7,0,7);                 // 머리
+    ctx.moveTo(26,-14);ctx.lineTo(36,-11);ctx.lineTo(26,-8);  // 부리
+    ctx.stroke();
+    ctx.strokeStyle=L;ctx.lineWidth=1.6;ctx.beginPath();      // 날개 — 위로 편다
+    ctx.moveTo(-4,-4);ctx.bezierCurveTo(-18,-30,-38,-44,-56,-40);
+    ctx.lineTo(-44,-32);ctx.lineTo(-54,-26);ctx.lineTo(-38,-22);ctx.lineTo(-44,-14);ctx.lineTo(-18,-6);
+    ctx.moveTo(6,-5);ctx.bezierCurveTo(4,-30,14,-50,30,-58);
+    ctx.lineTo(24,-44);ctx.lineTo(34,-42);ctx.lineTo(20,-32);ctx.lineTo(24,-24);ctx.lineTo(10,-10);
+    ctx.moveTo(-19,4);ctx.lineTo(-44,-2);ctx.moveTo(-19,8);ctx.lineTo(-46,10);ctx.moveTo(-18,12);ctx.lineTo(-40,22);  // 꼬리
+    ctx.stroke();
+    ctx.strokeStyle=Y;ctx.lineWidth=1.8;ctx.beginPath();      // 세 발
+    for(const x of [-8,0,8]){ sLn(x,18,x-2,40); sLn(x-2,40,x-7,44); sLn(x-2,40,x+3,44); }
+    ctx.stroke();
+    ctx.restore(); }
+  sA(lv(k,24));ctx.strokeStyle=Y;ctx.lineWidth=2.6;ctx.beginPath();ctx.arc(0,0,22,0,7);ctx.stroke();
+  ctx.strokeStyle=L;ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(0,0,13,0,7);ctx.stroke();
+  ctx.fillStyle=P;ctx.beginPath();ctx.arc(0,0,5,0,7);ctx.fill();
+  /* 십자선 — 세로가 먼저, 0.5초 뒤 가로 (기술2와 같은 순서) */
+  const gv=Math.min(1,SGT/0.18), gh=Math.min(1,Math.max(0,(SGT-0.5)/0.18));
+  ctx.strokeStyle=P;ctx.lineWidth=2.4;
+  if(gv>0){ sA(gv); ctx.beginPath(); sLn(0,-372*gv,0,-96); sLn(0,96,0,372*gv); ctx.stroke(); }
+  if(gh>0){ sA(gh); ctx.beginPath(); sLn(-372*gh,0,-96,0); sLn(96,0,372*gh,0); ctx.stroke(); }
+};
+/* 이춘풍 — 주사위와 엽전 · 쪽빛 */
+function sPips(n,s){                                   // 주사위 눈 — 한 변 s인 네모 안에
+  const q=s*0.28, P={1:[[0,0]],2:[[-q,-q],[q,q]],3:[[-q,-q],[0,0],[q,q]],4:[[-q,-q],[q,-q],[-q,q],[q,q]],
+    5:[[-q,-q],[q,-q],[0,0],[-q,q],[q,q]],6:[[-q,-q],[q,-q],[-q,0],[q,0],[-q,q],[q,q]]}[n];
+  ctx.beginPath(); for(const [x,y] of P){ ctx.moveTo(x+s*0.07,y); ctx.arc(x,y,s*0.07,0,7); } ctx.fill();
+}
+SIG.chunpung=function(k,T){
+  const Y='#5A7BD0',L='#A9BDEB',P='#F3EDDF';
+  sRing(352,1.2,Y,.22*lv(k,352)); sRing(340,3,Y,lv(k,340)); sRing(330,1.2,L,.55*lv(k,330));
+  sSp(96,330,340,L,1.1,.45*lv(k,340),T*.09);
+  sSp(24,312,340,Y,2,.8*lv(k,340),T*.09);
+  sRing(312,1.8,Y,.8*lv(k,312));
+  const a=lv(k,292); if(a>0) sAt(32,292,T*.21,(i)=>{ sA(a);            /* 엽전 — 시계 방향 */
+    ctx.strokeStyle=i%4?L:P; ctx.lineWidth=1.8; ctx.beginPath(); ctx.arc(0,0,11,0,7); ctx.stroke();
+    ctx.lineWidth=1.2; ctx.beginPath(); ctx.arc(0,0,8.5,0,7); ctx.stroke();
+    ctx.strokeStyle=Y; ctx.lineWidth=1.6; ctx.strokeRect(-3.5,-3.5,7,7);
+    ctx.lineWidth=1; ctx.beginPath(); sLn(0,-8,0,-5); sLn(0,5,0,8); sLn(-8,0,-5,0); sLn(5,0,8,0); ctx.stroke(); });
+  sRing(268,2.2,Y,.85*lv(k,268)); sRing(262,1,L,.4*lv(k,262));
+  const b=lv(k,242); if(b>0) sAt(20,242,-T*.24,(i)=>{ sA(b);           /* 주사위 눈 — 반시계 방향 */
+    ctx.strokeStyle=Y; ctx.lineWidth=2; ctx.beginPath();
+    if(ctx.roundRect) ctx.roundRect(-11,-11,22,22,4); else ctx.rect(-11,-11,22,22);
+    ctx.stroke(); ctx.fillStyle=(i%6===0||i%6===3)?'#E2593F':P; sPips(i%6+1,22); });
+  sRing(216,2,Y,.8*lv(k,216));
+  sSp(144,200,212,L,.8,.32*lv(k,212),-T*.30);
+  sSp(24,200,212,P,1.6,.75*lv(k,212),-T*.30);
+  sRing(198,2,Y,.85*lv(k,198)); sRing(192,1,L,.4*lv(k,192));
+  const c=lv(k,180); if(c>0) sAt(16,122,T*.42,(i)=>{ sA(c);            /* 투전 패 — 꽃잎 자리 */
+    const big=i%4===0, W=big?13:10, H=big?62:54;
+    ctx.strokeStyle=big?P:Y; ctx.lineWidth=big?2.2:1.6; ctx.strokeRect(-W,-H,W*2,H-2);
+    ctx.strokeStyle=L; ctx.lineWidth=1; ctx.beginPath();
+    sLn(-W+4,-H+6,W-4,-H+6); sLn(-W+4,-8,W-4,-8);
+    for(let j=0;j<(i%3)+2;j++) sLn(-W+5,-H+14+j*7,W-5,-H+14+j*7);
+    ctx.stroke(); ctx.beginPath(); ctx.arc(0,-22,big?6:4.5,0,7); ctx.stroke(); });
+  sRing(116,2.4,Y,lv(k,116));
+  sSp(48,104,114,L,1,.55*lv(k,114),-T*.5);
+  sRing(100,1.2,L,.5*lv(k,100));
+  const h=lv(k,90); if(h>0){ const br=1+.03*Math.sin(T*1.5);           /* 큰 주사위 — 세 면이 보이게 */
+    sA(h); ctx.save(); ctx.scale(br,br);
+    const s=64, c30=Math.cos(Math.PI/6)*s, s30=s/2;
+    const top=[[0,-s],[c30,-s30],[0,0],[-c30,-s30]], lf=[[-c30,-s30],[0,0],[0,s],[-c30,s30]], rt=[[0,0],[c30,-s30],[c30,s30],[0,s]];
+    const face=(pts,col,w)=>{ ctx.strokeStyle=col; ctx.lineWidth=w; ctx.beginPath(); ctx.moveTo(...pts[0]); for(const p of pts.slice(1)) ctx.lineTo(...p); ctx.closePath(); ctx.stroke(); };
+    face(top,P,2.6); face(lf,Y,2.4); face(rt,L,2.4);
+    const dot=(x,y,r,col)=>{ ctx.fillStyle=col; ctx.beginPath(); ctx.ellipse(x,y,r,r*0.62,0,0,7); ctx.fill(); };
+    dot(0,-s30,8,'#E2593F');                                            // 위 — 1
+    for(const [u,v] of [[.25,.25],[.5,.5],[.75,.75]]) dot(-c30*(1-u),-s30*(1-u)+s*v*0.9+s30*u*0.0,3.6,P);   // 왼 — 3
+    for(const [u,v] of [[.25,.3],[.75,.3],[.25,.75],[.75,.75]]) dot(c30*u,-s30*u+s*v,3.6,P);                // 오른 — 4
+    ctx.restore(); }
+  sA(lv(k,24));ctx.strokeStyle=Y;ctx.lineWidth=2.6;ctx.beginPath();ctx.arc(0,0,22,0,7);ctx.stroke();
+  ctx.strokeStyle=L;ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(0,0,13,0,7);ctx.stroke();
+  ctx.fillStyle=P;ctx.beginPath();ctx.arc(0,0,5,0,7);ctx.fill();
+};
+/* 자라 — 귀갑문 · 청록 */
+function sHex(r){ ctx.moveTo(r,0); for(let i=1;i<6;i++) ctx.lineTo(Math.cos(i*Math.PI/3)*r,Math.sin(i*Math.PI/3)*r); ctx.closePath(); }
+SIG.jara=function(k,T){
+  const Y='#3FA3B5',L='#9FD6DF',P='#F3EDDF';
+  sRing(352,1.2,Y,.22*lv(k,352)); sRing(340,3,Y,lv(k,340)); sRing(330,1.2,L,.55*lv(k,330));
+  sSp(96,330,340,L,1.1,.45*lv(k,340),T*.09);
+  sSp(24,312,340,Y,2,.8*lv(k,340),T*.09);
+  sRing(312,1.8,Y,.8*lv(k,312));
+  const a=lv(k,292); if(a>0) sAt(32,292,T*.21,(i)=>{ sA(a);            /* 물결 — 시계 방향 */
+    ctx.strokeStyle=L; ctx.lineWidth=1.8; ctx.beginPath();
+    ctx.moveTo(-14,8); ctx.bezierCurveTo(-10,-6,-2,-10,4,-6); ctx.bezierCurveTo(9,-3,7,4,2,3);
+    ctx.bezierCurveTo(-2,2,-1,-3,3,-3); ctx.stroke();
+    ctx.strokeStyle=P; ctx.lineWidth=1.1; ctx.beginPath();
+    ctx.moveTo(-8,12); ctx.bezierCurveTo(-4,4,4,2,12,6); ctx.moveTo(4,-12); ctx.quadraticCurveTo(10,-14,14,-10); ctx.stroke(); });
+  sRing(268,2.2,Y,.85*lv(k,268)); sRing(262,1,L,.4*lv(k,262));
+  const b=lv(k,242); if(b>0) sAt(20,242,-T*.24,()=>{ sA(b);            /* 토끼 옆모습 — 반시계 방향 */
+    ctx.strokeStyle=P; ctx.lineWidth=1.7; ctx.beginPath();
+    ctx.ellipse(-2,6,11,7,0,0,7);                          // 몸
+    ctx.moveTo(14,-2); ctx.arc(9,-2,5,0,7);                // 머리
+    ctx.stroke();
+    ctx.strokeStyle=Y; ctx.lineWidth=1.8; ctx.beginPath();
+    ctx.ellipse(6,-14,2.6,9,-0.35,0,7);                    // 귀
+    ctx.moveTo(10.5,-14); ctx.ellipse(10,-13,2.4,8,0.1,0,7);
+    ctx.moveTo(-13,5); ctx.arc(-14,5,2.4,0,7);            // 꼬리
+    ctx.stroke();
+    ctx.strokeStyle=L; ctx.lineWidth=1.2; ctx.beginPath(); sLn(-6,12,-10,15); sLn(4,12,6,15); ctx.stroke(); });
+  sRing(216,2,Y,.8*lv(k,216));
+  sSp(144,200,212,L,.8,.32*lv(k,212),-T*.30);
+  sSp(24,200,212,P,1.6,.75*lv(k,212),-T*.30);
+  sRing(198,2,Y,.85*lv(k,198)); sRing(192,1,L,.4*lv(k,192));
+  const c=lv(k,180); if(c>0){                                           /* 육각 등딱지 — 벌집 두 겹 */
+    sAt(18,166,T*.42,(i)=>{ sA(c); ctx.strokeStyle=i%3?Y:P; ctx.lineWidth=i%3?1.8:2.4; ctx.beginPath(); sHex(17); ctx.stroke();
+      ctx.strokeStyle=L; ctx.lineWidth=1; ctx.beginPath(); sHex(9); ctx.stroke(); });
+    sAt(18,134,T*.42+Math.PI/18,(i)=>{ sA(c*.9); ctx.strokeStyle=i%3?L:Y; ctx.lineWidth=1.6; ctx.beginPath(); sHex(14); ctx.stroke(); });
+  }
+  sRing(116,2.4,Y,lv(k,116));
+  sSp(48,104,114,L,1,.55*lv(k,114),-T*.5);
+  sRing(100,1.2,L,.5*lv(k,100));
+  const h=lv(k,90); if(h>0){ const br=1+.03*Math.sin(T*1.5);           /* 위에서 본 자라 */
+    sA(h); ctx.save(); ctx.scale(br*1.4,br*1.4);
+    ctx.strokeStyle=L; ctx.lineWidth=2; ctx.beginPath();
+    for(const [x,y,r] of [[-30,-30,.6],[30,-30,-.6],[-28,30,-.5],[28,30,.5]]){   // 지느러미 발
+      ctx.moveTo(x*0.7,y*0.7); ctx.quadraticCurveTo(x*1.5,y*1.0+(y<0?-6:6),x*1.3,y*1.5); ctx.quadraticCurveTo(x*1.0,y*1.2,x*0.6,y*0.9); }
+    ctx.moveTo(0,-44); ctx.arc(0,-54,10,Math.PI/2,Math.PI/2+Math.PI*2);          // 머리
+    ctx.moveTo(-4,44); ctx.lineTo(0,58); ctx.lineTo(4,44);                         // 꼬리
+    ctx.stroke();
+    ctx.fillStyle=P; ctx.beginPath(); ctx.arc(-4,-58,1.8,0,7); ctx.arc(4,-58,1.8,0,7); ctx.fill();
+    ctx.strokeStyle=Y; ctx.lineWidth=2.6; ctx.beginPath(); ctx.ellipse(0,0,36,46,0,0,7); ctx.stroke();
+    ctx.strokeStyle=P; ctx.lineWidth=1.6; ctx.beginPath(); sHex(12);
+    for(let i=0;i<6;i++){ const an=i*Math.PI/3+Math.PI/6; ctx.save(); ctx.translate(Math.cos(an)*22,Math.sin(an)*24); sHex(10); ctx.restore(); }
+    ctx.stroke();
+    ctx.restore(); }
+  sA(lv(k,24));ctx.strokeStyle=Y;ctx.lineWidth=2.6;ctx.beginPath();ctx.arc(0,0,22,0,7);ctx.stroke();
   ctx.strokeStyle=L;ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(0,0,13,0,7);ctx.stroke();
   ctx.fillStyle=P;ctx.beginPath();ctx.arc(0,0,5,0,7);ctx.fill();
 };
@@ -11599,7 +12688,7 @@ function drawSigil(front){
   if(left<0.4) a*=Math.max(0,left/0.4);             // 기술이 끝나고 1초 더 남았다 스러진다
   const T=performance.now()/1000, col=SIG_GLOW[g.id]||'#E5B24F';
   const pu=0.72+0.28*Math.sin(T*1.8);               // 숨 쉬듯 밝아졌다 어두워진다
-  SGA=a;
+  SGA=a; SGT=g.t;
   ctx.save();
   ctx.translate(VW/2,(CEIL_Y+DANGER_Y)/2);
   ctx.lineCap='round'; ctx.lineJoin='round';
@@ -11715,7 +12804,7 @@ function drawAc6(){
 
 const AC2NAME={none:'먹 소용돌이', kwon:'아홉을 벗다', gildong:'율도국이 선다',
   chunhyang:'온 고을에', jeomsun:'동백 아래', utturi:'용마가 온다',
-  kimcheomji:'설렁탕 한 그릇', yuchungryeol:'장성검, 일곱 번'};
+  kimcheomji:'설렁탕 한 그릇', yuchungryeol:'장성검, 일곱 번', honggyewol:'대원수의 깃발', myeongseon:'공습', jumong:'과녁', chunpung:'판돈', jara:'용궁의 물결'};
 function useActive(){
   if(!acReady()||!p3On(META.char))return;
   const id=META.char, t2=acT2();
@@ -11730,6 +12819,7 @@ function useActive(){
   }else if(acFire(id,t2)){
     S.shout={text:nm,big:!!t2,t:1.6,max:1.6};
   }else return;
+  skillSay(t2?'t2':'t1');
   if(t2){
     sigStart(id);                              // 바닥에 문양이 새겨진다
     S.acEnd=SIG_LIFE[id]||0;                   // 끝나는 순간 한 방
@@ -11851,6 +12941,7 @@ dmgOf=function(ball){ return _dmgOf(ball)*((S&&S.acBuff>0)?(S.acMul||2):1); };
 const _breakBrick2=breakBrick;
 breakBrick=function(b,ball){
   if(b&&!b.quiz&&!isSolid(b)&&S&&p3On(META.char)&&(S.ac||0)<AC_NEED2) S.ac=(S.ac||0)+1;
+  if(b&&b.kind==='body'&&S&&S.bricks.includes(b)&&jaraForm()==='king') S.energy=Math.min(S.energyMax,S.energy+2);   // 용왕 — 몸돌
   return _breakBrick2(b,ball);
 };
 const _startRunNow2=startRunNow;
@@ -11863,7 +12954,7 @@ startRunNow=function(){ _startRunNow2();
     t:3.2, ok:true}; }, 1200);
 };
 const _drawControls=drawControls;
-drawControls=function(){ drawSigil(true); drawAc6(); drawAcFx(); _drawControls(); drawActive(); };
+drawControls=function(){ drawSigil(true); drawMyeong(); drawJumong(); drawChun(); drawJara(); drawAc6(); drawAcFx(); _drawControls(); drawActive(); };   // 공습 조준은 문양 위에
 
 GUIDE.chars.push(
  {h:'세 번째 면모',t:`캐릭터마다 세 번째 면모가 하나씩 더 있습니다.<br>
@@ -11925,8 +13016,11 @@ cv.addEventListener('pointerdown',e=>{
   const p={x:(e.clientX-r.left)/r.width*VW,y:(e.clientY-r.top)/r.height*VH};
   if(p3On(META.char)&&Math.hypot(p.x-BTN_A.x,p.y-BTN_A.y)<=BTN_A.r+18){
     e.stopPropagation(); useActive();
+  }else if(META.char==='jara'&&Math.hypot(p.x-BTN_FORM.x,p.y-BTN_FORM.y)<=BTN_FORM.r+14){
+    e.stopPropagation(); jaraSwitch();                 // 자라 — 폼 전환
   }
 },true);
+addEventListener('keydown',e=>{ if(e.key==='f'||e.key==='F') jaraSwitch(); });
 
 
 /* ══════════════════════════════════════════════════════════
