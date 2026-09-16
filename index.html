@@ -159,8 +159,9 @@ canvas{display:block;width:100%;height:100%}
   overflow:hidden;font-family:var(--font-carve);font-weight:700;color:#05080F;width:3.6em;height:3.6em;font-size:1em}
 .face img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;image-rendering:pixelated}
 .face.got{background:rgba(5,8,15,.7)!important;box-shadow:inset 0 0 0 2px var(--cc)}
-#charDlg{width:min(24em,92vw);max-height:88vh;overflow-y:auto;padding:1.3em 1.2em;border-radius:10px;
-  background:var(--pit-ink);color:var(--paper);border:1px solid rgba(222,211,184,.3)}
+#charDlg{width:100%;height:100%;max-width:none;max-height:none;margin:0;overflow-y:auto;border:0;border-radius:0;
+  padding:1.3em max(1.2em,calc((100% - 24em)/2));   /* 화면을 채우고 글은 가운데 24em 폭 */
+  background:var(--pit-ink);color:var(--paper)}
 #charDlg::backdrop{background:rgba(5,8,15,.8)}
 #charDlg .dh{display:flex;flex-direction:column;align-items:center;gap:.3em;margin-bottom:.9em;text-align:center}
 #charDlg .dh .face{font-size:2.4em;width:3.4em;height:3.4em}
@@ -2008,18 +2009,18 @@ const CHARS = [
    p2:'신기전(神機箭)', p2desc:'구슬이 저마다 다른 석판을 좇아간다<br>닿는 순간 터지며 <b>좌우 석판</b>에 위력의 60%<br>한 번 쓰면 사라진다<br><span style="color:var(--stone-deep)">경보 중에는 좇지 않는다 — 답은 스스로 겨눈다</span>'},
   {id:'kwon', name:'권씨', work:'아홉 켤레의 구두로 남은 사내',
    skill:'맴돌이',
-   desc:'작은 석판 <b>셋</b>이 곁을 돌며 닿는 석판을 친다<br>구두를 아홉 켤레 지고 다니듯, 늘 곁에 둔다',
+   desc:'작은 석판 <b>셋</b>이 곁을 돌며 닿는 석판을 친다<br>한 번에 구슬 위력의 <b>60%</b>',
    floor:0, cost:100, color:'#9E8F6E',
    p2:'아홉 켤레', p2desc:'맴돌이가 <b>아홉</b>으로 늘어난다<br>기력을 잃을 때마다 하나씩 떨어져 나가고, 층을 넘기면 되돌아온다'},
   {id:'gildong', name:'홍길동', work:'홍길동전',
    skill:'분신',
-   desc:'10초마다 그림자가 2초간 선다<br>화면 반대쪽에서 똑같은 구슬이 함께 나간다',
+   desc:'10초마다 그림자가 <b>2초</b>간 선다<br>그동안 화면 반대쪽에서 똑같은 구슬이 함께 나간다',
    floor:10, cost:150, color:'#52BFA0',
-   p2:'활빈당', p2desc:'그림자가 설 때 <b>다섯</b>이 함께 선다<br>저마다 구슬을 쏜다. 그 구슬은 위력의 60%'},
+   p2:'활빈당', p2desc:'그림자가 설 때 <b>다섯</b>이 가로로 늘어선다<br>저마다 구슬을 쏜다. 그 구슬은 위력의 <b>60%</b>'},
   {id:'chunhyang', name:'춘향', work:'춘향전',
    skill:'부채살 · 수절',
-   desc:'구슬이 <b>45° 부채꼴</b>로 퍼진다. 한가운데 것만 1.7배 빠르다<br>'
-       +'맞으면 4초간 구슬이 두 배로 나간다 (20초에 한 번)',
+   desc:'구슬이 <b>45° 부채꼴</b>로 퍼진다. 한가운데 것만 <b>1.7배</b> 빠르다<br>'
+       +'맞으면 4초간 구슬이 <b>두 배</b>로 나간다 (20초에 한 번)',
    floor:20, cost:220, color:'#E2593F',
    p2:'옥중가', p2desc:'기력이 <b>절반 아래</b>로 떨어지면 부채가 90°로 벌어지고 구슬이 둘 더 나간다'},
   {id:'jeomsun', name:'점순이', work:'동백꽃',
@@ -2031,18 +2032,18 @@ const CHARS = [
   {id:'utturi', name:'우투리', work:'아기장수 우투리',
    skill:'광폭',
    desc:'20초마다 3초간 겨드랑이의 날개가 펴진다<br>그동안 이동·구슬 수·위력이 모두 <b>두 배</b>',
-   floor:0, abyss:3, p2Abyss:4, cost:600, color:'#E2593F',
+   floor:0, abyss:3, cost:600, color:'#E2593F',
    p2:'용마(龍馬)', p2desc:'60초마다 용마가 울며 <b>모든 석판</b>을 친다<br>그 석판 체력의 50%'},
   {id:'kimcheomji', name:'김첨지', work:'운수 좋은 날',
    skill:'차징샷 · 인력거',
-   desc:'발사를 <b>누르고 있으면</b> 힘이 실린다. 1초마다 한 배씩, 다섯 배까지<br>'
+   desc:'발사를 <b>누르고 있으면</b> 힘이 실린다. 0.3초마다 한 배씩, 3초면 <b>열한 배</b><br>'
        +'손을 떼면 나간다. 실린 만큼 구슬이 금빛으로 물든다<br>'
-       +'7초마다 판 가운데에 벽이 3초간 선다',
+       +'7초마다 <b>좌우 끝</b>에 짧은 벽이 3초간 서서 빠지는 구슬을 되받는다',
    floor:40, cost:380, color:'#6FA8E0',
    p2:'설렁탕', p2desc:'가득 실은 구슬이 석판을 깨면 <b>기력 +10</b><br>한 층에 세 번까지'},
   {id:'yuchungryeol', name:'유충렬', work:'유충렬전',
    skill:'장성검',
-   desc:'10초마다 겨눈 쪽으로 빛줄기를 내지른다<br>줄기에 닿는 석판이 모두 한꺼번에 상한다',
+   desc:'<b>8초</b>마다 겨눈 쪽으로 빛줄기를 내지른다<br>줄기에 닿는 석판이 모두 구슬 위력의 <b>10배</b>만큼 상한다',
    floor:40, cost:480, color:'#8E7BD8',
    p2:'천사마', p2desc:'장성검이 <b>세 갈래</b>로 갈라진다<br>지나간 자리에 3초간 불길이 남아 석판을 태운다'},
   {id:'honggyewol', name:'홍계월', work:'홍계월전',
@@ -2142,7 +2143,7 @@ function saveRun(){
       armor:S.armor, armorMax:S.armorMax, patchN:S.patchN||0,
       revUsed:S.revUsed?1:0,
       alertRight:S.alertRight, alertWrong:S.alertWrong,
-      grow:S.grow, combo:S.combo, comboBest:S.comboBest, omens:S.omens, stackUp:S.stackUp,
+      grow:S.grow, combo:S.combo, comboBest:S.comboBest, pro:S.pro||null, omens:S.omens, stackUp:S.stackUp,
       totalWords:S.totalWords, learned:[...S.learned],
       fuseTok:S.fuseTok, tomePending:S.tomePending, wallCharge:S.wallCharge||0,
       forks:S.forks, gim:S.gim?S.gim.id:null, gimLeft:S.gimLeft||0,
@@ -2530,7 +2531,7 @@ function resumeRun(d){
   S.patchN=d.patchN||0; S.armSick=0; S.armCrit=0; S.armBody=0;
   S.gamblerDone=d.gamblerDone||0; S.revUsed=d.revUsed||0;
   S.alertRight=d.alertRight; S.alertWrong=d.alertWrong;
-  S.grow=d.grow||0; S.combo=d.combo||0; S.comboBest=d.comboBest||0;
+  S.grow=d.grow||0; S.combo=d.combo||0; S.comboBest=d.comboBest||0; S.pro=d.pro||null;
   S.fate=null; S.jadeOk=0; S.jadeNo=0;
   S.omen=null; S.omens=d.omens||planOmens(); S.stackUp=d.stackUp||0;
   S.floorHurt=0; S.growPop=null;
@@ -3189,7 +3190,7 @@ function spawnBallAt(ang,slot,px,py,mid,chg,tur,far){   // tur — 명선이 터
     S.shotIdx=(S.shotIdx||0)+1;
   }
   S.balls.push({
-    fired:!tur,                              // 손으로 쏜 구슬 — 경보를 깰 수 있다 (터렛 탄은 못 깬다)
+    fired:!tur, tur:!!tur,                            // 손으로 쏜 구슬 — 경보를 깰 수 있다 (터렛 탄은 못 깬다)
     mustCrit:must, nam:nam&&!tur,
     x:px+Math.cos(ang)*30, y:py+Math.sin(ang)*30,
     vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, sp0:sp, boost:1,
@@ -3277,7 +3278,7 @@ function myeongLow(){
   return 1+Math.min(0.5,Math.max(0,1-S.energy/S.energyMax)/2);
 }
 
-/* 김첨지 — 실린 힘. 0.4초마다 한 눈금, 3초면 가득 찬다 */
+/* 김첨지 — 실린 힘. 0.3초마다 한 눈금, 3초면 가득(열한 배) */
 function chargeMulOf(t){
   const cap=Math.floor(CONFIG.chargeMax/CONFIG.chargeStep);
   const step=Math.min(cap, Math.floor(Math.max(0,t)/CONFIG.chargeStep+1e-9));
@@ -3487,6 +3488,7 @@ function critFx(b,ball,mul,dv){
   const cx=b.x+b.w/2, cy=b.y+b.h/2;
   const big=mul>CRIT_MUL;                       // 두 번 터졌다 — 9배
   S.crits=(S.crits||0)+1;
+  pBump('crit'); rBump('crit',1); if(big) rBump('big',1);   // 복선 — 치명타
   armTally('armCrit','tugu');                   // 투구 — 치명타 한 번
 
   /* ① 타격 정지 — 3배 20ms, 9배 40ms */
@@ -3601,6 +3603,7 @@ function hongTick(dt){
   if(S.hongT<=0){
     S.hongT=HONG_SEC;
     S.hongOrd=pickOther(HONG_ORD.length,S.hongOrd);
+    { const r=rpro(); r.hong=r.hong||[]; if(!r.hong.includes(S.hongOrd)) r.hong.push(S.hongOrd); }   // 복선 — 받은 군령
     S.hongSick=pickOther(HONG_SICK.length,S.hongSick);
     S.hongHelm=(HONG_ORD[S.hongOrd].id==='helm')?1:0;   // 투구는 20초가 지나면 벗겨진다
     recalc();
@@ -4009,7 +4012,7 @@ function chunTick(dt){
       R.msg=`${R.final.join(' · ')} — 모든 능력 ${pc>0?'+':(pc<0?'−':'')}${Math.abs(pc)}%`;
       S.alertMsg={text:`이춘풍 ${R.msg}`,t:2.0,ok:pc>=0};
       if(R.final.includes(1)) skillSay('d1');
-      if(R.final.includes(6)) skillSay('d6');
+      if(R.final.includes(6)){ skillSay('d6'); rBump('six',R.final.filter(f=>f===6).length); }   // 복선 — 6은 눈 개수로
     }
     if(R.t>=11) st.roll=null;
   }
@@ -11383,6 +11386,8 @@ const SHARD_COST=5;
 const pc=()=>{ META.pcnt=META.pcnt||{}; return META.pcnt; };
 const pBump=(k,n)=>{ const c=pc(); c[k]=(c[k]||0)+(n||1); };
 const pMax =(k,v)=>{ const c=pc(); if(v>(c[k]||0)) c[k]=v; };
+const rpro =()=>S.pro||(S.pro={});                 // 이 판에서만 세는 숫자 — 이어하기에도 남는다
+const rBump=(k,n)=>{ const r=rpro(); r[k]=(r[k]||0)+n; };
 const bookN=()=>Object.keys(META.book||{}).length;
 
 /* 교재 한 묶음(회차 넷)의 낱말을 몇 개나 깼나 */
@@ -11403,11 +11408,18 @@ const PRO=[
  /* ── 어휘 ── */
  {id:'w50',  tab:'어휘', name:'첫 쉰',     hint:'낱말 50개를 깬다',  now:bookN, goal:()=>50},
  {id:'w100', tab:'어휘', name:'백 낱말',   hint:'낱말 100개를 깬다', now:bookN, goal:()=>100},
+ {id:'w150', tab:'어휘', name:'백쉰 낱말', hint:'낱말 150개를 깬다', now:bookN, goal:()=>150},
  {id:'w200', tab:'어휘', name:'이백 낱말', hint:'낱말 200개를 깬다', now:bookN, goal:()=>200},
+ {id:'w250', tab:'어휘', name:'이백쉰 낱말',hint:'낱말 250개를 깬다',now:bookN, goal:()=>250},
  {id:'w300', tab:'어휘', name:'절반',      hint:'낱말 300개를 깬다', now:bookN, goal:()=>300},
+ {id:'w350', tab:'어휘', name:'삼백쉰 낱말',hint:'낱말 350개를 깬다',now:bookN, goal:()=>350},
+ {id:'w400', tab:'어휘', name:'사백 낱말', hint:'낱말 400개를 깬다', now:bookN, goal:()=>400},
  {id:'w450', tab:'어휘', name:'사백쉰 낱말',hint:'낱말 450개를 깬다',now:bookN, goal:()=>450},
  {id:'wall', tab:'어휘', name:'통달',      hint:'교재의 낱말을 모두 깬다',
    now:bookN, goal:()=>VOCAB.words.length},
+ {id:'q200', tab:'어휘', name:'뜻을 안다',   hint:'뜻을 모두 200번 맞힌다',  now:()=>pc().quiz||0, goal:()=>200},
+ {id:'q500', tab:'어휘', name:'뜻이 쌓인다', hint:'뜻을 모두 500번 맞힌다',  now:()=>pc().quiz||0, goal:()=>500},
+ {id:'q1000',tab:'어휘', name:'천 번의 뜻',  hint:'뜻을 모두 1000번 맞힌다', now:()=>pc().quiz||0, goal:()=>1000},
  packPro('일','일취월장',1,4),   packPro('일','일취월장',5,8),
  packPro('일','일취월장',9,12),  packPro('일','일취월장',13,16),
  packPro('일','일취월장',17,20),
@@ -11423,6 +11435,7 @@ const PRO=[
    now:()=>pc().combo||0, goal:()=>20},
  {id:'c30', tab:'실력', name:'서른 연속', hint:'한 판에 30번 연속', now:()=>pc().combo||0, goal:()=>30},
  {id:'c40', tab:'실력', name:'마흔 연속', hint:'한 판에 40번 연속', now:()=>pc().combo||0, goal:()=>40},
+ {id:'c50', tab:'실력', name:'쉰 연속',   hint:'한 판에 50번 연속', now:()=>pc().combo||0, goal:()=>50},
  {id:'cl5', tab:'실력', name:'무상',    hint:'한 대도 안 맞고 깬 층이 다섯',
    now:()=>pc().clean||0, goal:()=>5},
  {id:'cl10',tab:'실력', name:'무상 열 층', hint:'한 대도 안 맞고 깬 층이 열',
@@ -11431,9 +11444,16 @@ const PRO=[
    now:()=>pc().pure||0, goal:()=>10},
  {id:'b10', tab:'실력', name:'혼 열',   hint:'보스 열을 잠재운다', now:()=>pc().boss||0, goal:()=>10},
  {id:'b30', tab:'실력', name:'혼 서른', hint:'보스 서른을 잠재운다', now:()=>pc().boss||0, goal:()=>30},
+ {id:'bcl', tab:'실력', name:'무상의 혼', hint:'한 대도 안 맞고 보스를 잠재운다', now:()=>pc().bossClean||0, goal:()=>1},
+ {id:'cr100', tab:'실력', name:'첫 급소',  hint:'치명타를 모두 100번 터뜨린다',   now:()=>pc().crit||0, goal:()=>100},
+ {id:'cr1k',  tab:'실력', name:'날 선 눈', hint:'치명타를 모두 1000번 터뜨린다',  now:()=>pc().crit||0, goal:()=>1000},
+ {id:'cr5k',  tab:'실력', name:'치명의 칼', hint:'치명타를 모두 5000번 터뜨린다', now:()=>pc().crit||0, goal:()=>5000},
+ {id:'crRun', tab:'실력', name:'백 번의 급소', hint:'한 판에 치명타 100번', now:()=>pc().critRun||0, goal:()=>100},
+ {id:'bigCr', tab:'실력', name:'큰 급소 열',   hint:'한 판에 큰 치명타 10번', now:()=>pc().bigRun||0, goal:()=>10},
  /* ── 물건 ── */
  {id:'fu1', tab:'물건', name:'첫 융합', hint:'융합한 구슬을 지니고 완주', now:()=>pc().fuseRun||0, goal:()=>1},
  {id:'fu5', tab:'물건', name:'다섯 번', hint:'융합한 구슬을 지니고 다섯 번 완주', now:()=>pc().fuseRun||0, goal:()=>5},
+ {id:'fu10', tab:'물건', name:'열 번',   hint:'융합한 구슬을 지니고 열 번 완주', now:()=>pc().fuseRun||0, goal:()=>10},
  {id:'evo', tab:'물건', name:'첫 진화', hint:'심연에서만 나는 구슬을 얻는다', now:()=>pc().evo||0, goal:()=>1},
  {id:'slot',tab:'물건', name:'가득',    hint:'구슬 자리를 여섯까지 늘린다', now:maxBallSlots, goal:()=>6},
  {id:'mx1', tab:'물건', name:'만렙',    hint:'구슬 하나를 끝까지 키운다', now:()=>pc().maxed||0, goal:()=>1},
@@ -11451,6 +11471,8 @@ const PRO=[
    now:()=>UPGRADES.filter(u=>lvOf(u.id)>=u.cap).length, goal:()=>UPGRADES.length},
  /* ── 석판 ── */
  {id:'br1000',tab:'석판',name:'천 석판',  hint:'석판 1000개를 깬다', now:()=>pc().brick||0, goal:()=>1000},
+ {id:'br3k',  tab:'석판',name:'삼천 석판', hint:'석판 3000개를 깬다',  now:()=>pc().brick||0, goal:()=>3000},
+ {id:'br10k', tab:'석판',name:'만 석판',   hint:'석판 10000개를 깬다', now:()=>pc().brick||0, goal:()=>10000},
  {id:'kbody', tab:'석판',name:'몸으로',   hint:'몸돌 50개를 몸으로 깬다', now:()=>pc().k_body||0, goal:()=>50},
  {id:'kcloud',tab:'석판',name:'먹구름',   hint:'먹구름 석판 100개를 깬다', now:()=>pc().k_cloud||0, goal:()=>100},
  {id:'kgold', tab:'석판',name:'금',       hint:'금 석판 50개를 깬다', now:()=>pc().k_gold||0, goal:()=>50},
@@ -11459,16 +11481,29 @@ const PRO=[
  /* ── 사람과 심연 ── */
  {id:'ch2', tab:'사람', name:'두 사람',  hint:'인물 둘로 각각 완주', now:()=>wonChars(), goal:()=>2},
  {id:'ch4', tab:'사람', name:'네 사람',  hint:'인물 넷으로 각각 완주', now:()=>wonChars(), goal:()=>4},
- {id:'ch8', tab:'사람', name:'여덟 사람',hint:'인물 여덟 모두 완주', now:()=>wonChars(), goal:()=>CHARS.length},
+ {id:'ch6', tab:'사람', name:'여섯 사람',hint:'인물 여섯으로 각각 완주', now:()=>wonChars(), goal:()=>6},
+ {id:'ch8', tab:'사람', name:'여덟 사람',hint:'인물 여덟으로 각각 완주', now:()=>wonChars(), goal:()=>8},
+ {id:'ch10',tab:'사람', name:'열 사람',  hint:'인물 열로 각각 완주',   now:()=>wonChars(), goal:()=>10},
+ {id:'chAll',tab:'사람',name:'모든 사람',hint:'인물 모두로 각각 완주', now:()=>wonChars(), goal:()=>CHARS.length},
  {id:'back',tab:'사람', name:'뒷이야기', hint:'한 인물의 뒷이야기를 다 듣는다',
    now:()=>CHARS.filter(c=>backDone(c.id)).length, goal:()=>1},
  {id:'back3',tab:'사람',name:'세 사람의 뒷이야기', hint:'세 인물의 뒷이야기를 다 듣는다',
    now:()=>CHARS.filter(c=>backDone(c.id)).length, goal:()=>3},
+ {id:'back5',tab:'사람',name:'다섯 사람의 뒷이야기', hint:'다섯 인물의 뒷이야기를 다 듣는다',
+   now:()=>CHARS.filter(c=>backDone(c.id)).length, goal:()=>5},
+ {id:'back8',tab:'사람',name:'여덟 사람의 뒷이야기', hint:'여덟 인물의 뒷이야기를 다 듣는다',
+   now:()=>CHARS.filter(c=>backDone(c.id)).length, goal:()=>8},
+ {id:'ac30', tab:'사람',name:'몸에 밴 기술', hint:'두 번째 기술을 모두 30번 쓴다', now:()=>pc().ac2||0, goal:()=>30},
+ {id:'hong7',tab:'사람',name:'일곱 군령',   hint:'홍계월로 한 판에 군령 일곱을 모두 받는다', now:()=>pc().hong7||0, goal:()=>7},
+ {id:'arrow5',tab:'사람',name:'한 살에 다섯', hint:'고주몽의 화살 한 발로 석판 다섯을 깬다', now:()=>pc().arrow||0, goal:()=>5},
+ {id:'tur100',tab:'사람',name:'들꽃 백 송이', hint:'명선이의 터렛 구슬로 석판 100개를 깬다', now:()=>pc().tur||0, goal:()=>100},
+ {id:'six3', tab:'사람',name:'세 번의 여섯', hint:'이춘풍으로 한 판에 주사위 6을 세 번 띄운다', now:()=>pc().six||0, goal:()=>3},
+ {id:'jaraLow',tab:'사람',name:'마지막 숨', hint:'자라로 기력 30% 이하일 때 보스를 잠재운다', now:()=>pc().jaraLow||0, goal:()=>1},
  ...[1,2,3,4,5,6,7].map(n=>({
    id:'ab'+n, tab:'사람', name:`심연 ${['','하나','둘','셋','넷','다섯','여섯','일곱'][n]}`,
    hint:`심연 ${n}단을 완주한다`,
    now:()=>((META.abyss||0)>=n?1:0), goal:()=>1})),
- ...[10,20,30,40,50].map(n=>({
+ ...[10,20,30,40,50,60,70].map(n=>({
    id:'runs'+n, tab:'사람', name:`${n}번 내려가다`,
    hint:`${n}번 내려간다`, now:()=>META.runs||0, goal:()=>n}))
 ];
@@ -11571,11 +11606,15 @@ breakBrick=function(b,ball){
   if(b&&!b.quiz){
     pBump('brick');  mBump('brick');
     if(b.kind){ pBump('k_'+b.kind); mBump('k_'+b.kind); }
+    if(ball&&ball.arrow){ ball.kills=(ball.kills||0)+1; pMax('arrow',ball.kills); }   // 고주몽 — 한 발에 몇
+    if(ball&&ball.tur) pBump('tur');                                                  // 명선이 — 터렛 탄
     if(b.word&&b.word.w){ META.book=META.book||{};
       META.book[b.word.w]=(META.book[b.word.w]||0)+1; }
   }
   return _breakBrick(b,ball);
 };
+const _growHit2=growHit;
+growHit=function(b){ pBump('quiz'); return _growHit2(b); };   // 뜻을 맞혔다 — 연속과 같은 자리
 const _bodyBoom=bodyBoom;
 bodyBoom=function(cx,cy,gr){ pBump('k_body'); return _bodyBoom(cx,cy,gr); };
 const _hurt=hurt;
@@ -11585,7 +11624,10 @@ stageClear=function(){ if(!(S.floorHurt||0)) pBump('clean'); return _stageClear(
 const _nextStage2=nextStage;
 nextStage=function(){
   if(S){
-    if(S.isBoss){ pBump('boss'); mBump('boss'); }
+    if(S.isBoss){ pBump('boss'); mBump('boss');
+      if(!(S.floorHurt||0)) pMax('bossClean',1);
+      if(META.char==='jara'&&S.energy<=S.energyMax*0.3) pMax('jaraLow',1);
+    }
     mMax('floor', S.stage);
     if(!S.revUsed) mMax('noRev', S.stage);        // 되살아나지 않고 닿은 층
     if(!S.everHurt) pMax('pure',S.stage);
@@ -11609,6 +11651,8 @@ const _runEnd=runEnd;
 runEnd=function(won){
   if(S){
     pMax('combo',S.comboBest||0);
+    if(S.pro){ pMax('critRun',S.pro.crit||0); pMax('bigRun',S.pro.big||0); pMax('six',S.pro.six||0);
+      pMax('hong7',(S.pro.hong||[]).length); }
     mMax('combo',S.comboBest||0);
     mBump('runs'); mMarkDay();
     mBump('ink', Math.max(0, S.bonusInk||0));
@@ -11648,14 +11692,22 @@ const AC_NEED=50, AC_NEED2=100;   // 50이면 기술1, 참았다 100이면 기�
 const BTN_A={x:VW-172-152, y:1188, r:56};
 
 const ACTIVE={
- none:        {name:'구슬 회오리', desc:'채자인을 중심으로 구슬 둘이 정반대로 뿜어져 나간다<br>2.1초간 일흔 발이 이중 나선을 그린다'},
- kwon:        {name:'구두를 벗다', desc:'맴돌이가 궤도를 벗어나 8초간 날뛴다<br>부딪힐 때마다 위력의 240%'},
- gildong:     {name:'율도국',      desc:'분신 여덟이 5초간 저마다 쏜다<br>사라지며 저마다 터진다'},
- chunhyang:   {name:'어사출또',    desc:'육모방망이 다섯이 왼쪽부터 차례로 내려찍는다<br>닿은 석판은 체력의 117% — 그냥 부서진다'},
- jeomsun:     {name:'감자밭',    desc:'화면 한가운데에 지름 세 배의 먹웅덩이가 10초간 남는다<br>잠긴 석판은 중독과 출혈에 걸린 채 갉힌다'},
- utturi:      {name:'용마의 번개', desc:'2초간 0.2초마다 무작위 석판에 벼락이 내리꽂힌다<br>한 번에 그 석판 체력의 60%'},
- kimcheomji:  {name:'막걸리',      desc:'기력을 최대치의 20% 되찾고<br>12초간 위력이 두 배가 된다'},
- yuchungryeol:{name:'장성검 · 십자',desc:'가로와 세로로 한 번씩 크게 벤다<br>그 안의 석판은 체력과 상관없이 부서진다'},
+ none:         {name:'구슬 회오리', desc:'2.1초 동안 0.06초마다 구슬 <b>두 발</b>이 정반대로 돌아 나간다 (모두 70발)<br>한 발의 위력은 <b>60%</b>',
+               desc2:'「먹 소용돌이」 — 3.5초 동안 0.1초마다 <b>네 발</b> (모두 140발), 위력 60%<br>보랏빛 구슬이 처음 닿는 순간 새끼 구슬 <b>둘</b>이 태어난다'},
+ kwon:         {name:'구두를 벗다', desc:'맴돌이 <b>아홉</b>이 궤도를 벗어나 8초간 넓게 날뛴다<br>부딪힐 때마다 구슬 위력의 <b>240%</b>',
+               desc2:'「아홉을 벗다」 — 12초간 날뛴다. 궤도가 넓어졌다 좁아지며 점점 빨라진다<br>부딪힐 때마다 구슬 위력의 <b>400%</b>'},
+ gildong:      {name:'율도국',      desc:'분신 <b>여덟</b>이 5초간 0.45초마다 쏜다 (위력 50%)<br>사라지며 저마다 터진다. 보스에게는 하나마다 <b>1.5%</b>',
+               desc2:'「율도국이 선다」 — 분신 <b>열여섯</b>이 네 줄로 서서 7초간 쏜다<br>사라질 때 더 크게 터진다. 보스에게는 하나마다 <b>3%</b>'},
+ chunhyang:    {name:'어사출또',    desc:'육모방망이 다섯이 <b>내 자리 중심 다섯 칸</b>을 왼쪽부터 내려찍는다<br>닿은 석판은 체력의 <b>117%</b>, 보스는 모두 합쳐 <b>8%</b>',
+               desc2:'「온 고을에」 — 방망이가 <b>판 전체 너비</b>를 좌→우, 우→좌로 훑고, 잠시 쉬었다 한 번 더<br>석판 <b>117%</b>, 보스는 모두 합쳐 <b>20%</b>'},
+ jeomsun:      {name:'감자밭',    desc:'한가운데에 먹웅덩이가 10초간 남는다<br><b>모든 석판</b>에 중독·출혈 <b>각 5겹</b>(8초) · 보스 <b>10%</b>',
+               desc2:'「동백 아래」 — 먹웅덩이 <b>셋</b>이 12초간 남는다<br>모든 석판에 중독·출혈 <b>각 10겹</b>(12초) · 보스 <b>25%</b><br>5초마다 판 가운데가 한 번 터진다 (두 번)'},
+ utturi:       {name:'용마의 번개', desc:'2초간 0.2초마다 무작위 석판에 벼락 (10번)<br>석판 체력의 <b>60%</b>, 보스에게는 번개마다 <b>2%</b>',
+               desc2:'「용마가 온다」 — 4초간 0.1초마다 벼락 (40번)<br>석판 체력의 <b>80%</b>, 보스에게는 번개마다 <b>1%</b>'},
+ kimcheomji:   {name:'막걸리',      desc:'기력 <b>20%</b> 회복<br>12초간 구슬 위력 <b>두 배</b> (보스 포함)',
+               desc2:'「설렁탕 한 그릇」 — 기력 <b>40%</b> 회복<br>20초간 구슬 위력 <b>세 배</b><br>5초마다 판 가운데가 한 번 터진다 (네 번)'},
+ yuchungryeol: {name:'장성검 · 십자',desc:'내 자리에서 <b>세로 세 칸, 가로 두 줄</b>을 벤다<br>그 안의 석판은 체력과 상관없이 부서진다. 보스 <b>15%</b>',
+               desc2:'「장성검, 일곱 번」 — 북두칠성 자리를 차례로 <b>일곱 번</b> 벤다<br>벤 자리의 석판은 부서진다. 보스에게는 한 번마다 <b>5%</b> (합 35%)'},
  honggyewol:  {name:'출정',        desc:'모든 석판에 중독·출혈·서리·낙인·좀먹을 <b>각 3겹</b><br>보스에게는 최대 체력의 15%',
                desc2:'「대원수의 깃발」 — 모든 석판에 다섯 가지를 <b>각 5겹</b><br>10초 뒤, 그때 있는 석판에 <b>5겹</b>을 한 번 더<br>보스에게는 최대 체력의 30%'},
  jara:        {name:'신선',        desc:'기력 <b>20%</b> 회복 · 갑옷 <b>1겹</b> (대장간 최대치보다 한 겹까지 더)<br>모든 석판 최대 체력의 <b>20%</b>, 보스 <b>3%</b>',
@@ -12814,13 +12866,14 @@ function useActive(){
     S.acBuff=t2?20:12; S.acMul=t2?3:2;
     S.shout={text:nm,big:!!t2,t:1.6,max:1.6};
   }else if(id==='utturi'){
-    S.bolt={left:t2?40:10, next:0, gap:t2?0.10:0.20, pct:t2?0.8:0.6, bp:t2?0.04:0.02};
+    S.bolt={left:t2?40:10, next:0, gap:t2?0.10:0.20, pct:t2?0.8:0.6, bp:t2?0.01:0.02};   // 보스 — 기술2 40번 × 1%
     S.shout={text:nm,big:!!t2,t:1.6,max:1.6};
   }else if(acFire(id,t2)){
     S.shout={text:nm,big:!!t2,t:1.6,max:1.6};
   }else return;
   skillSay(t2?'t2':'t1');
   if(t2){
+    pBump('ac2');                              // 복선 — 두 번째 기술
     sigStart(id);                              // 바닥에 문양이 새겨진다
     S.acEnd=SIG_LIFE[id]||0;                   // 끝나는 순간 한 방
     const n=AC_PULSE[id]||0;
