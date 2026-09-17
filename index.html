@@ -1402,100 +1402,101 @@ const BOSSES = [
    ══════════════════════════════════════════════════════════ */
 const BALLS = [
   {id:'meteor',icon:'☄', name:'별똥', tier:2, line:'power',
-   text:lv=>`이 구슬만 치명타 확률 +${[0,7,11,15,20,24,28][lv]}%`,
+   text:lv=>`이 구슬만 치명타 확률 +${[0,7,11,18,29,46,50,54,58][lv]}%`,
    dmg:[0,0,0,1,1,2,2,3,3], spd:[1,1,1,1,1,1,1,1,1],
-   critOwn:[0,0.07,0.112,0.154,0.196,0.238,0.28,0.322,0.364]},
+   critOwn:[0,0.07,0.112,0.179,0.287,0.459,0.501,0.543,0.585]},
   {id:'salseong',icon:'✷',name:'살성', tier:2, line:'poison',
-   text:lv=>`상태이상이 걸린 석판에 치명타 확률 +${[0,13,18,24,28,32,36][lv]}%`,
+   text:lv=>`상태이상이 걸린 석판에 치명타 확률 +${[0,13,20,32,52,60,60,60,60][lv]}%`,
    dmg:[0,0,0,1,1,2,2,3,3], spd:[1,1,1,1,1,1,1,1,1],
-   critSick:[0,0.126,0.182,0.238,0.28,0.322,0.364,0.406,0.448]},
+   critSick:[0,0.126,0.202,0.323,0.516,0.6,0.6,0.6,0.6]},
   {id:'stone', icon:'●', name:'돌구슬', tier:1, line:'power',
    text:lv=>`무난하다. 위력 +${[0,0,1,2,3,4,5][lv]}`,
    dmg:[0,0,1,2,3,4,5,6,7], spd:[1,1,1,1,1,1,1,1,1]},
   {id:'iron',  icon:'◉', name:'쇠구슬', tier:1, line:'power',
-   text:lv=>`위력 +${[0,2,3,5,7,9,11][lv]}. 대신 느리다`,
-   dmg:[0,2,3,5,7,9,11,13,15], spd:[1,0.72,0.76,0.8,0.83,0.86,0.88,0.88,0.88]},
+   text:lv=>`위력 +${[0,2,3,5,8,13,15,17,19][lv]}. 대신 느리다`,
+   dmg:[0,2,3,5,8,13,15,17,19], spd:[1,0.72,0.76,0.8,0.83,0.86,0.88,0.88,0.88]},
   {id:'awl',   icon:'➤', name:'송곳', tier:1, line:'power',
-   text:lv=>`튕기지 않고 ${[0,1,2,3,4,5,6][lv]}번 뚫는다`,
-   dmg:[0,0,0,1,1,2,2,2,3], spd:[1,1.1,1.12,1.15,1.18,1.2,1.22,1.22,1.22], pierce:[0,1,2,3,4,5,6,6,6]},
+   text:lv=>`튕기지 않고 ${lv}번 뚫는다`,
+   dmg:[0,0,0,1,1,2,2,2,3], spd:[1,1.1,1.12,1.15,1.18,1.2,1.22,1.22,1.22], pierce:[0,1,2,3,4,5,6,7,8]},
   {id:'compass',icon:'✧', name:'나침반', tier:1, line:'rain',
-   text:lv=>`가까운 석판 쪽으로 휘어간다 (${lv}단계)`,
-   dmg:[0,0,0,1,1,1,2,3,4], spd:[1,1,1,1,1,1,1,1,1], home:[0,1.8,3,4.4,5.4,6.4,7.4,8.4,9.4]},
+   text:lv=>`가까운 석판 쪽으로 휘어간다 (${lv}단계) · 위력 +${[0,1,2,4,6,9,13,17,22][lv]}`,
+   dmg:[0,1,2,4,6,9,13,17,22], spd:[1,1,1,1,1,1,1,1,1], home:[0,1.8,3,4.4,5.4,6.4,7.4,8.4,9.4]},
   {id:'leech', icon:'❥', name:'흡혈', tier:1, line:'poison',
-   text:lv=>`상태이상이 걸린 석판을 깨면 기력 ${[0,1,1.4,1.8,2.2,2.6,3][lv]}% 회복`,
-   dmg:[0,0,0,0,1,1,1,1,1], spd:[1,1,1,1,1,1,1,1,1], vamp:[0,0.01,0.014,0.018,0.022,0.026,0.03,0.034,0.038]},
+   text:lv=>`상태이상이 걸린 석판을 깨면 기력 ${[0,1,1.6,2.6,4.1,6.6,7,7.4,7.8][lv]}% 회복`,
+   dmg:[0,0,0,0,1,1,1,1,1], spd:[1,1,1,1,1,1,1,1,1], vamp:[0,0.01,0.016,0.026,0.041,0.066,0.07,0.074,0.078]},
   {id:'spark', icon:'✸', name:'불티', tier:1, line:'rain',
-   text:lv=>`${[0,25,42,60,70,80,90][lv]}% 확률로 옆 칸 ${[0,1,1,2,2,3,3][lv]}개에 파급`,
+   text:lv=>`${[0,25,42,64,100,100,100,100,100][lv]}% 확률로 옆 칸 ${[0,1,2,3,4,7,8,9,10][lv]}개에 파급`,
    dmg:[0,0,0,0,1,1,1,1,1], spd:[1,1,1,1,1,1,1,1,1],
-   splash:[0,0.25,0.42,0.6,0.7,0.8,0.9,1,1.1], splashN:[0,1,1,2,2,3,3,3,4]},
+   splash:[0,0.25,0.42,0.64,1,1,1,1,1], splashN:[0,1,2,3,4,7,8,9,10]},
   {id:'bolt',  icon:'⚡', name:'벼락', tier:1, line:'rain',
-   text:lv=>`맞을 때마다 무작위 석판 ${[0,1,2,3,4,5,6][lv]}개에 1`,
-   dmg:[0,0,0,0,1,1,1,1,1], spd:[1,1,1,1,1,1,1,1,1], bolt:[0,1,2,3,4,5,6,7,8]},
+   text:lv=>`맞을 때마다 무작위 석판 ${[0,1,2,3,4,7,8,9,10][lv]}개에 1`,
+   dmg:[0,0,0,0,1,1,1,1,1], spd:[1,1,1,1,1,1,1,1,1], bolt:[0,1,2,3,4,7,8,9,10]},
   {id:'boom',  icon:'✺', name:'폭죽', tier:1, line:'rain',
-   text:lv=>`${[0,.9,.85,.8,.75,.7,.65][lv]}초 뒤 공중에서 터져 새끼 구슬 ${[0,4,5,6,6,7,8][lv]}개로 흩어진다`,
+   text:lv=>`${[0,.9,.85,.8,.75,.7,.65][lv]}초 뒤 공중에서 터져 새끼 구슬 ${[0,4,6,10,16,16,16,16,16][lv]}개로 흩어진다`,
    dmg:[0,0,1,1,2,2,3,4,5], spd:[1,1,1,1,1,1,1,1,1],
-   fuse:[0,0.9,0.85,0.8,0.75,0.7,0.65,0.65,0.65], boomN:[0,4,5,6,6,7,8,9,10]},
+   fuse:[0,0.9,0.85,0.8,0.75,0.7,0.65,0.65,0.65], boomN:[0,4,6,10,16,16,16,16,16]},
   {id:'echo',  icon:'◈', name:'메아리', tier:1, line:'power',
-   text:lv=>`벽에 튕길 때마다 위력 +${[0,1,2,3,4,5,6][lv]}`,
-   dmg:[0,0,0,1,1,2,2,2,3], spd:[1,1,1,1,1,1,1,1,1], echo:[0,1,2,3,4,5,6,7,8]},
+   text:lv=>`벽에 튕길 때마다 위력 +${[0,1,2,3,4,7,8,9,10][lv]}`,
+   dmg:[0,0,0,1,1,2,2,2,3], spd:[1,1,1,1,1,1,1,1,1], echo:[0,1,2,3,4,7,8,9,10]},
   {id:'split', icon:'❋', name:'분신', tier:1, line:'rain',
-   text:lv=>`석판을 깨면 작은 구슬 ${[0,2,3,4,5,6,7][lv]}개로 갈라진다`,
-   dmg:[0,0,0,1,1,1,2,3,4], spd:[1,1,1,1,1,1,1,1,1], split:[0,2,3,4,5,6,7,8,9]},
+   text:lv=>`석판을 깨면 작은 구슬 ${[0,2,3,5,8,13,14,15,16][lv]}개로 갈라진다`,
+   dmg:[0,0,0,1,1,1,2,3,4], spd:[1,1,1,1,1,1,1,1,1], split:[0,2,3,5,8,13,14,15,16]},
 
   {id:'blood', icon:'✹', name:'피먹', tier:2, line:'poison',
-   text:lv=>`맞을 때마다 출혈 1겹 (최대 ${[0,5,8,12,15,18,22][lv]}겹)`,
-   dmg:[0,0,0,0,1,1,1,1,1], spd:[1,1,1,1,1,1,1,1,1], bleed:[0,5,8,12,15,18,22,26,30]},
+   text:lv=>`맞을 때마다 출혈 1겹 (최대 ${[0,5,8,13,20,33,37,41,45][lv]}겹)`,
+   dmg:[0,0,0,0,1,1,1,1,1], spd:[1,1,1,1,1,1,1,1,1], bleed:[0,5,8,13,20,33,37,41,45]},
   {id:'worm',  icon:'◌', name:'좀먹', tier:2, line:'poison',
-   text:lv=>`${[0,22,38,55,65,75,85][lv]}% 확률로 그 석판 최대 체력 -${[0,8,10,12,14,16,18][lv]}%`,
-   dmg:[0,0,0,0,1,1,1,1,1], spd:[1,1,1,1,1,1,1,1,1], gnaw:[0,0.22,0.38,0.55,0.65,0.75,0.85,0.95,1.05],
-   gnawPct:[0,0.08,0.1,0.12,0.14,0.16,0.18,0.2,0.22]},
+   text:lv=>`${[0,22,38,56,90,100,100,100,100][lv]}% 확률로 그 석판 최대 체력 -${[0,8,13,20,33,52,54,56,58][lv]}%`,
+   dmg:[0,0,0,0,1,1,1,1,1], spd:[1,1,1,1,1,1,1,1,1], gnaw:[0,0.22,0.38,0.563,0.901,1,1,1,1],
+   gnawPct:[0,0.08,0.128,0.205,0.328,0.524,0.544,0.564,0.584]},
   {id:'frost', icon:'❉', name:'서리', tier:2, line:'poison',
-   text:lv=>`맞은 석판이 ${[0,1.4,2.2,3.2,3.8,4.4,5][lv]}초간 멈춘다`,
-   dmg:[0,0,0,0,1,1,1,1,1], spd:[1,1,1,1,1,1,1,1,1], freeze:[0,1.4,2.2,3.2,3.8,4.4,5,5.6,6.2]},
+   text:lv=>`맞은 석판이 ${[0,1.4,2.2,3.6,5.7,9.2,9.8,10.4,11][lv]}초간 멈춘다`,
+   dmg:[0,0,0,0,1,1,1,1,1], spd:[1,1,1,1,1,1,1,1,1], freeze:[0,1.4,2.24,3.58,5.73,9.18,9.78,10.38,10.98]},
   /* ── 먹비 — 타수로 미는 구슬 ── */
   {id:'seed',  icon:'⁘', name:'씨앗', tier:1, line:'rain',
-   text:lv=>`벽에 튕길 때마다 새끼 구슬 ${[0,1,1,2,2,3,3][lv]}개를 흘린다`,
-   dmg:[0,0,0,1,1,1,2,3,4], spd:[1,1,1,1,1,1,1,1,1], seed:[0,1,1,2,2,3,3,3,4]},
+   text:lv=>`벽에 튕길 때마다 새끼 구슬 ${[0,1,1,2,2,3,3,4,4][lv]}개를 흘린다`,
+   dmg:[0,0,1,1,2,2,3,3,4], spd:[1,1,1,1,1,1,1,1,1], seed:[0,1,1,2,2,3,3,4,4]},
   {id:'boomer',icon:'↩', name:'부메랑', tier:1, line:'rain',
    text:lv=>`${[0,.60,.55,.50,.46,.43,.40][lv]}초 뒤 되돌아온다. 오는 길에도 때린다`,
    dmg:[0,0,1,1,2,2,3,4,5], spd:[1,1,1,1,1,1,1,1,1], turn:[0,0.6,0.55,0.5,0.46,0.43,0.4,0.4,0.4]},
   {id:'flank', icon:'⋈', name:'협공', tier:2, line:'rain',
-   text:lv=>`첫 석판에 맞으면 좌우로 새끼 구슬 ${[0,2,2,3,3,4,4][lv]}개가 갈라진다`,
-   dmg:[0,0,0,1,1,1,2,3,4], spd:[1,1,1,1,1,1,1,1,1], flank:[0,2,2,3,3,4,4,5,5]},
+   text:lv=>`첫 석판에 맞으면 좌우로 새끼 구슬 ${[0,2,2,3,3,4,4,5,5][lv]}개가 갈라진다`,
+   dmg:[0,0,1,1,2,2,3,3,4], spd:[1,1,1,1,1,1,1,1,1], flank:[0,2,2,3,3,4,4,5,5]},
   {id:'mad',   icon:'⚝', name:'광인', tier:3, line:'rain',
-   text:lv=>`쏠 때마다 기력 ${[0,1,1,1,1,1,1][lv]}을 태우고 구슬이 두 배로 나간다`,
-   dmg:[0,0,0,1,1,2,2,2,3], spd:[1,1,1,1,1,1,1,1,1], mad:[0,1,1,1,1,1,1,1,1]},
+   maxLv:2,                                        // 광인 — 2레벨이 끝
+   text:lv=>`구슬이 두 배로 나간다. 구슬 하나 나갈 때마다 기력을 ${lv>=2?2:1}씩 태운다`+(lv>=2?'<br>위력 두 배':''),
+   dmg:[0,0,0,1,1,2,2,2,3], spd:[1,1,1,1,1,1,1,1,1], mad:[0,1,2,2,2,2,2,2,2], madPow:[0,1,2,2,2,2,2,2,2]},
   /* ── 먹독 — 걸어두고 갉는 구슬 ── */
   {id:'poison',icon:'☠', name:'중독', tier:2, line:'poison',
-   text:lv=>`중독 ${[0,1,1,2,2,3,3][lv]}겹. 초당 갉고, 깨지면 옆으로 옮는다`,
-   dmg:[0,0,0,0,1,1,1,1,1], spd:[1,1,1,1,1,1,1,1,1], poison:[0,1,1,2,2,3,3,3,4]},
+   text:lv=>`중독 ${[0,1,1,2,2,3,3,4,4][lv]}겹. 초당 갉고, 깨지면 옆으로 옮는다`,
+   dmg:[0,0,1,1,2,2,3,3,4], spd:[1,1,1,1,1,1,1,1,1], poison:[0,1,1,2,2,3,3,4,4]},
   {id:'mine',  icon:'◉', name:'지뢰', tier:2, line:'poison',
-   text:lv=>`바닥에 먹지뢰를 깐다. 석판이 닿으면 터져 위력의 ${[0,120,150,180,210,240,280][lv]}%`,
-   dmg:[0,0,0,0,1,1,1,1,1], spd:[1,1,1,1,1,1,1,1,1], mine:[0,1.2,1.5,1.8,2.1,2.4,2.8,3.2,3.6]},
+   text:lv=>`바닥에 먹지뢰를 깐다. 석판이 닿으면 터져 위력의 ${[0,120,192,307,492,786,826,866,906][lv]}%`,
+   dmg:[0,0,0,0,1,1,1,1,1], spd:[1,1,1,1,1,1,1,1,1], mine:[0,1.2,1.92,3.07,4.92,7.86,8.26,8.66,9.06]},
   {id:'ray',   icon:'☀', name:'빛줄기', tier:3, line:'poison',
-   text:lv=>`10초에 한 번, 첫 석판에 닿으면 좌우로 빛줄기가 뻗는다 (위력 ${[0,80,95,110,120,130,140][lv]}%)`,
-   dmg:[0,0,0,1,1,2,2,2,3], spd:[1,1,1,1,1,1,1,1,1], ray:[0,0.8,0.95,1.1,1.2,1.3,1.4,1.5,1.6]},
+   text:lv=>`10초에 한 번, 첫 석판에 닿으면 좌우로 빛줄기가 뻗는다 (위력 ${[0,80,128,205,328,524,534,544,554][lv]}%)`,
+   dmg:[0,0,0,1,1,2,2,2,3], spd:[1,1,1,1,1,1,1,1,1], ray:[0,0.8,1.28,2.05,3.28,5.24,5.34,5.44,5.54]},
   {id:'pool',  icon:'❍', name:'먹웅덩이', tier:2, line:'poison',
-   text:lv=>`사라진 자리에 먹이 고인다. 닿은 석판이 초당 ${[0,2,3,4,5,6,7][lv]}씩 삭는다`,
-   dmg:[0,0,0,0,1,1,1,1,1], spd:[1,1,1,1,1,1,1,1,1], pool:[0,2,3,4,5,6,7,8,9]},
+   text:lv=>`사라진 자리에 먹이 고인다. 닿은 석판이 초당 ${[0,2,3,5,8,13,14,15,16][lv]}씩 삭는다`,
+   dmg:[0,0,0,0,1,1,1,1,1], spd:[1,1,1,1,1,1,1,1,1], pool:[0,2,3,5,8,13,14,15,16]},
   /* ── 심연에서만 나온다 ── */
   {id:'inkfang',icon:'❦', name:'먹물독', tier:2, line:'poison', abyss:true,
-   text:lv=>`상태이상이 걸린 석판을 깨면 기력 ${[0,1.4,2,2.6,3.2,3.8,4.4][lv]}% 회복. 먹빛으로 스며든다`,
+   text:lv=>`상태이상이 걸린 석판을 깨면 기력 ${[0,1.4,2.2,3.6,5.7,9.2,9.8,10.4,11][lv]}% 회복. 먹빛으로 스며든다`,
    dmg:[0,0,0,1,1,2,2,2,3], spd:[1,1,1,1,1,1,1,1,1],
-   vamp:[0,0.014,0.02,0.026,0.032,0.038,0.044,0.05,0.056], inkVamp:true},
+   vamp:[0,0.014,0.022,0.036,0.057,0.092,0.098,0.104,0.11], inkVamp:true},
   {id:'brand', icon:'㊝', name:'낙인', tier:3, line:'poison',
-   text:lv=>`상태이상이 걸린 석판이 받는 피해 +${[0,20,26,32,36,40,45][lv]}%`,
-   dmg:[0,0,0,1,1,1,2,3,4], spd:[1,1,1,1,1,1,1,1,1], brand:[0,0.2,0.26,0.32,0.36,0.4,0.45,0.5,0.55]},
+   text:lv=>`상태이상이 걸린 석판이 받는 피해 +${[0,20,32,51,82,100,100,100,100][lv]}%`,
+   dmg:[0,0,0,1,1,1,2,3,4], spd:[1,1,1,1,1,1,1,1,1], brand:[0,0.2,0.32,0.512,0.819,1,1,1,1]},
   {id:'pen',   icon:'✒', name:'필묵', tier:3, line:'power',
    text:lv=>`이번 판 경보 정답 1회당 위력 +${[0,1,2,3,4,5,6][lv]}`,
    dmg:[0,0,0,0,1,1,1,1,1], spd:[1,1,1,1,1,1,1,1,1], pen:[0,1,2,3,4,5,6,7,8]},
   {id:'stack', icon:'✧', name:'먹쌓임', tier:3, line:'power',
-   text:lv=>`뜻을 맞힐 때마다 <b>이 구슬만</b> 위력이 ${[0,0.5,0.8,1.1,1.4,1.8,2.2][lv]} 오른다`
-            +`<br>자람이 ${[0,1.1,1.15,1.2,1.25,1.3,1.35][lv]}배로 쌓인다`
+   text:lv=>`뜻을 맞힐 때마다 <b>이 구슬만</b> 위력이 ${[0,0.5,0.8,1.3,2,3.3,3.7,4.1,4.5][lv]} 오른다`
+            +`<br>자람이 ${[0,1.1,1.2,1.3,1.4,1.7,1.7,1.8,1.8][lv]}배로 쌓인다`
             +`<br><span style="color:var(--stone-deep)">처음 위력은 1. 오래 걸린다</span>`,
    dmg:[0,0,0,0,0,0,0,0,0], spd:[0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95],
-   stackPer:[0,0.5,0.8,1.1,1.4,1.8,2.2,2.6,3],
-   growx:[0,1.1,1.15,1.2,1.25,1.3,1.35,1.4,1.45]},
+   stackPer:[0,0.5,0.8,1.28,2.05,3.28,3.68,4.08,4.48],
+   growx:[0,1.1,1.16,1.256,1.41,1.655,1.705,1.755,1.805]},
 ];
 
 /* ══════════════════════════════════════════════════════════
@@ -1503,101 +1504,101 @@ const BALLS = [
    ══════════════════════════════════════════════════════════ */
 const GEARS = [
   {id:'brush', icon:'✎', name:'붓',   tier:1, line:'rain',
-   text:lv=>`한 번 쏠 때 구슬 +${[0,1,2,3,4,5,6][lv]}`,        shots:[0,1,2,3,4,5,6,7,8]},
+   text:lv=>`한 번 쏠 때 구슬 +${[0,1,2,3,4,7,8,9,10][lv]}`,        shots:[0,1,2,3,4,7,8,9,10]},
   {id:'ink',   icon:'▮', name:'먹',   tier:1, line:'power',
-   text:lv=>`모든 구슬의 위력 +${[0,1,2,3,4,5,6][lv]}`,        dmg:[0,1,2,3,4,5,6,7,8]},
+   text:lv=>`모든 구슬의 위력 +${[0,1,2,3,4,7,8,9,10][lv]}`,        dmg:[0,1,2,3,4,7,8,9,10]},
   {id:'stone2',icon:'◗', name:'벼루', tier:1, line:'rain',
-   text:lv=>`발사 간격 -${[0,15,27,37,45,52,58][lv]}%`,        cd:[0,0.15,0.27,0.37,0.45,0.52,0.58,0.64,0.7]},
+   text:lv=>`발사 간격 -${[0,15,27,38,61,75,75,75,75][lv]}%`,        cd:[0,0.15,0.27,0.384,0.614,0.75,0.75,0.75,0.75]},
   {id:'paper', icon:'▤', name:'종이', tier:2, line:'rain',
-   text:lv=>`구슬 체공 +${[0,2,4,7,9,11,13][lv]}초`,           life:[0,2,4,7,9,11,13,15,17]},
+   text:lv=>`구슬 체공 +${[0,2,4,7,9,13,15,17,19][lv]}초`,           life:[0,2,4,7,9,13,15,17,19]},
   {id:'fan',   icon:'扇', name:'부채', tier:1, line:'rain',
-   text:lv=>`발사 각도 ${[0,5,9,13,15,18,21][lv]}° · 발사 간격 -${[0,4,7,10,13,16,19][lv]}%`,
-   fan:[0,0.09,0.16,0.23,0.27,0.31,0.37,0.43,0.49], cd:[0,0.04,0.07,0.1,0.13,0.16,0.19,0.22,0.25]},
+   text:lv=>`발사 각도 ${[0,5,9,13,21,34,37,41,44][lv]}° · 발사 간격 -${[0,4,7,10,16,26,29,32,35][lv]}%`,
+   fan:[0,0.09,0.16,0.23,0.369,0.59,0.65,0.71,0.77], cd:[0,0.04,0.07,0.102,0.164,0.262,0.292,0.322,0.352]},
   {id:'dropper',icon:'◜', name:'연적', tier:2, line:'rain',
-   text:lv=>`구슬이 사라질 때 새끼 구슬 ${[0,1,2,3,4,5,6][lv]}개를 남긴다`, drop:[0,1,2,3,4,5,6,7,8]},
+   text:lv=>`구슬이 사라질 때 새끼 구슬 ${[0,1,2,3,4,7,8,9,10][lv]}개를 남긴다`, drop:[0,1,2,3,4,7,8,9,10]},
   {id:'nakssu',icon:'☂', name:'낙수', tier:2, line:'rain',
-   text:lv=>`새끼 구슬 위력 +${[0,1,2,3,4,5,6][lv]}`,           baby:[0,1,2,3,4,5,6,7,8]},
+   text:lv=>`새끼 구슬 위력 +${[0,1,2,3,4,7,8,9,10][lv]}`,           baby:[0,1,2,3,4,7,8,9,10]},
   {id:'mortar',icon:'⊗', name:'약연', tier:2, line:'poison',
-   text:lv=>`상태이상 지속 +${[0,1,1.6,2.2,2.6,3,3.4][lv]}초, 겹 상한 +${[0,1,2,3,4,5,6][lv]}`,
-   hold:[0,1,1.6,2.2,2.6,3,3.4,3.8,4.2], cap:[0,1,2,3,4,5,6,7,8]},
+   text:lv=>`상태이상 지속 +${[0,1,1.6,2.2,2.6,3,3.4][lv]}초, 겹 상한 +${[0,1,2,3,4,7,8,9,10][lv]}`,
+   hold:[0,1,1.6,2.2,2.6,3,3.4,3.8,4.2], cap:[0,1,2,3,4,7,8,9,10]},
   {id:'incense',icon:'⌇', name:'향', tier:3, line:'power',
-   text:lv=>`뜻을 맞힐 때마다 자라는 몫이 ${[0,1.15,1.28,1.4,1.5,1.6,1.7][lv]}배`,
-   growx:[0,1.15,1.28,1.4,1.5,1.6,1.7,1.8,1.9], aura:[0,1,2,3,4,5,6,7,8]},
+   text:lv=>`뜻을 맞힐 때마다 자라는 몫이 ${[0,1.1,1.3,1.4,1.6,2,2.1,2.2,2.3][lv]}배`,
+   growx:[0,1.15,1.28,1.4,1.614,1.983,2.083,2.183,2.283], aura:[0,1,2,3,4,7,8,9,10]},
   {id:'anvil', icon:'⌂', name:'모루', tier:2, line:'power',
-   text:lv=>`체력이 절반 아래인 석판에 위력 +${[0,25,40,55,65,75,85][lv]}%`,
-   finish:[0,0.25,0.4,0.55,0.65,0.75,0.85,0.95,1.05]},
+   text:lv=>`체력이 절반 아래인 석판에 위력 +${[0,25,40,64,102,120,120,120,120][lv]}%`,
+   finish:[0,0.25,0.4,0.64,1.024,1.2,1.2,1.2,1.2]},
   {id:'weight',icon:'▣', name:'서진', tier:1,
-   text:lv=>`석판 하강 -${[0,12,21,30,36,41,45][lv]}%`,        slow:[0,0.12,0.21,0.3,0.36,0.41,0.45,0.49,0.53]},
+   text:lv=>`석판 하강 -${[0,12,21,31,49,70,70,70,70][lv]}%`,        slow:[0,0.12,0.21,0.307,0.492,0.7,0.7,0.7,0.7]},
   {id:'flint', icon:'✦', name:'부싯돌', tier:2, line:'rain',
-   text:lv=>`구슬 속도 +${[0,6,11,16,20,24,28][lv]}% · 튕길 때 붙는 속도 ${[0,2,3,4,5,6,7][lv]}배`,
-   speed:[0,0.06,0.11,0.16,0.2,0.24,0.28,0.32,0.36], accel:[0,2,3,4,5,6,7,8,9], cap:[0,0.3,0.6,0.9,1.2,1.5,1.8,2.1,2.4]},
+   text:lv=>`구슬 속도 +${[0,6,11,16,25,39,43,47,51][lv]}% · 튕길 때 붙는 속도 ${[0,2,3,4,5,6,7][lv]}배`,
+   speed:[0,0.06,0.11,0.16,0.246,0.393,0.433,0.473,0.513], accel:[0,2,3,4,5,6,7,8,9], cap:[0,0.3,0.6,0.9,1.229,1.966,2.266,2.566,2.866]},
   {id:'seal',  icon:'㊞', name:'인장', tier:2, line:'poison',
-   text:lv=>`상태이상 세기 +${[0,30,55,85,105,125,145][lv]}%`, status:[0,0.3,0.55,0.85,1.05,1.25,1.45,1.65,1.85]},
+   text:lv=>`상태이상 세기 +${[0,30,55,85,123,197,217,237,257][lv]}%`, status:[0,0.3,0.55,0.85,1.229,1.966,2.166,2.366,2.566]},
   {id:'lamp',  icon:'☖', name:'등잔', tier:2,
-   text:lv=>`경보 후보 하강 -${[0,25,42,60,68,74,79][lv]}%`,   lamp:[0,0.25,0.42,0.6,0.68,0.74,0.79,0.84,0.89]},
+   text:lv=>`경보 후보 하강 -${[0,25,42,64,95,95,95,95,95][lv]}%`,   lamp:[0,0.25,0.42,0.64,0.95,0.95,0.95,0.95,0.95]},
   {id:'charm', icon:'✚', name:'부적', tier:2,
-   text:lv=>`최대 기력 +${[0,20,40,65,85,105,125][lv]}, 회복량 증가`,
-   maxhp:[0,20,40,65,85,105,125,145,165], heal:[0,0.5,0.8,1.2,1.4,1.6,1.8,2,2.2]},
+   text:lv=>`최대 기력 +${[0,20,40,65,85,131,151,171,191][lv]}, 회복량 증가`,
+   maxhp:[0,20,40,65,85,131,151,171,191], heal:[0,0.5,0.8,1.28,2.048,2.5,2.5,2.5,2.5]},
   {id:'mirror', icon:'◎', name:'거울', tier:2, abyss:true,
-   text:lv=>`10초마다 ${[0,1.0,1.3,1.6,1.9,2.2,2.5][lv]}초간 방벽이 선다. 그동안 맞은 탄은 되돌아간다`,
-   shield:[0,1,1.3,1.6,1.9,2.2,2.5,2.8,3.1]},
+   text:lv=>`10초마다 ${[0,1,1.6,2.6,4.1,5,5.3,5.6,6][lv]}초간 방벽이 선다. 그동안 맞은 탄은 되돌아간다`,
+   shield:[0,1,1.6,2.56,4.1,5,5.3,5.6,6]},
   {id:'slab',   icon:'▬',name:'무거운 벼루', tier:2, abyss:true,
-   text:lv=>`구슬 ${[0,1,1,1,1,2,2][lv]}개가 줄어든다. 대신 최대 기력 +${[0,20,30,40,50,60,72][lv]}%`,
-   less:[0,1,1,1,1,2,2,2,3], vigor:[0,0.2,0.3,0.4,0.5,0.6,0.72,0.84,0.96]},
+   text:lv=>`구슬 ${[0,1,1,1,1,2,2,2,3][lv]}개가 줄어든다. 대신 최대 기력 +${[0,20,32,51,82,131,143,155,167][lv]}%`,
+   less:[0,1,1,1,1,2,2,2,3], vigor:[0,0.2,0.32,0.512,0.819,1.311,1.431,1.551,1.671]},
   {id:'thimble',icon:'◐',name:'골무', tier:2,
-   text:lv=>`석판에 받는 피해 -${[0,40,60,80,85,88,91][lv]}%<br>몸에 닿든 경계선을 넘든`, guard:[0,0.4,0.6,0.8,0.85,0.88,0.91,0.94,0.97]},
+   text:lv=>`석판에 받는 피해 -${[0,40,64,90,90,90,90,90,90][lv]}%<br>몸에 닿든 경계선을 넘든`, guard:[0,0.4,0.64,0.9,0.9,0.9,0.9,0.9,0.9]},
   /* ── 치명타 ── 확률만 쌓는다. 배수는 3배로 고정이다 ── */
   {id:'knife', icon:'刀', name:'인각도', tier:2, line:'power',
-   text:lv=>`치명타 확률 +${[0,3.5,7,10.5,14,17.5,21][lv]}%`,
-   crit:[0,0.035,0.07,0.105,0.14,0.175,0.21,0.245,0.28]},
+   text:lv=>`치명타 확률 +${[0,3.5,7,10.5,14.3,22.9,26.4,29.9,33.4][lv]}%`,
+   crit:[0,0.035,0.07,0.105,0.143,0.229,0.264,0.299,0.334]},
   {id:'firstice',icon:'❅',name:'살얼음', tier:3, line:'power',
-   text:lv=>`쏠 때마다 앞의 ${[0,1,1,2,2,3,3][lv]}발은 반드시 치명타`,
-   firstCrit:[0,1,1,2,2,3,3,4,4]},
+   text:lv=>`쏠 때마다 앞의 ${lv}발은 반드시 치명타`,
+   firstCrit:[0,1,2,3,4,5,6,7,8]},
   {id:'needle',icon:'⌇', name:'침', tier:2, line:'poison',
-   text:lv=>`상태이상 한 겹마다 치명타 확률 +${[0,2,3.5,5,6,7.5,9][lv]}%`,
-   critPer:[0,0.021,0.035,0.049,0.063,0.077,0.091,0.105,0.119]},
+   text:lv=>`상태이상 한 겹마다 치명타 확률 +${[0,2.1,3.5,5.4,8.6,13.8,15.2,16.6,18][lv]}%`,
+   critPer:[0,0.021,0.035,0.054,0.086,0.138,0.152,0.166,0.18]},
   {id:'pouch', icon:'⊙', name:'피주머니', tier:2, line:'rain',
-   text:lv=>`치명타가 터지면 기력 +${[0,1,2,3,4,5,6][lv]}`,
-   critHeal:[0,1,2,3,4,5,6,7,8]},
+   text:lv=>`치명타가 터지면 기력 +${[0,1,2,3,4,7,8,9,10][lv]}`,
+   critHeal:[0,1,2,3,4,7,8,9,10]},
   {id:'jamo',  icon:'字', name:'자모', tier:3, line:'poison',
-   text:lv=>`치명타가 터지면 상태이상이 ${[0,1,1,2,2,3,3][lv]}겹 쌓인다`,
-   critStack:[0,1,1,2,2,3,3,4,4]},
+   text:lv=>`치명타가 터지면 상태이상이 ${lv}겹 쌓인다`,
+   critStack:[0,1,2,3,4,5,6,7,8]},
   {id:'tinder',icon:'✸', name:'부싯깃', tier:2, line:'power',
-   text:lv=>`치명타가 터지면 옆 두 칸에 위력의 ${[0,25,35,45,55,65,75][lv]}%`,
-   critSplash:[0,0.25,0.35,0.45,0.55,0.65,0.75,0.85,0.95]},
+   text:lv=>`치명타가 터지면 옆 두 칸에 위력의 ${[0,25,40,64,102,164,174,184,194][lv]}%`,
+   critSplash:[0,0.25,0.4,0.64,1.024,1.638,1.738,1.838,1.938]},
   {id:'burnglass',icon:'◉',name:'화경', tier:3, line:'power',
-   text:lv=>`치명타가 터지면 위로 빛줄기가 뻗는다 (위력의 ${[0,40,55,70,85,100,115][lv]}%)<br>1초에 한 번까지`,
-   critBeam:[0,0.40,0.55,0.70,0.85,1.00,1.15,1.30,1.45]},
+   text:lv=>`치명타가 터지면 위로 빛줄기가 뻗는다 (위력의 ${[0,40,64,102,164,200,200,200,200][lv]}%)<br>1초에 한 번까지`,
+   critBeam:[0,0.4,0.64,1.024,1.638,2,2,2,2]},
   {id:'nakgwan',icon:'㊝',name:'낙관', tier:2, line:'power',
-   text:lv=>`치명타를 맞은 석판은 다음 한 대를 ${[0,1.3,1.5,1.7,1.9,2.1,2.3][lv]}배로 맞는다`,
-   critMark:[0,1.3,1.5,1.7,1.9,2.1,2.3,2.5,2.7]},
+   text:lv=>`치명타를 맞은 석판은 다음 한 대를 ${[0,1.3,1.5,1.8,2.2,3,3.2,3.4,3.6][lv]}배로 맞는다`,
+   critMark:[0,1.3,1.5,1.768,2.229,2.966,3.166,3.366,3.566]},
   {id:'flintsteel',icon:'⚡',name:'부시', tier:2, line:'rain',
-   text:lv=>`치명타가 안 터지면 다음 확률 +${[0,3,5,7,9,11,13][lv]}%<br>터지면 처음으로 돌아간다`,
-   critPity:[0,0.028,0.049,0.07,0.091,0.112,0.133,0.154,0.175]},
+   text:lv=>`치명타가 안 터지면 다음 확률 +${[0,3,5,7,12,18,20,23,25][lv]}%<br>터지면 처음으로 돌아간다`,
+   critPity:[0,0.028,0.049,0.072,0.115,0.184,0.205,0.226,0.247]},
   {id:'abacus',icon:'筭', name:'서산', tier:2, line:'power',
-   text:lv=>`경보를 이어 맞힐 때마다 치명타 확률 +${[0,0.7,1,1.4,1.8,2.1,2.5][lv]}%<br>틀리면 처음으로 돌아간다`,
-   runCrit:[0,0.007,0.0105,0.014,0.0175,0.021,0.0245,0.028,0.0315]},
+   text:lv=>`경보를 이어 맞힐 때마다 치명타 확률 +${[0,0.7,1.1,1.8,2.9,4.6,5,5.3,5.6][lv]}%<br>틀리면 처음으로 돌아간다`,
+   runCrit:[0,0.007,0.011,0.018,0.029,0.046,0.05,0.053,0.056]},
   {id:'bundle',icon:'⛬', name:'봇짐', tier:2, line:'rain',
-   text:lv=>`층을 넘을 때 기력 +${[0,2,3,4,5,6,8][lv]}%`,
-   floorHeal:[0,0.02,0.03,0.04,0.05,0.06,0.08,0.09,0.10]},
+   text:lv=>`층을 넘을 때 기력 +${[0,2,3,5,8,13,15,17,19][lv]}%`,
+   floorHeal:[0,0.02,0.032,0.051,0.082,0.131,0.151,0.171,0.191]},
   {id:'morale',icon:'旗', name:'사기', tier:3, line:'power',
-   text:lv=>`기력이 가득 차 있으면 위력 +${[0,12,18,24,30,36,42][lv]}%`,
-   morale:[0,0.12,0.18,0.24,0.30,0.36,0.42,0.48,0.54]},
+   text:lv=>`기력이 80% 이상이면 위력 +${[0,15,25,40,60,90,130,180,240][lv]}%`,
+   morale:[0,0.15,0.25,0.40,0.60,0.90,1.30,1.80,2.40]},
   /* ── 갑옷을 깁는 문방 셋 ── 판마다 처음부터 센다 ── */
   {id:'minul', icon:'甲', name:'미늘', tier:2, line:'poison',
-   text:lv=>`석판에 상태이상을 <b>${[0,200,190,180,170,160,150,140,130][lv]}겹</b> 걸 때마다`
+   text:lv=>`석판에 상태이상을 <b>${[0,200,125,78,49,31,29,27,25][lv]}겹</b> 걸 때마다`
           +`<br>탄 1발을 막는 갑옷이 1겹 붙는다`,
-   arm:[0,200,190,180,170,160,150,140,130]},
+   arm:[0,200,125,78,49,31,29,27,25]},
   {id:'tugu',  icon:'冑', name:'투구', tier:2, line:'power',
-   text:lv=>`치명타가 <b>${[0,200,190,180,170,160,150,140,130][lv]}번</b> 터질 때마다`
+   text:lv=>`치명타가 <b>${[0,200,125,78,49,31,29,27,25][lv]}번</b> 터질 때마다`
           +`<br>탄 1발을 막는 갑옷이 1겹 붙는다`,
-   arm:[0,200,190,180,170,160,150,140,130]},
+   arm:[0,200,125,78,49,31,29,27,25]},
   {id:'gyeongap',icon:'肩', name:'견갑', tier:2,
-   text:lv=>`몸으로 몸돌을 <b>${[0,50,48,46,44,42,40,38,36][lv]}개</b> 깰 때마다`
+   text:lv=>`몸으로 몸돌을 <b>${[0,50,31,20,12,8,7,6,5][lv]}개</b> 깰 때마다`
           +`<br>탄 1발을 막는 갑옷이 1겹 붙는다`,
-   arm:[0,50,48,46,44,42,40,38,36]},
+   arm:[0,50,31,20,12,8,7,6,5]},
   {id:'scroll',icon:'⌸', name:'두루마리', tier:3,
-   text:lv=>`카드 선택지 +${[0,1,2,3,4,5,6][lv]}`,             card:[0,1,2,3,4,5,6,7,8]},
+   text:lv=>`카드 선택지 +${[0,1,2,3,4,5,5,5,5][lv]}`,             card:[0,1,2,3,4,5,5,5,5]},
 ];
 
 /* ══════════════════════════════════════════════════════════
@@ -1715,9 +1716,12 @@ const CONSUM = [
    text:()=>`기력을 최대치의 ${Math.round(CONFIG.tonicHeal*100)}%만큼 되찾는다`},
   {id:'folding', icon:'▤', name:'병풍', tier:3, consum:true,
    text:()=>`앞에 병풍이 선다. 탄 ${CONFIG.wallBlocks}발을 막고 부서진다`},
-  {id:'takju', icon:'⌾', name:'탁주 한 사발', tier:3, consum:true,
+  {id:'takju1', icon:'⌾', name:'탁주 한 잔', tier:1, consum:true, arm:1,
    text:()=>`탄 1발을 막는 갑옷이 1겹 돌아온다<br>`
           +`<span style="color:var(--stone-deep)">갑옷을 안 벼렸으면 이 판 동안 1겹을 얻는다</span>`},
+  {id:'takju', icon:'⌾', name:'탁주 한 사발', tier:2, consum:true, arm:3,
+   text:()=>`탄 1발을 막는 갑옷이 3겹 돌아온다<br>`
+          +`<span style="color:var(--stone-deep)">갑옷을 안 벼렸으면 이 판 동안 3겹을 얻는다</span>`},
   {id:'whetstone', icon:'▨', name:'숫돌', tier:3, consum:true,
    text:()=>`가장 낮은 구슬 하나가 한 단계 오른다`},
   {id:'inkbag', icon:'▮', name:'먹 주머니', tier:2, consum:true,
@@ -1770,7 +1774,7 @@ const EVOS = [
    dmg:[0,0,0,1,1,1,1,2,2], spd:[1,1,1,1,1,1,1,1,1], bleed:[0,0,0,16,18,21,23,26,28], splash:[0,0,0,1,1,1,1,2,2], splashN:[0,0,0,2,2,3,3,3,4]},
   {id:'fang',  icon:'🜂', name:'흡혈검', evo:true, from:'leech', with:'charm',
    text:()=>'상태이상 석판을 깰 때 기력 4% 회복. 그때마다 이번 판 위력 +1',
-   dmg:[0,0,0,2,2,3,3,3,4], spd:[1,1,1,1,1,1,1,1,1],
+   dmg:[0,0,0,2,3,4,5,6,7], spd:[1,1,1,1,1,1,1,1,1],
    vamp:[0,0.04,0.04,0.04,0.04,0.04,0.04,0.046,0.052], vampPower:true},
   {id:'wedge', icon:'⊻', name:'쐐기', evo:true, from:'worm', with:'ink',
    text:()=>'맞을 때마다 최대 체력이 확정으로 -12%',
@@ -1780,52 +1784,52 @@ const EVOS = [
    dmg:[0,0,0,1,1,1,1,2,2], spd:[1,1,1,1,1,1,1,1,1], splash:[0,0,0,9,10,12,13,14,16], splashN:[0,0,0,4,5,5,6,6,7]},
   {id:'glacier',icon:'❆', name:'빙결진', evo:true, from:'frost', with:'weight',
    text:()=>'맞은 석판과 주변 3개가 5초간 멈춘다',
-   dmg:[0,0,0,1,1,1,1,2,2], spd:[1,1,1,1,1,1,1,1,1], freeze:[0,0,0,5,6,6,7,8,9], freezeArea:3},
+   dmg:[0,0,0,1,2,3,4,5,6], spd:[1,1,1,1,1,1,1,1,1], freeze:[0,0,0,5,6,6,7,8,9], freezeArea:3},
   {id:'storm', icon:'🜁', name:'뇌우', evo:true, from:'bolt', with:'brush',
-   text:()=>'맞을 때마다 무작위 석판 6개에 벼락',
-   dmg:[0,0,0,1,1,1,1,2,2], spd:[1,1,1,1,1,1,1,1,1], bolt:[0,0,0,6,7,8,9,10,10]},
-  {id:'meteor',icon:'☄', name:'운석', evo:true, from:'iron', with:'weight',
+   text:lv=>`맞을 때마다 무작위 석판 ${[0,0,0,6,7,8,9,10,11][lv||3]}개에 벼락`,
+   dmg:[0,0,0,1,2,3,4,5,6], spd:[1,1,1,1,1,1,1,1,1], bolt:[0,0,0,6,7,8,9,10,11]},
+  {id:'meteorite',icon:'☄', name:'운석', evo:true, from:'iron', with:'weight',
    text:()=>'거대하고 무겁다. 깰 때 광역 폭발',
    dmg:[0,0,0,8,9,10,12,13,14], spd:[1,1,1,0.7,0.7,0.7,0.7,0.7,0.7], boom:[0,0,0,5,6,6,7,8,9]},
   {id:'stroke',icon:'⟿', name:'일필휘지', evo:true, from:'awl', with:'paper',
    text:()=>'끝까지 관통한다. 뚫을수록 빨라진다',
-   dmg:[0,0,0,3,3,4,4,5,5], spd:[1,1,1,1.3,1.3,1.3,1.3,1.3,1.3], pierce:[0,0,0,99,99,99,99,99,99]},
+   dmg:[0,0,0,3,4,5,6,7,8], spd:[1,1,1,1.3,1.3,1.3,1.3,1.3,1.3], pierce:[0,0,0,99,99,99,99,99,99]},
   {id:'cannon',icon:'✷', name:'화포', evo:true, from:'boom', with:'seal',
    text:()=>'터질 때 새끼 구슬 14개. 새끼도 한 번 더 터진다',
-   dmg:[0,0,0,2,2,3,3,3,4], spd:[1,1,1,1,1,1,1,1,1],
+   dmg:[0,0,0,2,3,4,5,6,7], spd:[1,1,1,1,1,1,1,1,1],
    fuse:[0,0.7,0.7,0.7,0.7,0.7,0.7,0.7,0.7], boomN:[0,14,14,14,14,14,14,16,18], reBoom:true},
   {id:'seeker',icon:'◎', name:'추적탄', evo:true, from:'compass', with:'stone2',
    text:()=>'석판을 끝까지 쫓아간다',
    dmg:[0,0,0,2,2,3,3,3,4], spd:[1,1,1,1.1,1.1,1.1,1.1,1.1,1.1], home:[0,0,0,9,10,12,13,14,16]},
   {id:'reson', icon:'◉', name:'공명', evo:true, from:'echo', with:'flint',
    text:()=>'벽에 튕길 때마다 위력 +4',
-   dmg:[0,0,0,1,1,1,1,2,2], spd:[1,1,1,1,1,1,1,1,1], echo:[0,0,0,4,5,5,6,6,7]},
+   dmg:[0,0,0,1,2,3,4,5,6], spd:[1,1,1,1,1,1,1,1,1], echo:[0,0,0,4,5,5,6,6,7]},
   {id:'brood', icon:'✽', name:'무리어미', evo:true, from:'split', with:'brush',
-   text:()=>'6개로 갈라지고, 갈라진 것도 갈라진다',
-   dmg:[0,0,0,1,1,1,1,2,2], spd:[1,1,1,1,1,1,1,1,1], split:[0,0,0,6,7,8,9,10,10], reSplit:true},
+   text:lv=>`${[0,0,0,6,7,8,9,10,11][lv||3]}개로 갈라지고, 갈라진 것도 갈라진다`,
+   dmg:[0,0,0,1,2,3,4,5,6], spd:[1,1,1,1,1,1,1,1,1], split:[0,0,0,6,7,8,9,10,11], reSplit:true},
   {id:'letter',icon:'書', name:'문장(文章)', evo:true, from:'pen', with:'scroll',
    text:()=>'경보 정답 1회당 위력 +5',
-   dmg:[0,0,0,1,1,1,1,2,2], spd:[1,1,1,1,1,1,1,1,1], pen:[0,0,0,5,6,6,7,8,9]},
+   dmg:[0,0,0,1,2,3,4,5,6], spd:[1,1,1,1,1,1,1,1,1], pen:[0,0,0,5,6,6,7,8,9]},
   /* ── 먹비 ── */
   {id:'grove', icon:'⁙', name:'묵림(墨林)', evo:true, from:'seed', with:'*',
    text:()=>'벽에 튕길 때마다 새끼 4개. 그 새끼도 벽에서 새끼를 낳는다',
-   dmg:[0,0,0,2,2,3,3,3,4], spd:[1,1,1,1,1,1,1,1,1], seed:[0,0,0,4,5,5,6,6,7], seedBaby:true},
+   dmg:[0,0,0,2,3,4,5,6,7], spd:[1,1,1,1,1,1,1,1,1], seed:[0,0,0,4,5,5,6,6,7], seedBaby:true},
   {id:'orbit', icon:'⟳', name:'회전도끼', evo:true, from:'boomer', with:'*',
    text:()=>'돌아오지 않고 화면을 계속 맴돈다. 수명이 두 배',
-   dmg:[0,0,0,3,3,4,4,5,5], spd:[1,1,1,1,1,1,1,1,1], turn:[0,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4], orbit:true, longLife:2},
+   dmg:[0,0,0,3,4,5,6,7,8], spd:[1,1,1,1,1,1,1,1,1], turn:[0,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4], orbit:true, longLife:2},
   {id:'shot',  icon:'⁂', name:'산탄', evo:true, from:'flank', with:'*',
    text:()=>'첫 석판에 맞으면 새끼 8개가 부챗살로 퍼진다',
    dmg:[0,0,0,2,2,3,3,3,4], spd:[1,1,1,1,1,1,1,1,1], flank:[0,0,0,8,9,10,12,13,14]},
   {id:'lastst',icon:'⚔', name:'배수진', evo:true, from:'mad', with:'*',
    text:()=>'기력이 낮을수록 구슬이 더 나간다. 기력을 태우는 건 그대로',
-   dmg:[0,0,0,2,2,3,3,3,4], spd:[1,1,1,1,1,1,1,1,1], mad:[0,0,0,1,1,1,1,2,2], desperate:true},
+   dmg:[0,0,0,2,3,4,5,6,7], spd:[1,1,1,1,1,1,1,1,1], mad:[0,0,0,1,1,1,1,2,2], desperate:true},
   /* ── 먹독 ── */
   {id:'miasma',icon:'☣', name:'장독(瘴毒)', evo:true, from:'poison', with:'*',
    text:()=>'중독 4겹. 깨지면 두 칸까지 옮는다',
-   dmg:[0,0,0,2,2,3,3,3,4], spd:[1,1,1,1,1,1,1,1,1], poison:[0,0,0,4,5,5,6,6,7], spread2:true},
+   dmg:[0,0,0,2,3,4,5,6,7], spd:[1,1,1,1,1,1,1,1,1], poison:[0,0,0,4,5,5,6,6,7], spread2:true},
   {id:'buried',icon:'✷', name:'매화(埋火)', evo:true, from:'mine', with:'*',
    text:()=>'지뢰가 터지면 근처 지뢰도 함께 터진다. 위력의 320%',
-   dmg:[0,0,0,2,2,3,3,3,4], spd:[1,1,1,1,1,1,1,1,1], mine:[0,3.2,3.2,3.2,3.2,3.2,3.2,3.68,4.16], chainMine:true},
+   dmg:[0,0,0,2,3,4,5,6,7], spd:[1,1,1,1,1,1,1,1,1], mine:[0,3.2,3.2,3.2,3.2,3.2,3.2,3.68,4.16], chainMine:true},
   {id:'sunray',icon:'✳', name:'일광(日光)', evo:true, from:'ray', with:'*',
    text:()=>'6초에 한 번, 좌우가 아니라 십자로 뻗는다',
    dmg:[0,0,0,3,3,4,4,5,5], spd:[1,1,1,1,1,1,1,1,1], ray:[0,0,0,1.4,1.61,1.82,2.03,2.24,2.45], cross:true, rayFast:6},
@@ -1995,6 +1999,7 @@ const abyssHard = ()=>1+CONFIG.abyssStep*depth();     // 하강·보스 공격�
 const bossHpHard= ()=>(1+CONFIG.bossHpStep*depth())
                      *((S&&S.stage>=CONFIG.deepHpFrom)?CONFIG.deepHpMul:1);
 const bossHpAt  =d=>1+CONFIG.bossHpStep*d;
+const bossFloorHp=f=>({35:1.2,40:1.4})[f]||1;       // 35층·40층 보스는 더 두껍다
 const inkMulAt   =d=>d>0 ? 1+CONFIG.abyssInkBase+CONFIG.abyssInkStep*d : 1;
 const hardAt     =d=>1+CONFIG.abyssStep*d;
 const deepEase   =()=>(S&&S.stage>=CONFIG.deepBossFrom)?CONFIG.deepBossDmg:1;
@@ -2085,8 +2090,8 @@ const CHARS = [
   {id:'jara', name:'자라', work:'별주부전',
    skill:'폼 전환',
    desc:'가운데 둥근 단추로 폼을 바꾼다 (키보드 F). 바꾼 뒤 <b>2초</b>는 못 바꾼다<br>'
-       +'<b>토끼</b> — 이동 +30% · 발사 간격 −20% · 구슬 속도 +40% · 위력 −40% · 구슬 크기 −30% · 구슬 수 +2<br>'
-       +'<b>자라</b> — 이동 −30% · 발사 간격 +40% · 구슬 속도 −60% · 위력 +60% · 구슬 수 −2 (1발 이상)<br>'
+       +'<b>토끼</b> — 이동 +30% · 발사 간격 −10% · 구슬 속도 +40% · 위력 −50% · 구슬 크기 −30% · 구슬 수 +1<br>'
+       +'<b>자라</b> — 이동 −40% · 발사 간격 +40% · 구슬 속도 −60% · 위력 +70% · 구슬 수 −1 (1발 이상)<br>'
        +'자라 폼은 <b>등딱지</b> 1겹이 탄 1발을 막는다. 10층마다 다시 붙는다',
    floor:0, abyss:2, cost:800, color:'#3FA3B5',
    note:'등딱지는 자라 폼일 때만 막는다. 몸돌은 심연에서만 나온다',
@@ -2673,6 +2678,8 @@ const zoneMul    =f=>ZONE_MUL[Math.min(4,Math.floor((f-1)/CONFIG.chapterLen))];
 const maxBallSlots=()=>Math.max(1,CONFIG.ballSlotBase+lvOf('pouch')-lvOf('picky'));
 const maxGearLv  =()=>CONFIG.gearLvBase+lvOf('mastery');   // 문방은 칸 제한이 없다
 const maxBallLv  =()=>CONFIG.ballLvBase+lvOf('temper');
+const capLv      =d=>Math.min(maxBallLv(), (d&&d.maxLv)||99);           // 구슬마다 끝 레벨 (광인 2)
+const fuseLvOf   =d=>Math.min(CONFIG.fuseAtLv, (d&&d.maxLv)||99);       // 끝이 낮으면 그 레벨에서 합친다
 const gearLv=id=>{const g=S.gearSlots.find(x=>x.def.id===id);return g?g.lv:0;};
 
 /* 문방 + 영구강화를 합쳐 실제 수치를 다시 계산한다 */
@@ -2750,8 +2757,8 @@ function recalc(){
   if(META.char==='myeongseon') S.shotBalls=Math.max(1,Math.round(S.shotBalls*0.3));   // 명선이 — 적게
   if(META.char==='jumong') S.shotBalls=Math.max(1,Math.round(S.shotBalls*0.7));       // 고주몽 — 70%
   const jf=jaraForm();                                               // 자라 — 폼
-  if(jf==='rabbit') S.shotBalls+=2;
-  if(jf==='jara')   S.shotBalls=Math.max(1,S.shotBalls-2);
+  if(jf==='rabbit') S.shotBalls+=1;
+  if(jf==='jara')   S.shotBalls=Math.max(1,S.shotBalls-1);
   const chm=chunMul();                                               // 이춘풍 — 주사위
   if(chm!==1) S.shotBalls=Math.max(1,Math.round(S.shotBalls*chm));
   const wantShots=S.shotBalls*S.ax['장'];                             // 장
@@ -2765,7 +2772,7 @@ function recalc(){
   if(fateHas('mud'))  S.rateMul*=1.6;                                 // 저주 · 탁류
   if(hongOrd()==='drum') S.rateMul*=0.7;                             // 홍계월 · 북소리
   if(chm!==1) S.rateMul/=chm;                                        // 이춘풍 — 좋으면 간격이 짧아진다
-  if(jf==='rabbit') S.rateMul*=0.8; if(jf==='jara') S.rateMul*=1.4;  // 자라 폼
+  if(jf==='rabbit') S.rateMul*=0.9; if(jf==='jara') S.rateMul*=1.4;  // 자라 폼
   const wantRate=S.rateMul/S.ax['취'];                                // 취
   S.rateMul    = Math.max(CONFIG.rateFloor, wantRate);
   S.fastMul    = Math.max(1, CONFIG.rateFloor/Math.max(1e-6,wantRate));  // 넘친 몫은 속도로
@@ -2800,7 +2807,7 @@ function recalc(){
   S.critPity   = gv('flintsteel','critPity');// 부시
   S.runCrit    = gv('abacus','runCrit');     // 서산 — 이어 맞힌 수만큼
   S.floorHeal  = gv('bundle','floorHeal');   // 봇짐
-  S.moraleMul  = gv('morale','morale');      // 사기 — 기력이 가득할 때
+  S.moraleMul  = gv('morale','morale');      // 사기 — 기력이 80% 이상일 때
   S.beamCd     = S.beamCd||0;
   S.sizeMul    = 1;                          // 구슬 크기는 더 이상 변하지 않는다
   if(jaraForm()==='rabbit') S.sizeMul=0.7;   // 자라 — 토끼 폼만 작다 (판정도)
@@ -2819,13 +2826,13 @@ function recalc(){
   if(hongOrd()==='sword') S.dmgMul*=1.3;                             // 홍계월 · 장검
   if(META.char==='jumong') S.dmgMul*=0.7;                            // 고주몽 — 70%
   S.dmgMul*=chm;                                                     // 이춘풍
-  if(jf==='rabbit') S.dmgMul*=0.6; if(jf==='jara') S.dmgMul*=1.6;    // 자라 폼
+  if(jf==='rabbit') S.dmgMul*=0.5; if(jf==='jara') S.dmgMul*=1.7;    // 자라 폼
   /* 월 — 한 방이 무거워질수록 석판을 꿰뚫는다. 넘친 위력이 버려지지 않게 */
   S.pierceBonus= Math.max(0, Math.floor(Math.log2(Math.max(1,S.ax['월']))));
   S.moveMul    = (1+0.06*lvOf('foot')) * (t.moveMul||1) * rageMul();
   if(hongOrd()==='horse') S.moveMul*=1.3;                            // 홍계월 · 준마
   S.moveMul*=chm;                                                    // 이춘풍
-  if(jf==='rabbit') S.moveMul*=1.3; if(jf==='jara') S.moveMul*=0.7;  // 자라 폼
+  if(jf==='rabbit') S.moveMul*=1.3; if(jf==='jara') S.moveMul*=0.6;  // 자라 폼
   S.speedMul   = (S.speedMulBase||1) * (1+0.06*lvOf('swift')) * (1+gv('flint','speed'))
                  * (t.speedMul||1) * Math.pow(S.fastMul||1,0.5)
                  * (omenHas('gale')?1.5:1) * (omenHas('heavy')?0.2:1);   // 바람결 · 무거운발
@@ -2849,7 +2856,7 @@ function runInk(){
   return Math.round(t*abyssInkMul());
 }
 
-function hurt(amount){
+function hurt(amount,opt){
   if(S.isAbyss&&S.boss) amount*=CONFIG.abyssPitDmg;
   if(amount<=0)return;
   if(S.invuln>0)return;
@@ -2857,6 +2864,7 @@ function hurt(amount){
   if(fateHas('weight')) amount*=2;             // 저주 · 중압
   if(omenHas('scar'))   amount*=1.5;           // 그늘 · 생채기
   if(p2On('kwon')&&S.orbs&&S.orbs.length>1){ S.orbs.pop(); burst(S.px,S.py,6,'gold'); }
+  if(opt&&opt.capPct) amount=Math.min(amount,S.energyMax*opt.capPct);   // 한 번에 최대 기력의 이만큼까지
   S.energy-=amount;S.invuln=CONFIG.invulnSec;S.shake=16;S.flash=.55;vibe('hurt');
   S.floorHurt=(S.floorHurt||0)+1;
   if(META.char==='chunhyang'&&(S.zealCd||0)<=0){
@@ -2918,6 +2926,7 @@ function spawnTutorialRow(){
   S.tutLeft=3;
 }
 function spawnRow(){
+  const rid=S.rowSeq=(S.rowSeq||0)+1;             // 줄 번호 — 함께 넘어간 석판을 한 번에 센다
   if(isTutorial()){
     if(!S.tutStarted){ S.tutStarted=true; spawnTutorialRow(); }
     return;                                    // 튜토리얼 동안엔 새 줄이 안 나온다
@@ -2980,7 +2989,7 @@ function spawnRow(){
       }
     }
     const nb=makeBrick(c,span,word,hp,extra);
-    S.bricks.push(nb); row.push(nb);
+    nb.row=rid; S.bricks.push(nb); row.push(nb);
     placed+=span;
   }
   /* 메아리의 방 — 이 줄에서 그림자를 남길 석판을 미리 정해 둔다(깨기 전엔 보이지 않는다) */
@@ -3005,9 +3014,11 @@ function spawnAlert(){
   const blocks=[];
   // 남는 칸을 흘려보내지 않고 양 끝까지 고르게 벌린다
   const last=Math.max(0,N-span);
+  const arid='a'+(S.rowSeq=(S.rowSeq||0)+1);
   for(let i=0;i<n;i++){
     const c=(n<2)?Math.round(last/2):Math.round(last*i/(n-1));
     const b=makeBrick(c,span,picks[i],CONFIG.alertBrickHp,{quiz:true,isAnswer:i===ansIdx});
+    b.row=arid;                                    // 경보 줄도 한 줄
     S.bricks.push(b); blocks.push(b);
   }
   if((S.slideOn||0)>0) for(const b of blocks) b.slide=true;
@@ -3208,7 +3219,7 @@ function spawnBallAt(ang,slot,px,py,mid,chg,tur,far){   // tur — 명선이 터
          ? (CONFIG.jeomsunCells*cell())/Math.max(1,sp)     // 점순이 — 다섯 칸만 난다
          : (CONFIG.ballLife+S.lifeBonus)*(S.lifeMul||1)*(d.longLife||1)*(slow?5:1),
     def:d, lv,
-    base:Math.round((S.ballDamage+(d.dmg?d.dmg[lv]:0))
+    base:Math.round((S.ballDamage+(d.dmg?d.dmg[lv]:0))*(d.madPow?at(d.madPow,lv):1)
          *(META.char==='jeomsun'?CONFIG.jeomsunDmg:1)*(chg||1)),
     chg:chg||1,                                  // 김첨지 — 실린 힘. 색이 달라진다
     pierce:(d.pierce?at(d.pierce,lv):0)+((S.tome&&S.tome.pierceAll)||0)+(S.pierceBonus||0),
@@ -4060,7 +4071,7 @@ function chunMul(){
 }
 function chunUp(n,gear){                            // 만렙이 아닌 것 중에서 하나씩
   for(let k=0;k<n;k++){
-    const bs=S.ballSlots.filter(b=>b.lv<maxBallLv());
+    const bs=S.ballSlots.filter(b=>b.lv<capLv(b.def));
     if(bs.length) bs[Math.floor(Math.random()*bs.length)].lv++;
     if(gear){ const gs=S.gearSlots.filter(g=>g.lv<maxGearLv());
       if(gs.length) gs[Math.floor(Math.random()*gs.length)].lv++; }
@@ -4489,7 +4500,7 @@ function hitBrick(b,ball){
   let dv=dmgOf(ball);
   if(b.brandT>0) dv=Math.round(dv*(1+(b.brandV||0.3)));      // 낙인
   if(S.finish&&b.hp<=b.maxHp/2) dv=Math.round(dv*(1+S.finish)); // 모루
-  if(S.moraleMul && S.energy>=S.energyMax) dv=Math.round(dv*(1+S.moraleMul)); // 사기
+  if(S.moraleMul && S.energy>=S.energyMax*0.8) dv=Math.round(dv*(1+S.moraleMul)); // 사기
   if(b.critMark){ dv=Math.round(dv*b.critMark); b.critMark=0; } // 낙관 — 다음 한 대
   const critMul=critRoll(b,ball);                             // 치명타
   if(critMul){ dv=Math.round(dv*critMul); critFx(b,ball,critMul,dv); }
@@ -4868,7 +4879,7 @@ function spawnBoss(){
   const n=Math.floor(S.stage/CONFIG.bossEvery),d=bossOf(S.stage);
   const step=n-1;                        // 몇 번째 보스인가 (5층=0 … 50층=9)
   const hp=Math.round((CONFIG.bossHpBase+step*CONFIG.bossHpPerBoss)*bossHpHard()
-           *(S.stage>=CONFIG.hardFrom?CONFIG.hardMul:1)*(d.hpMul||1));
+           *(S.stage>=CONFIG.hardFrom?CONFIG.hardMul:1)*(d.hpMul||1)*bossFloorHp(S.stage));
   S.bossStep=step;
   S.bossDmg=Math.round(CONFIG.bulletDamage*(1+CONFIG.bossDmgPerBoss*step)*diffBoss()
                        *abyssHard()*deepEase());
@@ -5099,7 +5110,7 @@ function eachBoss(fn){
 function spawnTwins(){
   const n=Math.ceil(S.stage/CONFIG.bossEvery), step=Math.max(0,n-2);
   const hp=Math.round((CONFIG.bossHpBase+step*CONFIG.bossHpPerBoss)*CONFIG.twinHp*bossHpHard()
-           *(S.stage>=CONFIG.hardFrom?CONFIG.hardMul:1));
+           *(S.stage>=CONFIG.hardFrom?CONFIG.hardMul:1)*bossFloorHp(S.stage));
   S.bossStep=step;
   S.bossDmg=Math.round(CONFIG.bulletDamage*(1+CONFIG.bossDmgPerBoss*step)*diffBoss()*deepEase());
   S.bossSpd=(1+CONFIG.bossSpdPerBoss*step)*(1+(diffBoss()-1)*CONFIG.diffSpeedShare);
@@ -6656,7 +6667,7 @@ function pickWeighted(list,k){
   return out;
 }
 /* 이 구슬을 한 번 더 올리면 융합 문턱에 닿는가 */
-const nearFuse=lv=>lv+1>=CONFIG.fuseAtLv && lv<CONFIG.fuseAtLv;
+const nearFuse=(lv,d)=>lv+1>=fuseLvOf(d) && lv<fuseLvOf(d);
 /* 심연에서만 나오는 구슬·문방 */
 const abyssOK=d=>!d.abyss || depth()>0;
 function ballOptions(){
@@ -6666,15 +6677,15 @@ function ballOptions(){
     if(!abyssOK(d)) continue;
     const own=S.ballSlots.find(x=>x.def.id===d.id);
     if(own){
-      if(own.lv<maxBallLv())
+      if(own.lv<capLv(own.def))
         out.push({kind:'ball',def:d,lv:own.lv+1,own:true,
-                  w:CONFIG.ownBallW*(nearFuse(own.lv)?CONFIG.nearFuseW:1)});
+                  w:CONFIG.ownBallW*(nearFuse(own.lv,own.def)?CONFIG.nearFuseW:1)});
     }
     else out.push({kind:'ball',def:d,lv:1,own:false,w:full?CONFIG.fullSlotW:1});
   }
   for(const q of S.ballSlots){                            // 진화·융합한 구슬도 올린다
     if(!(q.def.evo||q.def.fused)) continue;
-    if(q.lv<maxBallLv()) out.push({kind:'ball',def:q.def,lv:q.lv+1,own:true,w:CONFIG.ownBallW});
+    if(q.lv<capLv(q.def)) out.push({kind:'ball',def:q.def,lv:q.lv+1,own:true,w:CONFIG.ownBallW});
   }
   return out;
 }
@@ -6695,8 +6706,8 @@ function consumOptions(){
   for(const d of CONSUM){
     if(d.id==='folding' && (S.wallCharge||0)>0) continue;
     if(d.id==='tonic' && S.energy>=S.energyMax-1) continue;
-    if(d.id==='takju' && S.armorMax>0 && S.armor>=S.armorMax) continue;
-    if(d.id==='whetstone' && !S.ballSlots.some(b=>b.lv<maxBallLv())) continue;
+    if(d.arm && S.armorMax>0 && S.armor>=S.armorMax) continue;   // 탁주 — 갑옷이 가득하면 안 나온다
+    if(d.id==='whetstone' && !S.ballSlots.some(b=>b.lv<capLv(b.def))) continue;
     if(d.id==='dice' && S.dice) continue;
     out.push({kind:'consum',def:d,lv:1,own:false});
   }
@@ -6800,7 +6811,7 @@ function estDpsWith(c){
   try{
     if(c.kind==='ball'){
       const own=S.ballSlots.find(x=>x.def.id===c.def.id);
-      if(own) own.lv=Math.min(maxBallLv(),own.lv+1);
+      if(own) own.lv=Math.min(capLv(own.def),own.lv+1);
       else if(S.ballSlots.length<maxBallSlots()){
         S.ballSlots.push({def:c.def,lv:1});
         fresh=S.ballSlots.length;             // 새 구슬 — 자리 나누는 몫은 빼고 본다
@@ -6829,7 +6840,6 @@ function sellInk(slot){
 }
 function takeCard(c){
   mBump('card');
-  if(c && c.def && c.def.evo){ mBump('fuse'); if(c.def.abyss) mBump('evo'); }
   /* 주사위 — 구슬·문방 한 장에만 걸린다 */
   const die=(c.kind==='ball'||c.kind==='gear') ? (S.dice||1) : 1;
   if(die!==1){ S.dice=null; S.diceUsed=die; }
@@ -6838,7 +6848,7 @@ function takeCard(c){
   if(step>0 && S.tome&&S.tome.blindMul && (c.kind==='ball'||c.kind==='gear')) step++;
   if(c.kind==='ball'){
     const own=S.ballSlots.find(x=>x.def.id===c.def.id);
-    if(own) own.lv=Math.min(maxBallLv(), own.lv+step);
+    if(own) own.lv=Math.min(capLv(own.def), own.lv+step);
     else if(step===0){ /* 헛것 — 손에 잡히지 않는다 */ }
     else if(S.ballSlots.length<maxBallSlots())
       S.ballSlots.push({def:c.def,lv:Math.max(1,(lvOf('picky')?2:1)+step-1)});
@@ -6856,19 +6866,20 @@ function takeCard(c){
       S.wallCharge=CONFIG.wallBlocks;
       S.alertMsg={text:'병풍이 섰다',t:1.6,ok:true};
     }
-    if(c.def.id==='takju'){                       // 갑옷을 한 겹 깁는다
-      if(!(S.armorMax>0)){                        // 아직 못 벼렸으면 이 판만 한 겹
-        S.armorMax=1; S.armor=1;
-        S.alertMsg={text:'탁주 — 이 판 동안 갑옷 한 겹',t:2.4,ok:true};
+    if(c.def.arm){                                // 탁주 — 한 잔 1겹 · 한 사발 3겹
+      const n=c.def.arm;
+      if(!(S.armorMax>0)){                        // 아직 못 벼렸으면 이 판만
+        S.armorMax=n; S.armor=n;
+        S.alertMsg={text:`탁주 — 이 판 동안 갑옷 ${n}겹`,t:2.4,ok:true};
       }else if(S.armor<S.armorMax){
-        S.armor++;
+        S.armor=Math.min(S.armorMax,S.armor+n);
         S.alertMsg={text:`탁주 — 갑옷 ${S.armor}겹`,t:2.0,ok:true};
       }else S.alertMsg={text:'갑옷이 이미 가득하다',t:1.8,ok:false};
       S.armFx=0.7; vibe('open');
     }
     if(c.def.id==='whetstone'){                   // 가장 낮은 구슬을 간다
       let low=null;
-      for(const b of S.ballSlots) if(b.lv<maxBallLv() && (!low||b.lv<low.lv)) low=b;
+      for(const b of S.ballSlots) if(b.lv<capLv(b.def) && (!low||b.lv<low.lv)) low=b;
       if(low){ low.lv++; recalc();
         S.alertMsg={text:`${low.def.name} Lv.${low.lv}`,t:2.0,ok:true}; }
       else S.alertMsg={text:'더 갈 것이 없다',t:1.6,ok:false};
@@ -7304,7 +7315,7 @@ function fusePool(){
   const out=[];
   for(const e of EVOS){
     if(!abyssOK(e)) continue;                       // 심연에서만 나오는 진화
-    const b=S.ballSlots.find(x=>x.def.id===e.from && x.lv>=CONFIG.fuseAtLv && !x.def.evo);
+    const b=S.ballSlots.find(x=>x.def.id===e.from && x.lv>=fuseLvOf(x.def) && !x.def.evo);
     if(!b) continue;
     const g=evoGear(e);
     if(g) out.push({kind:'evo',key:'e_'+e.id,evo:e,ball:b,gear:g});
@@ -7373,7 +7384,7 @@ function mergePool(){
   const L=S.ballSlots;
   for(let i=0;i<L.length;i++) for(let j=i+1;j<L.length;j++){
     const a=L[i], b=L[j];
-    if(a.lv<CONFIG.fuseAtLv||b.lv<CONFIG.fuseAtLv) continue;
+    if(a.lv<fuseLvOf(a.def)||b.lv<fuseLvOf(b.def)) continue;
     if((a.def.depth||0)+(b.def.depth||0)>=CONFIG.fuseDepthMax) continue;   // 두 번까지만 겹친다
     const key='f_'+[a.def.id,b.def.id].sort().join('_');
     out.push({kind:'fuse',key,a,b,def:fuseDef(a.def,b.def)});
@@ -7401,6 +7412,7 @@ function offerFuse(){
         <div class="rd">${f.evo.text()}</div>`;
       d.onclick=()=>{
         f.ball.def=f.evo; f.ball.lv=Math.min(maxBallLv(), CONFIG.fuseAtLv+lvOf('bond'));
+        mBump('evo');                             // 미션 — 보통·심연 진화 모두 센다
         recalc(); S.winFlash=1; S.shake=22; vibe('open');
         S.alertMsg={text:`${f.evo.name} 이(가) 되었다`,t:2.2,ok:true};
         afterMerge();
@@ -7419,6 +7431,7 @@ function offerFuse(){
         const i=S.ballSlots.indexOf(f.a), j=S.ballSlots.indexOf(f.b);
         S.ballSlots[i]={def:f.def, lv:Math.min(maxBallLv(), CONFIG.fuseAtLv+lvOf('bond'))};
         S.ballSlots.splice(j,1);                  // 자리가 하나 빈다
+        mBump('fuse');                            // 미션 — 융합
         recalc(); S.winFlash=1; S.shake=26; vibe('open');
         S.alertMsg={text:`${f.def.name} 이(가) 되었다`,t:2.4,ok:true};
         afterMerge();
@@ -8425,6 +8438,7 @@ function update(dt){
     if(S.alert && !gimOn('rise')){
       for(const q of S.bricks) if(q.quiz && (wall===null || q.y<wall)) wall=q.y;
     }
+    const fell=new Map();                            // 이번 프레임에 경계선을 넘은 석판 — 줄별 개수
     for(let i=S.bricks.length-1;i>=0;i--){
       const b=S.bricks[i];if(!b)continue;
       // 서리: 얼어 있는 동안은 내려오지 않는다 — 겹쳐 걸려도 한계가 있다
@@ -8559,11 +8573,22 @@ function update(dt){
         S.shake=Math.max(S.shake,10);
         /* 골무 — 몸에 닿든 경계선을 넘든 똑같이 덜 아프다 */
         const tz=touched&&S.tome&&S.tome.touchMul;    // 호질 — 몸에 닿을 때만
-        hurt((touched?CONFIG.brickTouchDamage:CONFIG.brickDamage)*(1-(S.touchCut||0))*(tz?S.tome.touchMul:1)*diff());
-        if(S.screen!=='play')return;
+        if(touched){
+          hurt(CONFIG.brickTouchDamage*(1-(S.touchCut||0))*(tz?S.tome.touchMul:1)*diff());
+          if(S.screen!=='play')return;
+        }else{                                        // 넘어간 것은 줄마다 모아 둔다
+          const k=b.row!=null?b.row:('x'+i);
+          fell.set(k,(fell.get(k)||0)+1);
+        }
         if(tz) S.zapPend=(S.zapPend||0)+1;             // 번개는 이 줄을 다 돈 뒤에
         if(wasQuiz&&S.alert){resolveAlert(false);if(S.screen!=='play')return;}
       }
+    }
+    /* 경계선 — (함께 넘은 석판 수 ÷ 2) × 피해를 한 번에. 최대 기력 절반까지 (한 방에 끝나지 않게) */
+    if(fell.size){
+      let n=0; for(const v of fell.values()) n+=v;
+      hurt(CONFIG.brickDamage*(1-(S.touchCut||0))*diff()*n/2, {capPct:0.5});
+      if(S.screen!=='play')return;
     }
     // 금 석판 — 줄에 섞이지 않고 혼자, 빈 칸을 골라 내려온다
     if(!S.alert && openKinds().some(k=>k.id==='gold')){
@@ -11742,7 +11767,7 @@ growHit=function(b){ pBump('quiz'); return _growHit2(b); };   // 뜻을 맞혔�
 const _bodyBoom=bodyBoom;
 bodyBoom=function(cx,cy,gr){ pBump('k_body'); return _bodyBoom(cx,cy,gr); };
 const _hurt=hurt;
-hurt=function(a){ if(S)S.everHurt=1; return _hurt(a); };
+hurt=function(a,o){ if(S)S.everHurt=1; return _hurt(a,o); };
 const _stageClear=stageClear;
 stageClear=function(){ if(!(S.floorHurt||0)) pBump('clean'); return _stageClear(); };
 const _nextStage2=nextStage;
