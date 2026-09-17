@@ -2085,8 +2085,8 @@ const CHARS = [
   {id:'jara', name:'자라', work:'별주부전',
    skill:'폼 전환',
    desc:'가운데 둥근 단추로 폼을 바꾼다 (키보드 F). 바꾼 뒤 <b>2초</b>는 못 바꾼다<br>'
-       +'<b>토끼</b> — 이동 +30% · 발사 간격 −30% · 구슬 속도 +30% · 위력 −30% · 구슬 수 +2<br>'
-       +'<b>자라</b> — 이동 −30% · 발사 간격 +30% · 구슬 속도 −50% · 위력 +50% · 구슬 수 −2 (1발 이상)<br>'
+       +'<b>토끼</b> — 이동 +30% · 발사 간격 −20% · 구슬 속도 +40% · 위력 −40% · 구슬 크기 −30% · 구슬 수 +2<br>'
+       +'<b>자라</b> — 이동 −30% · 발사 간격 +40% · 구슬 속도 −60% · 위력 +60% · 구슬 수 −2 (1발 이상)<br>'
        +'자라 폼은 <b>등딱지</b> 1겹이 탄 1발을 막는다. 10층마다 다시 붙는다',
    floor:0, abyss:2, cost:800, color:'#3FA3B5',
    note:'등딱지는 자라 폼일 때만 막는다. 몸돌은 심연에서만 나온다',
@@ -2765,7 +2765,7 @@ function recalc(){
   if(fateHas('mud'))  S.rateMul*=1.6;                                 // 저주 · 탁류
   if(hongOrd()==='drum') S.rateMul*=0.7;                             // 홍계월 · 북소리
   if(chm!==1) S.rateMul/=chm;                                        // 이춘풍 — 좋으면 간격이 짧아진다
-  if(jf==='rabbit') S.rateMul*=0.7; if(jf==='jara') S.rateMul*=1.3;  // 자라 폼
+  if(jf==='rabbit') S.rateMul*=0.8; if(jf==='jara') S.rateMul*=1.4;  // 자라 폼
   const wantRate=S.rateMul/S.ax['취'];                                // 취
   S.rateMul    = Math.max(CONFIG.rateFloor, wantRate);
   S.fastMul    = Math.max(1, CONFIG.rateFloor/Math.max(1e-6,wantRate));  // 넘친 몫은 속도로
@@ -2803,6 +2803,7 @@ function recalc(){
   S.moraleMul  = gv('morale','morale');      // 사기 — 기력이 가득할 때
   S.beamCd     = S.beamCd||0;
   S.sizeMul    = 1;                          // 구슬 크기는 더 이상 변하지 않는다
+  if(jaraForm()==='rabbit') S.sizeMul=0.7;   // 자라 — 토끼 폼만 작다 (판정도)
   S.alertSlow  = (1-0.08*lvOf('focus')) * (1 - gv('lamp','lamp')) * (t.lampMul||1);
   S.healMul    = 1 + gv('charm','heal');
   S.descentMul = (1 - gv('weight','slow')) * (t.descentMul||1)
@@ -2818,7 +2819,7 @@ function recalc(){
   if(hongOrd()==='sword') S.dmgMul*=1.3;                             // 홍계월 · 장검
   if(META.char==='jumong') S.dmgMul*=0.7;                            // 고주몽 — 70%
   S.dmgMul*=chm;                                                     // 이춘풍
-  if(jf==='rabbit') S.dmgMul*=0.7; if(jf==='jara') S.dmgMul*=1.5;    // 자라 폼
+  if(jf==='rabbit') S.dmgMul*=0.6; if(jf==='jara') S.dmgMul*=1.6;    // 자라 폼
   /* 월 — 한 방이 무거워질수록 석판을 꿰뚫는다. 넘친 위력이 버려지지 않게 */
   S.pierceBonus= Math.max(0, Math.floor(Math.log2(Math.max(1,S.ax['월']))));
   S.moveMul    = (1+0.06*lvOf('foot')) * (t.moveMul||1) * rageMul();
@@ -2830,7 +2831,7 @@ function recalc(){
                  * (omenHas('gale')?1.5:1) * (omenHas('heavy')?0.2:1);   // 바람결 · 무거운발
   if(hongOrd()==='arrow') S.speedMul*=1.3;                           // 홍계월 · 화살
   S.speedMul*=chm;                                                   // 이춘풍
-  if(jf==='rabbit') S.speedMul*=1.3; if(jf==='jara') S.speedMul*=0.5; // 자라 폼
+  if(jf==='rabbit') S.speedMul*=1.4; if(jf==='jara') S.speedMul*=0.4; // 자라 폼
   const fl2=gearLv('flint');
   S.accel     *= (t.accelMul||1);
   const emax   = Math.max(20, Math.round((S.energyBase + gv('charm','maxhp') + (t.energyFlat||0))
@@ -3764,6 +3765,60 @@ function drawMyeong(){
   ctx.restore();
 }
 
+/* 고주몽 — 햇빛 화살이 도는 동안 가장자리가 붉게 타들어가고, 끝나면 화면이 한 번 밝아진다 */
+function drawJuBurn(){
+  const J=S.jubeam;
+  if(J){
+    const a=Math.min(1,J.t/0.3)*Math.max(0,Math.min(1,(3-J.t)/0.4)), tm=performance.now()/1000;
+    if(a>0){
+      ctx.save(); ctx.globalCompositeOperation='lighter';
+      const D=110;
+      const edge=(x0,y0,x1,y1)=>{ const g=ctx.createLinearGradient(x0,y0,x1,y1);
+        g.addColorStop(0,`rgba(205,40,20,${.6*a})`); g.addColorStop(.45,`rgba(238,110,40,${.22*a})`);
+        g.addColorStop(1,'rgba(238,138,58,0)'); return g; };
+      ctx.fillStyle=edge(0,0,D,0);      ctx.fillRect(0,0,D,VH);
+      ctx.fillStyle=edge(VW,0,VW-D,0);  ctx.fillRect(VW-D,0,D,VH);
+      ctx.fillStyle=edge(0,0,0,D);      ctx.fillRect(0,0,VW,D);
+      ctx.fillStyle=edge(0,VH,0,VH-D);  ctx.fillRect(0,VH-D,VW,D);
+      /* 불혀 — 가장자리를 따라 날름거린다 */
+      const tongue=(px,py,nx,ny,i)=>{
+        const h=(26+26*Math.abs(Math.sin(tm*6+i*1.7))+10*Math.sin(tm*13+i))*(0.6+0.4*a), w=15, sw=5*Math.sin(tm*9+i);
+        ctx.beginPath(); ctx.moveTo(px-ny*w,py+nx*w);
+        ctx.quadraticCurveTo(px+nx*h*.55-ny*sw,py+ny*h*.55+nx*sw, px+nx*h,py+ny*h);
+        ctx.quadraticCurveTo(px+nx*h*.55+ny*sw,py+ny*h*.55-nx*sw, px+ny*w,py-nx*w);
+        ctx.fill();
+      };
+      ctx.fillStyle=`rgba(255,110,45,${.38*a})`; ctx.shadowColor='#FF4A1E'; ctx.shadowBlur=22;
+      let i=0;
+      for(let x=22;x<VW;x+=38){ tongue(x,0,0,1,i++); tongue(x,VH,0,-1,i++); }
+      for(let y=22;y<VH;y+=38){ tongue(0,y,1,0,i++); tongue(VW,y,-1,0,i++); }
+      ctx.restore();
+    }
+  }
+  if(S.juFlash>0){
+    ctx.save(); ctx.globalAlpha=Math.min(1,S.juFlash)*.8;
+    ctx.fillStyle='#FFF6E6'; ctx.fillRect(0,0,VW,VH); ctx.restore();
+  }
+}
+/* 자라 신선 — 왼쪽에서 오른쪽으로 빠르게 쓸고 가는 물결 (물마루가 세로) */
+function drawWaveX(x,t,alpha){
+  const top=CEIL_Y-40, bot=DANGER_Y+40, tail=280;
+  ctx.save(); ctx.globalAlpha=alpha;
+  const g=ctx.createLinearGradient(x+30,0,x-tail,0);
+  g.addColorStop(0,'rgba(159,214,223,.55)'); g.addColorStop(.25,'rgba(63,163,181,.35)'); g.addColorStop(1,'rgba(63,163,181,0)');
+  ctx.fillStyle=g;
+  ctx.beginPath(); ctx.moveTo(x-tail,top);
+  for(let y=top;y<=bot;y+=20) ctx.lineTo(x+Math.sin(y/60+t*9)*16,y);
+  ctx.lineTo(x-tail,bot); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='#F3EDDF'; ctx.lineWidth=4; ctx.shadowColor='#3FA3B5'; ctx.shadowBlur=18;
+  ctx.beginPath();
+  for(let y=top;y<=bot;y+=20){ const xx=x+Math.sin(y/60+t*9)*16; y===top?ctx.moveTo(xx,y):ctx.lineTo(xx,y); }
+  ctx.stroke(); ctx.restore();
+}
+/* 물결 위치 — 기술1은 0.5초에 가로로, 기술2는 2초마다 세 번 (한 번에 1.2초 동안 올라간다) */
+const sweepX=w=>WALL_L-40+(WALL_R-WALL_L+80)*Math.min(1,w.t/0.5);
+const waveK =w=>Math.min(2,Math.floor(w.t/2.0));
+const waveY =w=>{ const lt=w.t-waveK(w)*2.0, d=dangerY(); return {lt, y:d-(d-CEIL_Y)*Math.min(1,lt/1.2)}; };
 /* ══ 고주몽 — 화살 그림 · 햇빛 화살 · 과녁 ═══════════════ */
 /* 위력 2면 0, 20이면 1 — 이 사이에서 굵기와 빛이 고르게 자란다 */
 const arrowPow=b=>Math.max(0,Math.min(1,((b.base||2)-2)/18));
@@ -3821,11 +3876,12 @@ function jumongBeams(t2){
     const rows=[]; for(const y of ys) if(!rows.length||y-rows[rows.length-1]>rs*0.5) rows.push(y);
     rows.forEach((y,i)=>list.push({v:false, y, e0:0.5+i*0.05, done:false}));
   }
-  S.jubeam={t:0, list, pct:t2?0.5:0.4, bp:t2?0.10:0.06};
+  S.jubeam={t:0, list, pct:t2?0.8:0.6, bp:t2?0.10:0.06};
 }
 function jumongTick(dt){
+  if(S.juFlash>0) S.juFlash=Math.max(0,S.juFlash-dt*1.6);   // 끝 번쩍임이 사그라든다
   const J=S.jubeam; if(!J)return;
-  J.t+=dt;
+  J.t+=dt*0.8;                                      // 떨어지는 빠르기 −20% — 그림도 이 시간을 따른다
   const rs=rowStep();
   for(const m of J.list){
     if(m.done||J.t<m.e0+0.24)continue;
@@ -3846,7 +3902,7 @@ function jumongTick(dt){
     }
     S.shake=Math.max(S.shake,m.v?5:8);
   }
-  if(J.t>3) S.jubeam=null;
+  if(J.t>3){ S.jubeam=null; S.juFlash=0.6; }         // 끝나는 순간 화면이 한 번 밝아진다
 }
 function drawJumong(){
   const J=S&&S.jubeam; if(!J)return;
@@ -4128,45 +4184,61 @@ function jaraTick(dt){
     st.drain-=dt;
     if(st.drain<=0){ st.drain=10; S.energy=Math.max(1,S.energy-1); }
   }else st.drain=10;
-  const W=st.wave;
-  if(W){                                               // 용궁의 물결 — 1초 동안 아래에서 위로
-    W.t+=dt;
-    const y=dangerY()-(dangerY()-CEIL_Y)*Math.min(1,W.t/1.0);
+  const SW=st.sweep;
+  if(SW){                                              // 신선 — 0.5초 동안 왼쪽에서 오른쪽으로
+    SW.t+=dt;
+    const x=sweepX(SW);
+    if(SW.t<0.5) S.shake=Math.max(S.shake,5);
     for(let i=S.bricks.length-1;i>=0;i--){
-      const b=S.bricks[i]; if(!b||b.quiz||isSolid(b)||W.hit.has(b))continue;
-      if(y<b.y+b.h/2){ W.hit.add(b); chip(b,Math.max(1,Math.ceil((b.maxHp||b.hp)*0.5)),'gold');
+      const b=S.bricks[i]; if(!b||b.quiz||isSolid(b)||SW.hit.has(b))continue;
+      if(x>b.x+b.w/2){ SW.hit.add(b); chip(b,Math.max(1,Math.ceil((b.maxHp||b.hp)*0.2)),'gold');
         if(S.screen!=='play')return; }
     }
     const B=S.boss;
-    if(B&&!B.ghost&&!W.boss&&y<B.y+B.h/2){ W.boss=true;
-      hitBossFlat(bossPct(0.10),B.x+B.w/2,B.y+B.h/2); if(S.screen!=='play')return; }
-    if(W.t>=1.6) st.wave=null;
+    if(B&&!B.ghost&&!SW.boss&&x>B.x+B.w/2){ SW.boss=true;
+      hitBossFlat(bossPct(0.03),B.x+B.w/2,B.y+B.h/2); if(S.screen!=='play')return; }
+    if(SW.t>=0.8) st.sweep=null;
+  }
+  const W=st.wave;
+  if(W){                                               // 용궁의 물결 — 2초마다 세 번, 한 번에 1.2초 동안 아래에서 위로
+    W.t+=dt;
+    const k=waveK(W);
+    if(k!==W.k){ W.k=k; W.hit=new Set(); W.boss=false; }   // 새 물결 — 다시 맞힐 수 있다
+    const {lt,y}=waveY(W);
+    if(lt<1.2){
+      S.shake=Math.max(S.shake,7);                     // 피해를 주는 동안 흔들린다
+      for(let i=S.bricks.length-1;i>=0;i--){
+        const b=S.bricks[i]; if(!b||b.quiz||isSolid(b)||W.hit.has(b))continue;
+        if(y<b.y+b.h/2){ W.hit.add(b); chip(b,Math.max(1,Math.ceil((b.maxHp||b.hp)*0.3)),'gold'); vibe('charged');
+          if(S.screen!=='play')return; }
+      }
+      const B=S.boss;
+      if(B&&!B.ghost&&!W.boss&&y<B.y+B.h/2){ W.boss=true; vibe('charged');
+        hitBossFlat(bossPct(0.04),B.x+B.w/2,B.y+B.h/2); if(S.screen!=='play')return; }
+    }
+    if(W.t>=5.8) st.wave=null;
   }
 }
 function jaraFire(t2){
   const st=jaraSt();
   if(t2){
     healPct(0.3);
-    st.wave={t:0, hit:new Set(), boss:false};
+    st.wave={t:0, k:-1, hit:new Set(), boss:false};   // 물결 세 번 — 2초마다
+    S.alertMsg={text:'기력 30% 회복',t:1.8,ok:true};
   }else{
     healPct(0.2);
     S.armor=Math.min((S.armorMax||0)+1,(S.armor||0)+1);   // 대장간 최대치보다 한 겹까지
     S.armFx=0.7;
-    for(let i=S.bricks.length-1;i>=0;i--){
-      const b=S.bricks[i]; if(!b||b.quiz||isSolid(b))continue;
-      chip(b,Math.max(1,Math.ceil((b.maxHp||b.hp)*0.2)),'gold');
-      if(S.screen!=='play')return;
-    }
-    if(S.boss&&!S.boss.ghost) hitBossFlat(bossPct(0.03),S.boss.x+S.boss.w/2,S.boss.y+S.boss.h/2);
+    st.sweep={t:0, hit:new Set(), boss:false};           // 물결이 왼쪽에서 오른쪽으로 쓸고 간다
+    S.alertMsg={text:'기력 20% 회복 · 갑옷 한 겹',t:1.8,ok:true};
   }
 }
 function drawJara(){
   if(!S||S.screen!=='play'||META.char!=='jara'||!S.jara)return;
   const st=S.jara;
-  if(st.wave){
-    const W=st.wave, y=dangerY()-(dangerY()-CEIL_Y)*Math.min(1,W.t/1.0);
-    drawWave(y,dangerY()+40,performance.now()/1000,Math.max(0,Math.min(1,(1.6-W.t)/0.5)));
-  }
+  const tm=performance.now()/1000;
+  if(st.sweep){ const w=st.sweep; drawWaveX(sweepX(w),tm,Math.max(0,Math.min(1,(0.8-w.t)/0.3))); }
+  if(st.wave){ const {lt,y}=waveY(st.wave); drawWave(y,dangerY()+40,tm,Math.max(0,Math.min(1,(1.8-lt)/0.6))); }
   drawFormBtn(BTN_FORM.x,BTN_FORM.y,BTN_FORM.r,st.form,st.cool/2);
 }
 
@@ -6770,7 +6842,10 @@ function takeCard(c){
     else if(step===0){ /* 헛것 — 손에 잡히지 않는다 */ }
     else if(S.ballSlots.length<maxBallSlots())
       S.ballSlots.push({def:c.def,lv:Math.max(1,(lvOf('picky')?2:1)+step-1)});
-    else { offerSwap(c); return false; }          // 자리가 없다 → 무엇을 팔지 고른다
+    else {                                        // 자리가 없다 → 무엇을 팔지 고른다
+      if(die!==1){ S.dice=die; S.diceUsed=null; } // 주사위는 아직 안 쓴 것 — 바꿔 넣을 때 쓴다
+      c.step=step; offerSwap(c); return false;
+    }
   }else if(c.kind==='gear'){
     const own=S.gearSlots.find(x=>x.def.id===c.def.id);
     if(own) own.lv=Math.min(maxGearLv(), own.lv+step);
@@ -7105,8 +7180,13 @@ function offerSwap(c){
     d.onclick=()=>{
       S.bonusInk+=v;
       const i=S.ballSlots.indexOf(slot);
-      S.ballSlots[i]={def:swapPending.def,lv:lvOf('picky')?2:1};
-      swapPending=null; recalc(); afterCard();
+      const step=swapPending.step||1, name=swapPending.def.name;
+      S.ballSlots[i]={def:swapPending.def,lv:Math.max(1,(lvOf('picky')?2:1)+step-1)};
+      const used=!!S.dice && S.dice!==1;             // 두 배 주사위가 여기서 쓰인다
+      if(used) S.dice=null;
+      swapPending=null; recalc();
+      if(used){ showResult('주사위가 맞아떨어졌다','⚅',name,'두 눈금이 한꺼번에 올랐다',true,afterCard); return; }
+      afterCard();
     };
     list.appendChild(d);
   }
@@ -7513,7 +7593,7 @@ function nextStage(){
   if(S.myeong) S.myeong.air=null;       // 공습은 층을 넘기지 않는다
   S.jubeam=null;
   if(S.chun) S.chun.big=null;
-  if(S.jara) S.jara.wave=null;
+  if(S.jara){ S.jara.wave=null; S.jara.sweep=null; }
   if(!(S.gim&&S.gim.id==='tide')) S.tideUp=0;
   loadLessonFor(S.stage);            // 층이 바뀌면 회차도 바뀐다
   saveRun();
@@ -11754,14 +11834,14 @@ const ACTIVE={
                desc2:'「장성검, 일곱 번」 — 북두칠성 자리를 차례로 <b>일곱 번</b> 벤다<br>벤 자리의 석판은 부서진다. 보스에게는 한 번마다 <b>5%</b> (합 35%)'},
  honggyewol:  {name:'출정',        desc:'모든 석판에 중독·출혈·서리·낙인·좀먹을 <b>각 3겹</b><br>보스에게는 최대 체력의 15%',
                desc2:'「대원수의 깃발」 — 모든 석판에 다섯 가지를 <b>각 5겹</b><br>10초 뒤, 그때 있는 석판에 <b>5겹</b>을 한 번 더<br>보스에게는 최대 체력의 30%'},
- jara:        {name:'신선',        desc:'기력 <b>20%</b> 회복 · 갑옷 <b>1겹</b> (대장간 최대치보다 한 겹까지 더)<br>모든 석판 최대 체력의 <b>20%</b>, 보스 <b>3%</b>',
-               desc2:'「용궁의 물결」 — 기력 <b>30%</b> 회복<br>물결이 아래에서 위로 쓸고 올라가며 석판 <b>50%</b>, 보스 <b>10%</b>'},
+ jara:        {name:'신선',        desc:'기력 <b>20%</b> 회복 · 갑옷 <b>1겹</b> (대장간 최대치보다 한 겹까지 더)<br>물결이 왼쪽에서 오른쪽으로 빠르게 쓸고 가며 석판 최대 체력의 <b>20%</b>, 보스 <b>3%</b>',
+               desc2:'「용궁의 물결」 — 기력 <b>30%</b> 회복<br>물결이 2초마다 <b>세 번</b> 아래에서 위로 쓸고 올라간다 (약 6초)<br>한 번에 석판 <b>30%</b>, 보스 <b>4%</b>'},
  chunpung:    {name:'큰 주사위',   desc:'화면 가운데에서 큰 주사위를 굴린다. 모든 석판 최대 체력의 <b>70%</b>, 보스 <b>30%</b><br>'
                  +'1 기력 −20% · 2 기력 10% 회복 · 3 구슬 강화 1 · 4 구슬·문방 강화 1<br>'
                  +'5 기력 20% 회복, 최대기력 +10% · 6 구슬·문방 강화 1, 기력 20% 회복, 최대기력 +10%',
                desc2:'「판돈」 — 큰 주사위 결과를 <b>두 배</b>로 받는다 (1이면 기력 −40%)<br>모든 석판 <b>90%</b>, 보스 <b>40%</b>'},
- jumong:      {name:'햇빛 화살',   desc:'판 너비를 여덟으로 나눈 <b>빛줄기 여덟</b>이 위에서 떨어진다<br>닿는 석판마다 최대 체력의 <b>40%</b>, 보스는 닿은 줄기마다 <b>6%</b>',
-               desc2:'「과녁」 — 세로 여덟 줄기가 떨어지고, 0.5초 뒤 <b>가로 줄기</b>가 줄마다 쓸고 간다<br>줄기 하나에 석판 <b>50%</b>, 보스는 닿은 줄기마다 <b>10%</b>. 겹치는 칸은 두 번 맞는다'},
+ jumong:      {name:'햇빛 화살',   desc:'판 너비를 여덟으로 나눈 <b>빛줄기 여덟</b>이 위에서 떨어진다<br>닿는 석판마다 최대 체력의 <b>60%</b>, 보스는 닿은 줄기마다 <b>6%</b>',
+               desc2:'「과녁」 — 세로 여덟 줄기가 떨어지고, 0.5초 뒤 <b>가로 줄기</b>가 줄마다 쓸고 간다<br>줄기 하나에 석판 <b>80%</b>, 보스는 닿은 줄기마다 <b>10%</b>. 겹치는 칸은 두 번 맞는다'},
  myeongseon:  {name:'쥐바라숭꽃',  desc:'30초 동안 <b>좌우 끝</b>에도 터렛이 서고, 터렛마다 <b>두 발</b>씩 쏜다',
                desc2:'「공습」 — 3초 동안 겨눈 뒤 터진다<br>모든 석판에 최대 체력의 <b>90%</b>, 보스에게 <b>40%</b>'}
 };
@@ -13064,7 +13144,7 @@ startRunNow=function(){ _startRunNow2();
     t:3.2, ok:true}; }, 1200);
 };
 const _drawControls=drawControls;
-drawControls=function(){ drawSigil(true); drawMyeong(); drawJumong(); drawJara(); drawAc6(); drawAcFx(); _drawControls(); drawActive(); };   // 공습 조준은 문양 위에
+drawControls=function(){ drawSigil(true); drawMyeong(); drawJumong(); drawJara(); drawAc6(); drawAcFx(); drawJuBurn(); _drawControls(); drawActive(); };   // 공습 조준은 문양 위에
 
 GUIDE.chars.push(
  {h:'세 번째 면모',t:`캐릭터마다 세 번째 면모가 하나씩 더 있습니다.<br>
