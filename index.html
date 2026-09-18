@@ -3492,10 +3492,40 @@ function nearbyBricks(b,n){
     .map(x=>({x,d:Math.hypot(x.x+x.w/2-cx,x.y+x.h/2-cy)}))
     .sort((a,c)=>a.d-c.d).slice(0,n).map(o=>o.x);
 }
+/* ── 초당피해 측정 (임시) ─────────────────────────────
+   층마다 넣은 피해(d)와 싸운 시간(t)을 모은다.
+   보여 줄 때는 최근 5개 층의 피해 합 ÷ 시간 합.
+   시간은 싸우는 화면(play)에서만 흐른다 — 카드·뜻 맞히기·멈춤은 빠진다.
+   석판 상한·남은 체력, 보스 방벽에 깎이기 전 값으로 센다 */
+const DPS_FLOORS=5;
+const dpsFloor=()=>{
+  const d=S.dps||(S.dps={});
+  return d[S.stage]||(d[S.stage]={d:0,t:0});
+};
+function dpsAdd(v){
+  if(!S||!(v>0)||!isFinite(v))return;
+  dpsFloor().d+=v;
+}
+function dpsTick(dt){
+  if(!S||!(dt>0)||!isFinite(dt))return;
+  dpsFloor().t+=dt;
+}
+function dpsNow(){
+  if(!S||!S.dps)return 0;
+  const fl=Object.keys(S.dps).map(Number).filter(k=>S.dps[k].t>0)
+                .sort((a,b)=>a-b).slice(-DPS_FLOORS);
+  let d=0,t=0; for(const k of fl){ d+=S.dps[k].d; t+=S.dps[k].t; }
+  return t>=1?Math.round(d/t):0;
+}
+function dpsSpan(){                       // 몇 개 층을 평균 냈는가
+  if(!S||!S.dps)return 0;
+  return Math.min(DPS_FLOORS,Object.values(S.dps).filter(x=>x.t>0).length);
+}
 function chip(b,amount,color){          // 다른 석판에 간접 피해
   if(!S.bricks.includes(b))return;
   if(b.quiz)return;                     // 경보 후보는 겨눠서 맞혀야 한다
   if(isSolid(b))return;                 // 말뚝·몸돌에는 안 들어간다
+  dpsAdd(amount);
   b.hp-=amount; b.hit=.14;
   burst(b.x+b.w/2,b.y+b.h/2,4,color||'stone');
   if(b.hp<=0)breakBrick(b);
@@ -4718,6 +4748,7 @@ function hitBrick(b,ball){
   if(b.critMark){ dv=Math.round(dv*b.critMark); b.critMark=0; } // 낙관 — 다음 한 대
   const critMul=critRoll(b,ball);                             // 치명타
   if(critMul){ dv=Math.round(dv*critMul); critFx(b,ball,critMul,dv); }
+  if(!b.quiz) dpsAdd(dv);                                     // 초당피해 — 상한 전 값
   const wasSick=hasStatus(b);
   /* 일반 석판은 한 번에 최대 체력의 절반까지만 깎인다 — 일반전은 타격전이다 */
   let capped=0;
@@ -4830,6 +4861,7 @@ function hitBoss(ball){
   if(ball.bossCut) mul*=ball.bossCut;              // 홍길동 율도국 분신 구슬
   if(ball.missile) ball.life=-1;
   const dv=(dmgOf(ball)+(ball.bigT?(B.maxHp||0)*0.002:0))*mul*(META.char==='myeongseon'?2:1);   // 명선이 — 두 배 · 큰 터렛 0.2%
+  dpsAdd(dv*(ball.bossCut||1)/mul);                  // 초당피해 — 방벽 전 값
   B.hp-=dv;B.hit=.14;
   popNum(ball.x,ball.y-14,dv,open);
   burst(ball.x,ball.y,4,'gold');
@@ -4847,6 +4879,7 @@ function hitBossFlat(dmg,x,y){
   if(B.open>0) mul*=CONFIG.bossOpenMul;
   if(B.small) mul*=2;
   const dv=Math.max(1,Math.round(dmg*mul));
+  dpsAdd(dmg);                                       // 초당피해 — 방벽 전 값
   B.hp-=dv; B.hit=.14;
   popNum(x,y-14,dv,open); burst(x,y,4,'gold');
   if(B.hp<=0) defeatBoss();
@@ -7160,6 +7193,7 @@ function renderLoadout(id){
     `<div class="lrow"><span class="ltag">구슬</span>${chips(S.ballSlots,maxBallSlots(),'')}</div>
      <div class="lrow"><span class="ltag">문방</span>${chips(S.gearSlots,S.gearSlots.length,'g')}</div>
      <div class="stats">발사 <b>${S.shotBalls}발</b> · 위력 <b>${S.ballDamage}</b> ·
+       실측 <b>${dpsNow()}</b>/초 <i>(최근 ${dpsSpan()}층)</i> ·
        간격 <b>${cd}초</b> · 체공 <b>${life}초</b> · 기력 <b>${Math.ceil(S.energy)}/${S.energyMax}</b>${extra}</div>`;
 }
 
@@ -13377,7 +13411,7 @@ function drawActive(){
 }
 
 const _update2=update;
-update=function(dt){ if(S&&S.screen==='play') acTick(dt); return _update2(dt); };
+update=function(dt){ if(S&&S.screen==='play'){ acTick(dt); dpsTick(dt); } return _update2(dt); };
 const _dmgOf=dmgOf;                          // 막걸리 — 구슬 위력만 두 배 (보스도)
 dmgOf=function(ball){ return _dmgOf(ball)*((S&&S.acBuff>0)?(S.acMul||2):1); };
 const _breakBrick2=breakBrick;
