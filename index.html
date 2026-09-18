@@ -2072,10 +2072,12 @@ const CHARS = [
    skill:'느린 구슬 · 번짐',
    desc:'구슬이 <b>느리게</b>(속도 40%) 나가고 <b>다섯 배</b> 오래 떠 있다. 구슬 수는 50% (1발 이상)<br>'
        +'위력 <b>두 배</b> (석판·보스) · 맞은 석판의 위아래·양옆 한 칸에 위력의 <b>50%</b>가 번진다<br>'
-       +'경계선 위 가운데에 <b>터렛</b>이 1초에 한 발씩 쏜다 · 잃은 기력의 절반만큼 위력이 오른다 (최대 +50%)',
+       +'경계선 위 가운데에 <b>터렛</b>이 1.5초에 한 발씩 쏜다. 10층·20층에 하나씩 늘어난다<br>'
+       +'경보를 10번 맞힐 때마다 터렛 위력 +10% (최대 +50%) · 위력이 오르면 꽃이 핀다<br>'
+       +'잃은 기력의 절반만큼 위력이 오른다 (최대 +50%)',
    floor:0, cost:420, color:'#F4CF3A',
    note:'터렛은 경보 석판을 치지 못한다. 번진 피해는 경보 석판에 들어가지 않고, 다시 번지지도 않는다',
-   p2:'들꽃', p2desc:'좌우 끝에 <b>터렛</b>이 하나씩 더 선다<br>2초에 한 발씩 <b>보라색 유도 미사일</b>을 쏜다. 맞히면 사라진다'},
+   p2:'들꽃', p2desc:'좌우 끝에 <b>터렛</b>이 하나씩 더 선다<br>2초에 한 발씩 <b>보라색 유도 미사일</b>을 쏜다. 맞히면 터져 둘레 한 칸에 위력 50%'},
   {id:'jumong', name:'고주몽', work:'주몽 신화',
    skill:'활의 명수',
    desc:'구슬 대신 <b>빛 화살</b>이 나간다. 판 높이의 절반쯤 날아가 사라진다<br>'
@@ -3714,13 +3716,30 @@ function myeongSpread(b,dv){
   if(st.fx.length>40) st.fx.splice(0,st.fx.length-40);
 }
 const MY_TURRET_Y=()=>dangerY()-40;
+/* F — 한 판에 경보를 10번 맞힐 때마다 터렛 위력 +10% (최대 +50%) */
+const myTurMul=()=>1+0.1*Math.min(5,Math.floor((S.alertRight||0)/10));
+/* 터렛의 대표 위력과 단계 — 1 새싹(10 미만) · 2 꽃(30 미만) · 3 만개 */
+const myPow=()=>Math.round((S.ballDamage||1)*(S.dmgMul||1)*(S.growMul||1)*myTurMul()*2);
+const myTier=v=>v>=30?3:v>=10?2:1;
+/* E — 들꽃 미사일이 터진다. 둘레 한 칸(대각선 포함)에 위력의 50% */
+function missileBoom(b,dv,tt){
+  const amt=Math.max(1,Math.round(dv*0.5)), cx=b.x+b.w/2, cy=b.y+b.h/2, cw=cell(), rh=rowStep();
+  const near=S.bricks.filter(x=>x!==b&&!x.quiz&&!isSolid(x)
+    &&Math.abs(x.x+x.w/2-cx)<cw*1.5&&Math.abs(x.y+x.h/2-cy)<rh*1.5);
+  const st=myeongSt();
+  st.fx.push({x:cx, y:cy, t:0.45, kind:'m', tt:tt||1});
+  for(const n of near){ chip(n,amt,'gold'); if(S.screen!=='play')return; }
+  if(st.fx.length>40) st.fx.splice(0,st.fx.length-40);
+}
 const MY_MISSILE='#9B6FD9';                                   // 들꽃 — 보라 유도 미사일
 /* 터렛 목록 — kind: c 가운데(늘) · m 들꽃 좌우(미사일) · b 쥐바라숭꽃(큰 것) */
 function myeongTurrets(){
   const st=myeongSt(), y=MY_TURRET_Y(), out=[{x:VW/2, y, s:1, kind:'c'}];
+  const W=WALL_R-WALL_L, add=Math.min(2,Math.floor((S.stage||1)/10));   // D — 10층마다 +1 (최대 2)
+  if(add>=1) out.push({x:WALL_L+W*0.32, y, s:1, kind:'c'});
+  if(add>=2) out.push({x:WALL_L+W*0.68, y, s:1, kind:'c'});
   if(p2On('myeongseon')) out.push({x:WALL_L+34, y, s:1, kind:'m'}, {x:WALL_R-34, y, s:1, kind:'m'});
   if(st.side>0){
-    const W=WALL_R-WALL_L;
     out.push({x:WALL_L+W*0.25, y:y-110, s:2, kind:'b'}, {x:WALL_L+W*0.75, y:y-110, s:2, kind:'b'});
   }
   return out;
@@ -3735,11 +3754,18 @@ function myeongTick(dt){
     for(const q of T) if(q.kind===kind) for(let k=0;k<two;k++){
       const n0=S.balls.length;
       spawnBallAt(-Math.PI/2+(Math.random()-.5)*2.6, S.cyc++, q.x, q.y-12*q.s, false, 1, true);
-      if(sp) for(let i=n0;i<S.balls.length;i++){ const B=S.balls[i]; B.missile=true; B.home=7; }
+      for(let i=n0;i<S.balls.length;i++){
+        const B=S.balls[i];
+        B.base=Math.max(1,Math.round(B.base*myTurMul()));               // F
+        if(sp){ B.missile=true; B.home=7; }
+        if(q.kind==='b') B.bigT=true;                                   // C
+        B.tt=Math.min(3, myTier(dmgOf(B)*2)+(q.kind==='b'?1:0));
+      }
+      if(myTier(myPow())>=3) st.petal=(st.petal||[]).concat(petalBurst(q.x,q.y-6*q.s,6));
     }
   };
   if(S.ballSlots.length){
-    st.cd-=dt;  if(st.cd<=0){ st.cd=1;   shoot('c'); st.flash=0.15; }
+    st.cd-=dt;  if(st.cd<=0){ st.cd=1.5; shoot('c'); st.flash=0.15; }
     if(p2On('myeongseon')){ st.mcd=(st.mcd===undefined?2:st.mcd)-dt;
       if(st.mcd<=0){ st.mcd=2; shoot('m',true); st.flash=0.15; } }
     if(st.side>0){ st.bcd=(st.bcd===undefined?0:st.bcd)-dt;
@@ -3748,6 +3774,9 @@ function myeongTick(dt){
   }
   if(st.flash>0) st.flash-=dt;
   for(let i=st.fx.length-1;i>=0;i--){ st.fx[i].t-=dt; if(st.fx[i].t<=0) st.fx.splice(i,1); }
+  if(st.petal){ for(let i=st.petal.length-1;i>=0;i--){ const q=st.petal[i];
+      q.t-=dt; q.x+=q.vx*dt; q.y+=q.vy*dt; q.vy+=60*dt; q.a+=q.va*dt; if(q.t<=0) st.petal.splice(i,1); }
+    if(st.petal.length>80) st.petal.splice(0,st.petal.length-80); }
   const a=st.air;
   if(a){                                                        // 공습 — 3초 겨누고 터진다
     a.t+=dt;
@@ -3767,38 +3796,123 @@ function myeongTick(dt){
       }
       if(S.boss&&!S.boss.ghost) hitBossFlat(bossPct(0.4), S.boss.x+S.boss.w/2, S.boss.y+S.boss.h/2);
       S.shake=Math.max(S.shake,64); lastVibe=0; vibe('airstrike');
+      st.side=Math.max(st.side,10);                            // 터진 뒤 쥐바라숭꽃 10초
     }
     if(st.air&&a.t>=6) st.air=null;
   }
 }
-/* 터렛 하나 — 민들레 포대. s 는 크기 */
-function drawTurret(q,st){
-  const Y='#F4CF3A', L='#FAE58F', P='#F3EDDF', M=MY_MISSILE, mis=q.kind==='m';
-  ctx.save(); ctx.translate(q.x,q.y); ctx.scale(q.s,q.s);
-  ctx.shadowColor=mis?M:Y; ctx.shadowBlur=st.flash>0?22:8;
-  ctx.strokeStyle=mis?M:Y; ctx.lineWidth=3;
+/* 터렛 하나 — 민들레 포대. s 크기 · tier 1 새싹 · 2 꽃 · 3 만개 */
+function drawTurret(q,st,tier){
+  tier=tier||1;
+  const Y='#F4CF3A', L='#FAE58F', P='#F3EDDF', G='#FFE9A8', M='#9B6FD9', mis=q.kind==='m';
+  const main=mis?M:Y, soft=mis?'#D9C4F5':P;
+  const T=(typeof performance!=='undefined'?performance.now():0)/1000;
+  const sc=q.s*[1,1,1.15,1.3][tier];
+  ctx.save(); ctx.translate(q.x,q.y); ctx.scale(sc,sc);
+  if(tier>=3){                                                  // 만개 — 빛무리
+    const h=ctx.createRadialGradient(0,-6,0,0,-6,34);
+    h.addColorStop(0,(mis?'rgba(155,111,217,':'rgba(244,207,58,')+(0.35+0.1*Math.sin(T*3))+')');
+    h.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=h; ctx.beginPath(); ctx.arc(0,-6,34,0,7); ctx.fill();
+  }
+  ctx.shadowColor=main; ctx.shadowBlur=(st.flash>0?22:8)+(tier-1)*6;
+  ctx.strokeStyle=main; ctx.lineWidth=3;
   ctx.beginPath(); ctx.moveTo(-20,22); ctx.lineTo(20,22); ctx.moveTo(0,22); ctx.lineTo(0,2); ctx.stroke();
-  ctx.strokeStyle=mis?'#D9C4F5':P; ctx.lineWidth=1.6; ctx.beginPath();
-  for(let i=0;i<14;i++){ const a=i/14*Math.PI*2; ctx.moveTo(0,-6); ctx.lineTo(Math.cos(a)*15,-6+Math.sin(a)*15); }
+  if(tier>=2){                                                  // 꽃 — 잎 두 장
+    ctx.fillStyle=main; ctx.globalAlpha=.8;
+    for(const d of [-1,1]){ ctx.beginPath(); ctx.ellipse(d*7,14,6,2.4,d*0.5,0,7); ctx.fill(); }
+    ctx.globalAlpha=1;
+  }
+  const n=[0,14,20,20][tier], len=15;
+  ctx.strokeStyle=soft; ctx.lineWidth=1.6; ctx.beginPath();
+  for(let i=0;i<n;i++){ const a=i/n*Math.PI*2; ctx.moveTo(0,-6); ctx.lineTo(Math.cos(a)*len,-6+Math.sin(a)*len); }
   ctx.stroke();
-  ctx.fillStyle=mis?M:L; ctx.beginPath(); ctx.arc(0,-6,3.5,0,7); ctx.fill();
+  if(tier>=3){                                                  // 만개 — 안쪽 한 겹 더, 천천히 돈다
+    ctx.strokeStyle=mis?'#EFE6FC':G; ctx.lineWidth=2; ctx.beginPath();
+    for(let i=0;i<12;i++){ const a=i/12*Math.PI*2+T*0.8;
+      ctx.moveTo(0,-6); ctx.lineTo(Math.cos(a)*9,-6+Math.sin(a)*9); }
+    ctx.stroke();
+  }
+  if(tier>=2){                                                  // 금빛 테
+    ctx.strokeStyle=mis?M:'#E5B24F'; ctx.lineWidth=1.4; ctx.globalAlpha=.9;
+    ctx.beginPath(); ctx.arc(0,-6,len+2,0,7); ctx.stroke(); ctx.globalAlpha=1;
+    ctx.fillStyle=soft;
+    for(let i=0;i<n;i+=2){ const a=i/n*Math.PI*2; ctx.beginPath(); ctx.arc(Math.cos(a)*len,-6+Math.sin(a)*len,1.6,0,7); ctx.fill(); }
+  }
+  ctx.fillStyle=mis?M:L; ctx.beginPath(); ctx.arc(0,-6,[0,3.5,4.5,5.5][tier],0,7); ctx.fill();
   ctx.restore();
 }
-/* 들꽃 미사일 — 보라 꼬리를 단 촉 */
-function drawMissile(b){
-  const sp=Math.hypot(b.vx,b.vy)||1, ux=b.vx/sp, uy=b.vy/sp, nx=-uy, ny=ux, M=MY_MISSILE;
+/* 꽃잎 — 만개 터렛이 쏠 때, 만개 씨앗이 맞을 때 흩날린다 */
+function petalBurst(x,y,n){
+  const out=[];
+  for(let i=0;i<n;i++){ const a=Math.random()*Math.PI*2, v=40+Math.random()*70;
+    out.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-30,a:Math.random()*6,va:(Math.random()-.5)*8,t:0.7,c:Math.random()<.5?'#FAE58F':'#F3EDDF'}); }
+  return out;
+}
+function drawPetals(st){
+  if(!st.petal||!st.petal.length)return;
+  ctx.save();
+  for(const q of st.petal){
+    ctx.globalAlpha=Math.min(1,q.t/0.35); ctx.fillStyle=q.c;
+    ctx.save(); ctx.translate(q.x,q.y); ctx.rotate(q.a);
+    ctx.beginPath(); ctx.ellipse(0,0,4,1.8,0,0,7); ctx.fill(); ctx.restore();
+  }
+  ctx.restore();
+}
+/* 터렛 씨앗 — 2 꽃: 노란 빛 씨앗 + 짧은 꽃가루 · 3 만개: 크고 긴 꼬리, 갓털 */
+function drawSeed(b){
+  const t3=b.tt>=3, n=b.trail.length, keep=t3?n:Math.min(n,3);
   ctx.save(); ctx.globalCompositeOperation='lighter';
-  for(let i=0;i<b.trail.length;i++){ const t=b.trail[i];
-    ctx.globalAlpha=i/b.trail.length*.5; ctx.fillStyle=M;
-    ctx.beginPath(); ctx.arc(t.x,t.y,b.r*.7,0,7); ctx.fill(); }
-  ctx.globalAlpha=1; ctx.shadowColor=M; ctx.shadowBlur=20; ctx.fillStyle='#E9DDFB';
-  const r=b.r*1.3;
+  for(let i=n-keep;i<n;i++){ const p=b.trail[i], k=(i-(n-keep)+1)/(keep+1);
+    ctx.globalAlpha=k*(t3?.6:.45); ctx.fillStyle='#F4CF3A';
+    ctx.beginPath(); ctx.arc(p.x,p.y,b.r*(t3?.8:.6)*k+1,0,7); ctx.fill(); }
+  ctx.globalAlpha=1;
+  const r=b.r*(t3?1.45:1.15);
+  ctx.shadowColor='#F4CF3A'; ctx.shadowBlur=t3?22:12;
+  const g=ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,r);
+  g.addColorStop(0,'#FFFDF0'); g.addColorStop(.5,'#FAE58F'); g.addColorStop(1,'rgba(244,207,58,.2)');
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(b.x,b.y,r,0,7); ctx.fill();
+  if(t3){                                                       // 갓털 — 뒤로 퍼진 가는 실
+    const sp=Math.hypot(b.vx,b.vy)||1, ux=-b.vx/sp, uy=-b.vy/sp;
+    ctx.shadowBlur=0; ctx.strokeStyle='rgba(243,237,223,.8)'; ctx.lineWidth=1;
+    ctx.beginPath();
+    for(let i=-3;i<=3;i++){ const a=Math.atan2(uy,ux)+i*0.28;
+      ctx.moveTo(b.x,b.y); ctx.lineTo(b.x+Math.cos(a)*r*2.3,b.y+Math.sin(a)*r*2.3); }
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+/* 들꽃 미사일 — 보라 꼬리를 단 촉. 단계가 오를수록 꼬리가 길고 빛이 세다 */
+function drawMissile(b){
+  const tt=b.tt||1;
+  const sp=Math.hypot(b.vx,b.vy)||1, ux=b.vx/sp, uy=b.vy/sp, nx=-uy, ny=ux, M='#9B6FD9';
+  const n=b.trail.length, keep=Math.min(n,[0,3,5,7][tt]);
+  ctx.save(); ctx.globalCompositeOperation='lighter';
+  for(let i=n-keep;i<n;i++){ const t=b.trail[i], k=(i-(n-keep)+1)/(keep+1);
+    ctx.globalAlpha=k*.55; ctx.fillStyle=M;
+    ctx.beginPath(); ctx.arc(t.x,t.y,b.r*(.5+.25*tt)*k+1,0,7); ctx.fill(); }
+  ctx.globalAlpha=1; ctx.shadowColor=M; ctx.shadowBlur=14+tt*6; ctx.fillStyle='#E9DDFB';
+  const r=b.r*(1.1+.2*tt);
   ctx.beginPath();
   ctx.moveTo(b.x+ux*r*1.6,b.y+uy*r*1.6);
   ctx.lineTo(b.x+nx*r*.8-ux*r,b.y+ny*r*.8-uy*r);
   ctx.lineTo(b.x-ux*r*.5,b.y-uy*r*.5);
   ctx.lineTo(b.x-nx*r*.8-ux*r,b.y-ny*r*.8-uy*r);
   ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+/* 미사일 폭발 — 보라 고리와 불꽃. 단계가 높을수록 크다 */
+function drawMissileBoom(f){
+  const k=1-f.t/0.45, R=[0,30,40,52][f.tt||1];
+  ctx.save(); ctx.globalCompositeOperation='lighter';
+  const g=ctx.createRadialGradient(f.x,f.y,0,f.x,f.y,R*(0.4+k));
+  g.addColorStop(0,`rgba(233,221,251,${0.7*(1-k)})`); g.addColorStop(1,'rgba(155,111,217,0)');
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(f.x,f.y,R*(0.4+k),0,7); ctx.fill();
+  ctx.globalAlpha=Math.max(0,1-k); ctx.strokeStyle='#9B6FD9'; ctx.lineWidth=3+ (f.tt||1);
+  ctx.beginPath(); ctx.arc(f.x,f.y,R*(0.3+k*0.9),0,7); ctx.stroke();
+  ctx.fillStyle='#D9C4F5';
+  for(let i=0;i<8;i++){ const a=i/8*Math.PI*2, d=R*(0.3+k*1.1);
+    ctx.beginPath(); ctx.arc(f.x+Math.cos(a)*d,f.y+Math.sin(a)*d,2,0,7); ctx.fill(); }
   ctx.restore();
 }
 /* 홍계월 출정 — 다섯 빛이 섞인 먹안개가 0.6초에 왼쪽에서 오른쪽으로 */
@@ -3833,13 +3947,16 @@ function drawMyeong(){
   if(!S||S.screen!=='play'||META.char!=='myeongseon'||!S.myeong)return;
   const st=S.myeong, Y='#F4CF3A';
   ctx.save(); ctx.lineCap='round';
-  for(const f of st.fx){                                       // 번짐 — 노란 고리
-    const k=1-f.t/0.4;
+  for(const f of st.fx){
+    if(f.kind==='m'){ drawMissileBoom(f); continue; }         // 들꽃 미사일 폭발
+    const k=1-f.t/0.4;                                         // 번짐 — 노란 고리
     ctx.globalAlpha=Math.max(0,1-k); ctx.strokeStyle=Y; ctx.lineWidth=3;
     ctx.beginPath(); ctx.arc(f.x,f.y,10+k*26,0,7); ctx.stroke();
   }
   ctx.globalAlpha=1;
-  for(const q of myeongTurrets()) drawTurret(q,st);
+  const tier=myTier(myPow());
+  for(const q of myeongTurrets()) drawTurret(q,st,Math.min(3,tier+(q.kind==='b'?1:0)));
+  drawPetals(st);
   const a=st.air;
   if(a){
     const cx=VW/2, cy=(CEIL_Y+DANGER_Y)/2;
@@ -4594,6 +4711,7 @@ function hitBrick(b,ball){
   }
   let dv=dmgOf(ball);
   if(META.char==='myeongseon'&&!b.quiz) dv*=2;            // 명선이 — 석판에도 두 배
+  if(ball.bigT&&!b.quiz) dv+=Math.ceil((b.maxHp||b.hp)*0.04);   // 쥐바라숭꽃 큰 터렛 — 최대 체력 4%
   if(b.brandT>0) dv=Math.round(dv*(1+(b.brandV||0.3)));      // 낙인
   if(S.finish&&b.hp<=b.maxHp/2) dv=Math.round(dv*(1+S.finish)); // 모루
   if(S.moraleMul && S.energy>=S.energyMax*0.8) dv=Math.round(dv*(1+S.moraleMul)); // 사기
@@ -4611,8 +4729,10 @@ function hitBrick(b,ball){
   const over=capped+Math.max(0,dv-Math.max(0,b.hp));   // 상한에 막힌 몫 + 체력을 넘긴 몫
   b.hp-=dv;b.hit=.16;
   burst(ball.x,ball.y,4,'stone');
-  if(ball.missile) ball.life=-1;                         // 들꽃 미사일 — 한 번 맞히고 사라진다
-  if(META.char==='myeongseon'&&!b.quiz){ myeongSpread(b,dv); if(S.screen!=='play')return; }   // 번짐
+  if(ball.tur&&ball.tt>=3&&!ball.missile){ const st=myeongSt(); st.petal=(st.petal||[]).concat(petalBurst(ball.x,ball.y,5)); }
+  if(ball.missile){ ball.life=-1;                         // 들꽃 미사일 — 맞으면 터지고 사라진다
+    if(!b.quiz){ missileBoom(b,dv,ball.tt); if(S.screen!=='play')return; } }
+  else if(META.char==='myeongseon'&&!b.quiz){ myeongSpread(b,dv); if(S.screen!=='play')return; }   // 번짐
   if(jaraForm()==='king'&&!ball.baby&&!b.quiz)                       // 용왕 — 맞을 때마다 새끼 하나 (새끼는 새끼를 안 낳는다)
     spawnBaby(ball.x,ball.y,Math.random()*Math.PI*2,Math.hypot(ball.vx,ball.vy)*0.8||CONFIG.ballSpeed*0.5);
   /* 월 — 남는 위력은 버려지지 않고 옆으로 퍼진다 */
@@ -4709,7 +4829,7 @@ function hitBoss(ball){
   if(B.small) mul*=2;
   if(ball.bossCut) mul*=ball.bossCut;              // 홍길동 율도국 분신 구슬
   if(ball.missile) ball.life=-1;
-  const dv=dmgOf(ball)*mul*(META.char==='myeongseon'?2:1);   // 명선이 — 두 배
+  const dv=(dmgOf(ball)+(ball.bigT?(B.maxHp||0)*0.002:0))*mul*(META.char==='myeongseon'?2:1);   // 명선이 — 두 배 · 큰 터렛 0.2%
   B.hp-=dv;B.hit=.14;
   popNum(ball.x,ball.y-14,dv,open);
   burst(ball.x,ball.y,4,'gold');
@@ -8957,6 +9077,7 @@ function draw(){
     if(b.baby) continue;
     if(b.arrow){ drawArrowBall(b); continue; }
     if(b.missile){ drawMissile(b); continue; }
+    if(b.tur&&b.tt>=2){ drawSeed(b); continue; }
     /* 김첨지 — 실린 힘이 클수록 짙은 금빛이 된다 */
     const k=Math.max(0,Math.min(1,((b.chg||1)-1)/Math.max(0.001,chargeFull()-1)));
     const col=b.whirl2 ? '#9B6FD9'                 // 먹 소용돌이 — 보라빛
@@ -11969,8 +12090,8 @@ const ACTIVE={
                desc2:'「판돈」 — 큰 주사위 결과를 <b>두 배</b>로 받는다 (1이면 기력 −40%)<br>모든 석판 <b>90%</b>, 보스 <b>40%</b>'},
  jumong:      {name:'햇빛 화살',   desc:'판 너비를 여덟으로 나눈 <b>빛줄기 여덟</b>이 위에서 떨어진다<br>닿는 석판마다 최대 체력의 <b>60%</b>, 보스는 닿은 줄기마다 <b>6%</b>',
                desc2:'「과녁」 — 세로 여덟 줄기가 떨어지고, 0.5초 뒤 <b>가로 줄기</b>가 줄마다 쓸고 간다<br>줄기 하나에 석판 <b>80%</b>, 보스는 닿은 줄기마다 <b>10%</b>. 겹치는 칸은 두 번 맞는다'},
- myeongseon:  {name:'쥐바라숭꽃',  desc:'40초 동안 판 가운데 쪽 좌우에 <b>큰 터렛</b> 둘이 서서 0.8초마다 쏜다<br>그동안 <b>모든 터렛</b>이 두 발씩 쏜다',
-               desc2:'「공습」 — 3초 동안 겨눈 뒤 터진다<br>모든 석판에 최대 체력의 <b>90%</b>, 보스에게 <b>40%</b>'}
+ myeongseon:  {name:'쥐바라숭꽃',  desc:'25초 동안 판 가운데 쪽 좌우에 <b>큰 터렛</b> 둘이 서서 0.8초마다 쏜다<br>큰 터렛 구슬은 석판 최대 체력의 <b>4%</b>를 더한다 (보스 0.2%) · 그동안 <b>모든 터렛</b>이 두 발씩',
+               desc2:'「공습」 — 3초 동안 겨눈 뒤 터진다<br>모든 석판에 최대 체력의 <b>90%</b>, 보스에게 <b>40%</b><br>터진 뒤 <b>10초</b> 동안 쥐바라숭꽃이 선다'}
 };
 const acDef  = id=>ACTIVE[id]||null;
 const p3Open = id=>!!(META.p3&&META.p3[id]);
@@ -12047,7 +12168,7 @@ function acFire(id,t2){
     jumongBeams(t2);
   }else if(id==='myeongseon'){                      // 쥐바라숭꽃 · 공습
     const st=myeongSt();
-    if(t2) st.air={t:0, hit:false}; else st.side=40;
+    if(t2) st.air={t:0, hit:false}; else st.side=25;
   }else return false;
   return true;
 }
