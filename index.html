@@ -1994,7 +1994,7 @@ const PACTS = [
   {n:2, name:'얕은 서랍', text:'고를 카드가 한 장 줄어든다'},
   {n:3, name:'무거운 석판',text:'석판이 25% 단단해진다'},
   {n:4, name:'잦은 물음', text:'경보가 더 자주 온다'},
-  {n:5, name:'잊힌 이름', text:'경보의 뜻풀이가 1.5초 뒤 사라진다'},
+  {n:5, name:'잊힌 이름', text:'경보의 뜻풀이가 1.5초마다 사라졌다 나타난다'},
   {n:6, name:'거센 물살', text:'석판이 12% 빨리 내려온다'},
   {n:7, name:'닫힌 방벽', text:'방벽이 열려 있는 시간이 절반'},
 ];
@@ -9357,6 +9357,17 @@ function brickFont(b){
   const L=Math.max(1,(b.word&&b.word.w?b.word.w.length:1));
   return Math.max(16,Math.round(Math.min(b.h*0.62, b.w*0.88/L)));
 }
+/* 잊힌 이름(심연 5단) — 경보 뜻풀이가 1.5초 보이고 1.5초 사라진다. 0.2초에 걸쳐 흐려진다.
+   경보 석판은 그대로 보인다. 보스 경보는 빠진다 */
+const FORGET=1.5, FORGET_FADE=.2;
+function forgetAlpha(){
+  if(!pactOn(5)||!S.alert||S.alert.boss)return 1;
+  const t=(S.alert.shown||0)%(FORGET*2);
+  if(t<FORGET-FORGET_FADE) return 1;
+  if(t<FORGET)             return (FORGET-t)/FORGET_FADE;
+  if(t<FORGET*2-FORGET_FADE) return 0;
+  return (t-(FORGET*2-FORGET_FADE))/FORGET_FADE;
+}
 function drawBrick(b){
   const wear=b.hp/b.maxHp;
   const kd=b.kind?kindDef(b.kind):null;      // 함수 전체에서 쓰인다
@@ -9651,10 +9662,12 @@ function drawAlertOverlay(){
     const verse=(S.alert.verses>1)?`  ${S.alert.verse}/${S.alert.verses}소절`:'';
     ctx.fillText(`${S.alert.boss?'◆ 혼이 묻는다 ◆':'◆ 구덩이가 묻는다 ◆'}   ${lessonLabel()}${verse}`,VW/2,BANNER.t+22);
     ctx.font=`400 45px 'Gowun Batang',serif`;      // 1.5배
-    if(S.alert.bannerOn===false || (pactOn(5)&&!S.alert.boss&&(S.alert.shown||0)>1.5)){
+    const fa=forgetAlpha();                          // 잊힌 이름 — 뜻풀이가 깜빡인다
+    if(S.alert.bannerOn===false || fa<=0){
       ctx.fillStyle='rgba(222,211,184,.22)';
       ctx.fillText('…',VW/2,BANNER.t+h*.66);
     }else{
+      ctx.globalAlpha*=fa;
       ctx.fillStyle=C['--paper'];
       wrapText(S.alert.ans.def,VW/2,BANNER.t+h*.64,WALL_R-WALL_L-50,54);
     }
