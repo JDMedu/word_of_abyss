@@ -13,7 +13,7 @@ const GAM={
   tonicHeal:0.05,      // 보약 한 잔
   wait:1.5,            // 노름꾼이 뜸 들이는 시간
   ink3:200, ink2:100,  // 세 판을 다 이기면 200먹, 두 판이면 100먹
-  shardInk:1000,       // 대장간에서 작가의 조각 하나를 사는 값
+  shardInk:3000,       // 대장간에서 작가의 조각 하나를 사는 값
   narrShard:10,        // 서술자의 개입을 여는 조각 수
   quizN:4,             // 앉기 전에 묻는 낱말 수
 };
@@ -137,13 +137,11 @@ function gambleEnd(wins){                        // -1 이면 지나친 것이�
   if(typeof mBump==='function'){                 // 미션 셈
     if(wins>=0) mBump('gamMeet');                // 지나친 것은 만난 것으로 안 친다
     if(wins>0) mBump('gamRound', wins);          // 이긴 판 수
-    if(wins>=2) mBump('gamWin');                 // 조각을 받았다
+    if(wins>=2) mBump('gamWin');                 // 두 판을 이겼다 (조각은 3승만)
     if(wins>=3) mBump('gamPerfect');
   }
-  if(wins>=2){
-    S.bonusInk += (wins>=3 ? GAM.ink3 : GAM.ink2);
-    META.wshard=(META.wshard||0)+1; try{ saveMeta(); }catch(e){}
-  }
+  if(wins>=2) S.bonusInk += (wins>=3 ? GAM.ink3 : GAM.ink2);
+  if(wins>=3){ META.wshard=(META.wshard||0)+1; try{ saveMeta(); }catch(e){} }   // 조각은 3승만
   GB=null; S.screen='play'; show(null);
   if(done) done(wins);
 }
@@ -320,16 +318,17 @@ function gReward(wins){
   const need=GAM.narrShard;
   const left=Math.max(0,need-have);
   const narr=!!META.narrator;
-  let t=`먹 <b style="color:var(--gold)">+${ink}</b>`
-      + `<br>작가의 조각 <b style="color:var(--gold)">+1</b>`
+  const got=wins>=3;                             // 조각은 세 판을 다 이겨야
+  let t=`먹 <b style="color:var(--gold)">+${ink}</b>`;
+  if(got) t += `<br>작가의 조각 <b style="color:var(--gold)">+1</b>`
       + ` <span style="font-size:.72em;color:var(--stone-deep)">모두 ${have}개</span>`;
-  if(!narr) t += left>0
+  if(got && !narr) t += left>0
     ? `<div style="margin-top:.9em;font-size:.78em;color:var(--stone-deep)">`
       +`서술자의 개입까지 ${left}개 남았다</div>`
     : `<div style="margin-top:.9em;font-size:.82em;color:var(--jade)">`
       +`조각 ${need}개가 찼다 — 대장간에서 서술자를 부를 수 있다</div>`;
   if(wins<3) t += `<div style="margin-top:.6em;font-size:.72em;color:var(--stone-deep)">`
-      +`세 판을 다 이겼으면 먹 ${GAM.ink3}이었다</div>`;
+      +`세 판을 다 이겼으면 작가의 조각과 먹 ${GAM.ink3}이었다</div>`;
   if(typeof showResult==='function'){
     showResult(wins>=3?'세 판을 다 이겼다':'두 판을 이겼다',
                wins>=3?'⚅':'⚄',
@@ -929,8 +928,8 @@ const GHELP=[
     그러니 보약을 건네면 차례를 내주는 셈입니다.<br>
     노름꾼은 몸이 없어 마셔도 낫지 않습니다. 차례만 가져갑니다.`},
  {h:'판', t:`세 판을 모두 치릅니다.<br>
-    <b>두 판을 이기면</b> 작가의 조각 하나와 먹 100을 <b>얻습니다.</b><br>
-    <b>세 판을 다 이기면</b> 먹이 200으로 늡니다.<br>
+    <b>두 판을 이기면</b> 먹 100을 <b>얻습니다.</b><br>
+    <b>세 판을 다 이기면</b> 작가의 조각 하나와 먹 200을 얻습니다.<br>
     <b>한 판 이하면</b> 구슬 하나나 위력 한 단을 <b>잃습니다.</b><br>
     한 판 질 때마다 기력도 깎입니다.`},
  {h:'도구 — 앉기 전 낱말 넷', t:`맞힌 수만큼 받고, <b>세 판을 그것으로 다 치릅니다.</b><br>
@@ -958,7 +957,7 @@ const GHELP=[
   m.innerHTML=`<div class="eyebrow">구덩이 한쪽</div>
     <h2>상 앞에 앉은 자가 <em>손짓한다</em></h2>
     <div id="gmStake">
-      <div><span>이기면</span><b>작가의 조각 하나와 먹을 얻는다</b></div>
+      <div><span>이기면</span><b>먹을 얻는다 · 세 판을 다 이기면 작가의 조각도</b></div>
       <div><span>지면</span><b>구슬 하나나 위력 한 단을 잃는다</b></div>
     </div>
     <div id="gmWarn">한 번 지나치면 이번 판에서는 다시 만나지 않는다.</div>
@@ -1045,7 +1044,7 @@ function admGamble(){
     if(typeof refreshTitle==='function') refreshTitle();
     alert(wins<0 ?'지나쳤다 — 이 판에서는 다시 안 만난다'
          :wins>=3?'3승 — 작가의 조각 하나, 먹 200'
-         :wins>=2?'2승 — 작가의 조각 하나, 먹 100'
+         :wins>=2?'2승 — 먹 100 (조각은 3승만)'
          :`${wins}승 — 졌다`);
   });
 }
