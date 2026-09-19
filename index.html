@@ -848,7 +848,7 @@ const CONFIG = {
 
   alertGap:8,                // 경보 줄과 뒤따르는 석판 사이의 틈(px)
   alertBand:[0.30,0.90],     // 층을 이 사이만큼 깼을 때 한 번, 자리는 판마다 다르다
-  alertHardN:2,              // 계약 · 잦은 물음이면 이만큼 온다
+  crossPact:1.5,             // 계약 · 강한 고민 — 경계선 피해 배수
   alertEvery:10, alertChoicesByChapter:[4,5,5,6,6], alertBrickHp:3,
   /* 경보 후보 수 — 이 층부터 이만큼 */
   alertChoiceCurve:[[1,4],[9,5],[24,6],[34,7]],
@@ -932,6 +932,7 @@ const CONFIG = {
   gamblerRateLow:1/22,          // 1~20층 — 여기서 더 자주 만난다
   gamblerRateHigh:1/30,         // 21~40층
   inkGain:1.60,              // 들어오는 먹을 통째로 이만큼 곱한다
+  inkRunMul:0.9,             // 한 판에서 얻는 먹 전체 — 10% 줄였다
 
   /* 심연(회차)마다 붙는 값 */
   abyssStep:0.10,        // 심연 한 단마다 하강·보스 공격이 오른다
@@ -1993,7 +1994,7 @@ const PACTS = [
   {n:1, name:'굳은 손',   text:'경보를 틀리면 기력이 깎인다'},
   {n:2, name:'얕은 서랍', text:'고를 카드가 한 장 줄어든다'},
   {n:3, name:'무거운 석판',text:'석판이 25% 단단해진다'},
-  {n:4, name:'잦은 물음', text:'경보가 더 자주 온다'},
+  {n:4, name:'강한 고민', text:'석판이 경계선을 넘을 때 받는 피해 +50%'},
   {n:5, name:'잊힌 이름', text:'경보의 뜻풀이가 1.5초마다 사라졌다 나타난다'},
   {n:6, name:'거센 물살', text:'석판이 12% 빨리 내려온다'},
   {n:7, name:'닫힌 방벽', text:'방벽이 열려 있는 시간이 절반'},
@@ -2089,7 +2090,7 @@ const CHARS = [
    p2:'삼지창', p2desc:'화살이 <b>세 갈래</b>(가운데와 좌우 15°)로 나간다<br>가운데 줄기만 <b>천장까지</b> 날아간다'},
   {id:'chunpung', name:'이춘풍', work:'이춘풍전',
    skill:'주사위',
-   desc:'30초마다 주사위를 굴린다. 나온 눈이 <b>10초</b> 동안 모든 능력에 걸린다<br>'
+   desc:'30초마다 주사위를 굴린다. 나온 눈이 <b>15초</b> 동안 모든 능력에 걸린다<br>'
        +'1 <b>−30%</b> · 2 <b>−10%</b> · 3 그대로 · 4 <b>+30%</b> · 5 <b>+50%</b> · 6 <b>+100%</b><br>'
        +'모든 능력 — 이동 속도 · 발사 간격 · 구슬 속도 · 위력 · 구슬 수 · 치명타 확률',
    floor:0, cost:700, color:'#5A7BD0',
@@ -2202,7 +2203,7 @@ function settleSavedRun(){
   t+=d.bonusInk||0;
   const learned=(d.learned||[]).length;
   if(lvOf('rub')) t+=Math.floor(learned/10)*lvOf('rub');           // 탁본
-  const gained=Math.round(t*abyssInkMul());
+  const gained=Math.round(t*abyssInkMul()*CONFIG.inkRunMul);
   META.ink=(META.ink||0)+gained;
   META.runs=(META.runs||0)+1;
   META.totalWords=(META.totalWords||0)+(d.totalWords||0);
@@ -2878,7 +2879,7 @@ function runInk(){
   for(let f=S.startStage;f<=S.stage;f++) t+=CONFIG.inkPerFloor*zoneMul(f)*CONFIG.inkGain;
   t+=S.bonusInk;
   if(S.tome&&S.tome.inkCut) t*=(1-S.tome.inkCut);
-  return Math.round(t*abyssInkMul());
+  return Math.round(t*abyssInkMul()*CONFIG.inkRunMul);
 }
 
 function hurt(amount,opt){
@@ -3161,13 +3162,16 @@ function tryFire(){
   S.shotIdx=0;                                // 살얼음 — 이번 발사의 몇 번째인가
   const base=Math.atan2(S.aimY,S.aimX);
   const extra=jailOn()?2:0;                   // 옥중가 — 구슬 둘이 더 나간다
+  S.fanSide=-(S.fanSide||-1);                 // 춘향 — 먼저 벌어지는 쪽을 발사마다 바꾼다
   const N=S.shotBalls+extra;
   for(let i=0;i<N;i++){
     let ang=base, mid=false;
-    if(META.char==='chunhyang'){            // 춘향 — 45° 부채꼴, 한가운데가 빠르다
-      const k=N>1 ? (i/(N-1))-0.5 : 0;
-      ang=base+k*CONFIG.fanArc*(jailOn()?2:1);   // 옥중가 — 몰리면 90°로 벌어진다
-      mid=Math.abs(k)<=0.5/Math.max(1,N-1);
+    if(META.char==='chunhyang'){            // 춘향 — 45° 부채꼴. 첫 발은 정면(빠르다), 뒤로 좌우를 번갈아
+      const half=CONFIG.fanArc*(jailOn()?2:1)/2;  // 옥중가 — 몰리면 90°로 벌어진다
+      const step=half/Math.max(1,Math.ceil((N-1)/2));
+      const j=Math.ceil(i/2), sd=(i%2?1:-1)*S.fanSide;
+      ang=base+(i?sd*j*step:0);
+      mid=i===0;
     }
     S.queue.push({t:i*CONFIG.burstGap, ang, slot:S.cyc, mid, chg:S.chargeMul||1});
     S.cyc=(S.cyc+1)%S.ballSlots.length;     // 슬롯을 돌아가며 쏜다
@@ -4314,6 +4318,7 @@ const CHUN_PCT={1:-0.3,2:-0.1,3:0,4:0.3,5:0.5,6:1.0};
 const CHUN_BIG={1:'기력 −20%',2:'기력 10% 회복',3:'구슬 강화 1',4:'구슬·문방 강화 1',
   5:'기력 20% 회복 · 최대기력 +10%',6:'구슬·문방 강화 1 · 기력 20% 회복 · 최대기력 +10%'};
 const die6=()=>1+Math.floor(Math.random()*6);
+const CHUN_ON=15;                                     // 주사위 눈이 걸려 있는 시간 — 고유·큰 주사위 모두
 function chunSt(){ return S.chun||(S.chun={next:10, roll:null, on:0, mul:1, big:null}); }
 function chunMul(){
   if(!S||META.char!=='chunpung'||!S.chun||!(S.chun.on>0))return 1;
@@ -4347,13 +4352,19 @@ function chunBigHit(B){
     recalc(); healPct(0.2*m);
   }
   recalc();
-  S.alertMsg={text:`큰 주사위 ${f}${B.t2?' × 2':''} — ${CHUN_BIG[f]}`,t:2.4,ok:f!==1};
+  /* 큰 주사위 눈도 고유 주사위처럼 15초 동안 모든 능력에 — 판돈이면 두 배.
+     굴러가던 고유 주사위는 거두고, 끝날 때까지 새로 굴리지 않는다 */
+  const st=chunSt(), pc=Math.round(CHUN_PCT[f]*m*100);
+  st.mul=Math.max(0.1,1+CHUN_PCT[f]*m); st.on=CHUN_ON; st.roll=null;
+  st.show={final:f, t2:B.t2, msg:`큰 주사위 ${f}${B.t2?' × 2':''} — 모든 능력 ${pc>0?'+':(pc<0?'−':'')}${Math.abs(pc)}%`, sub:CHUN_BIG[f]+(B.t2?' (두 배)':'')};
+  S.alertMsg={text:`${st.show.msg} · ${st.show.sub}`,t:2.4,ok:f!==1};
   if(f===1||f===6) skillSay(f===1?'d1':'d6');
   S.shake=Math.max(S.shake,30); vibe('boss');
 }
 function chunTick(dt){
   const st=chunSt();
   st.next-=dt;
+  if(st.next<=0 && (st.big||st.show)) st.next=0.5;  // 큰 주사위가 끝날 때까지 기다린다
   if(st.next<=0){                                   // 30초마다 굴린다
     st.next=30;
     const n=p2On('chunpung')?2:1;
@@ -4366,16 +4377,16 @@ function chunTick(dt){
     else if(!R.done){
       R.done=true;
       const sum=R.final.reduce((a,f)=>a+CHUN_PCT[f],0);
-      st.mul=Math.max(0.1,1+sum); st.on=10; recalc();
+      st.mul=Math.max(0.1,1+sum); st.on=CHUN_ON; recalc();
       const pc=Math.round(sum*100);
       R.msg=`${R.final.join(' · ')} — 모든 능력 ${pc>0?'+':(pc<0?'−':'')}${Math.abs(pc)}%`;
       S.alertMsg={text:`이춘풍 ${R.msg}`,t:2.0,ok:pc>=0};
       if(R.final.includes(1)) skillSay('d1');
       if(R.final.includes(6)){ skillSay('d6'); rBump('six',R.final.filter(f=>f===6).length); }   // 복선 — 6은 눈 개수로
     }
-    if(R.t>=11) st.roll=null;
+    if(R.t>=CHUN_ON+1) st.roll=null;
   }
-  if(st.on>0){ st.on-=dt; if(st.on<=0){ st.on=0; st.mul=1; recalc(); } }
+  if(st.on>0){ st.on-=dt; if(st.on<=0){ st.on=0; st.mul=1; st.show=null; recalc(); } }
   const B=st.big;
   if(B){
     B.t+=dt;
@@ -4396,7 +4407,7 @@ function drawChun(){
       drawDie(x,y+bounce,64,rolling?R.faces[i]:R.final[i],rolling?R.t*14*(i?-1:1):0,col);
     }
     if(!rolling&&st.on>0){
-      const k=Math.max(0,st.on/10), rr=58+(R.n-1)*40;
+      const k=Math.max(0,st.on/CHUN_ON), rr=58+(R.n-1)*40;
       ctx.lineWidth=5; ctx.lineCap='round';
       ctx.strokeStyle='rgba(222,211,184,.2)'; ctx.beginPath(); ctx.arc(X,y,rr,0,7); ctx.stroke();
       ctx.strokeStyle=col; ctx.beginPath(); ctx.arc(X,y,rr,-Math.PI/2,-Math.PI/2+Math.PI*2*k); ctx.stroke();
@@ -4404,6 +4415,19 @@ function drawChun(){
       ctx.shadowColor='rgba(0,0,0,.9)'; ctx.shadowBlur=8;
       ctx.fillText(R.msg,X,y-rr-18);
     }
+  }
+  if(st.show&&!st.big&&st.on>0){                      // 큰 주사위 눈 — 고유 주사위 자리에 남아 시간을 센다
+    const y=CEIL_Y+320, X=VW/2, k=Math.max(0,st.on/CHUN_ON), rr=66;
+    drawDie(X,y,st.show.t2?72:64,st.show.final,0,col);
+    ctx.lineWidth=st.show.t2?7:5; ctx.lineCap='round';
+    ctx.strokeStyle='rgba(222,211,184,.2)'; ctx.beginPath(); ctx.arc(X,y,rr,0,7); ctx.stroke();
+    ctx.strokeStyle=st.show.t2?C['--gold']:col; ctx.beginPath(); ctx.arc(X,y,rr,-Math.PI/2,-Math.PI/2+Math.PI*2*k); ctx.stroke();
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.shadowColor='rgba(0,0,0,.9)'; ctx.shadowBlur=8;
+    ctx.font=`700 24px 'Gowun Batang',serif`; ctx.fillStyle='#A9BDEB';
+    ctx.fillText(st.show.msg,X,y-rr-40);
+    ctx.font=`500 19px 'Gowun Batang',serif`; ctx.fillStyle='rgba(222,211,184,.8)';
+    ctx.fillText(st.show.sub,X,y-rr-14);
   }
   const B=st.big;
   if(B){
@@ -4514,7 +4538,7 @@ function skillSay(key){
 /* 층마다 경보가 설 자리를 미리 뽑는다.
    30~90% 사이 아무 데나 — 층이 열릴 때 한 번 정해 두고 그대로 쓴다 */
 function rollAlertMarks(){
-  const [lo,hi]=CONFIG.alertBand, k=pactOn(4)?CONFIG.alertHardN:1;
+  const [lo,hi]=CONFIG.alertBand, k=1;
   const out=[];
   for(let i=0;i<k;i++){
     const a=lo+(hi-lo)*(i/k), b=lo+(hi-lo)*((i+1)/k);
@@ -8850,7 +8874,7 @@ function update(dt){
     /* 경계선 — (함께 넘은 석판 수 ÷ 2) × 피해를 한 번에. 최대 기력 절반까지 (한 방에 끝나지 않게) */
     if(fell.size){
       let n=0; for(const v of fell.values()) n+=v;
-      hurt(CONFIG.brickDamage*(1-(S.touchCut||0))*diff()*n/2, {capPct:0.5});
+      hurt(CONFIG.brickDamage*(1-(S.touchCut||0))*diff()*n/2*(pactOn(4)?CONFIG.crossPact:1), {capPct:0.5});
       if(S.screen!=='play')return;
     }
     // 금 석판 — 줄에 섞이지 않고 혼자, 빈 칸을 골라 내려온다
@@ -12140,9 +12164,10 @@ const ACTIVE={
  jara:        {name:'신선',        desc:'기력 <b>20%</b> 회복 · 갑옷 <b>1겹</b> (대장간 최대치보다 한 겹까지 더)<br>물결이 왼쪽에서 오른쪽으로 빠르게 쓸고 가며 석판 최대 체력의 <b>20%</b>, 보스 <b>3%</b>',
                desc2:'「용궁의 물결」 — 기력 <b>30%</b> 회복<br>물결이 2초마다 <b>세 번</b> 아래에서 위로 쓸고 올라간다 (약 6초)<br>한 번에 석판 <b>30%</b>, 보스 <b>4%</b>'},
  chunpung:    {name:'큰 주사위',   desc:'화면 가운데에서 큰 주사위를 굴린다. 모든 석판 최대 체력의 <b>70%</b>, 보스 <b>30%</b><br>'
+                 +'나온 눈이 고유 주사위처럼 <b>15초</b> 동안 모든 능력에 걸린다<br>'
                  +'1 기력 −20% · 2 기력 10% 회복 · 3 구슬 강화 1 · 4 구슬·문방 강화 1<br>'
                  +'5 기력 20% 회복, 최대기력 +10% · 6 구슬·문방 강화 1, 기력 20% 회복, 최대기력 +10%',
-               desc2:'「판돈」 — 큰 주사위 결과를 <b>두 배</b>로 받는다 (1이면 기력 −40%)<br>모든 석판 <b>90%</b>, 보스 <b>40%</b>'},
+               desc2:'「판돈」 — 큰 주사위 결과를 <b>두 배</b>로 받는다 (1이면 기력 −40%, 능력 −60%)<br>모든 석판 <b>90%</b>, 보스 <b>40%</b>'},
  jumong:      {name:'햇빛 화살',   desc:'판 너비를 여덟으로 나눈 <b>빛줄기 여덟</b>이 위에서 떨어진다<br>닿는 석판마다 최대 체력의 <b>60%</b>, 보스는 닿은 줄기마다 <b>6%</b>',
                desc2:'「과녁」 — 세로 여덟 줄기가 떨어지고, 0.5초 뒤 <b>가로 줄기</b>가 줄마다 쓸고 간다<br>줄기 하나에 석판 <b>80%</b>, 보스는 닿은 줄기마다 <b>10%</b>. 겹치는 칸은 두 번 맞는다'},
  myeongseon:  {name:'쥐바라숭꽃',  desc:'25초 동안 판 가운데 쪽 좌우에 <b>큰 터렛</b> 둘이 서서 0.8초마다 쏜다<br>큰 터렛 구슬은 석판 최대 체력의 <b>4%</b>를 더한다 (보스 0.2%) · 그동안 <b>모든 터렛</b>이 두 발씩',
@@ -12174,19 +12199,19 @@ function acFire(id,t2){
     }
     S.clones={t:t2?7.0:5.0, list, t2:!!t2};
   }else if(id==='chunhyang'){                        // 어사출또
-    const c=cell(), arr=[], T0=t2?3.40:0.85;
-    const add=(x0,e0)=>arr.push({x0, x1:x0+c, e0, at:T0-e0-0.24, hit:false});
+    const c=cell(), arr=[], T0=t2?3.40:1.28, fall=t2?0.24:0.36;   // 내려찍는 시간 — 기술1은 느리게
+    const add=(x0,e0)=>arr.push({x0, x1:x0+c, e0, at:T0-e0-fall, hit:false});
     if(t2){                                          /* 좌→우 · 우→좌 · 쉬고 한 번 더 */
       const N=cols();
       for(let k=0;k<N;k++)    add(WALL_L+c*k, 0.10+k*0.035);
       for(let k=N-1;k>=0;k--) add(WALL_L+c*k, 0.80+(N-1-k)*0.035);
       for(let k=0;k<N;k++)    add(WALL_L+c*k, 2.05+k*0.035);
       for(let k=N-1;k>=0;k--) add(WALL_L+c*k, 2.75+(N-1-k)*0.035);
-    }else{                                           /* 다섯 칸, 왼쪽부터 0.04초씩 */
+    }else{                                           /* 다섯 칸, 왼쪽부터 0.06초씩 — 1.5배 느리게 */
       const n=5, mid=Math.max(WALL_L+c*n/2, Math.min(WALL_R-c*n/2, S.px));
-      for(let k=0;k<n;k++) add(mid-c*n/2+c*k, 0.16+k*0.04);
+      for(let k=0;k<n;k++) add(mid-c*n/2+c*k, 0.24+k*0.06);
     }
-    S.baton={t:T0, T0, cols:arr, bp:(t2?0.20:0.08)/arr.length};
+    S.baton={t:T0, T0, fall, cols:arr, bp:(t2?0.20:0.08)/arr.length};
   }else if(id==='jeomsun'){                          // 먹구덩이
     const my=(CEIL_Y+DANGER_Y)/2;
     const pts=t2?[[VW*0.28,my-150],[VW*0.72,my-150],[VW/2,my+130]]:[[VW/2,my]];
@@ -13233,7 +13258,7 @@ function drawAc6(){
     ctx.save();
     for(let k=0;k<t.cols.length;k++){
       const c=t.cols[k], cx=(c.x0+c.x1)/2, w=c.x1-c.x0;
-      const e0=c.e0, p=Math.max(0,Math.min(1,(el-e0)/0.24));
+      const e0=c.e0, p=Math.max(0,Math.min(1,(el-e0)/(t.fall||0.24)));
       if(el<e0){                                     // 아직 — 그 칸에 금빛 점선이 선다
         ctx.globalAlpha=Math.min(1,el/Math.max(e0,.001))*0.5;
         ctx.strokeStyle=C['--gold']; ctx.lineWidth=2; ctx.setLineDash([10,10]);
