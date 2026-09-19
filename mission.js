@@ -122,7 +122,7 @@ const WEEKLY=[
   MK('w37','mid','40층까지 내려가기','floor',40, OK.f35),
   MK('w38','mid','되살아나지 않고 20층 내려가기','noRev',20),
   MK('w39','mid','노름꾼에게 한 판 이기기','gamRound',1),
-  MK('w40','mid','노름꾼을 두 판 이겨 조각 받기','gamWin',1),
+  MK('w40','mid','노름꾼을 두 판 이기기','gamWin',1),
   MK('w41','mid','노름꾼을 세 판 다 이기기','gamPerfect',1),
   MK('w42','mid','노름꾼을 두 번 만나기','gamMeet',2),
   MK('w43','mid','구슬을 세 번 융합하기','fuse',3),
