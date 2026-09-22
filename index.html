@@ -849,6 +849,8 @@ const CONFIG = {
   alertGap:8,                // 경보 줄과 뒤따르는 석판 사이의 틈(px)
   alertBand:[0.30,0.90],     // 층을 이 사이만큼 깼을 때 한 번, 자리는 판마다 다르다
   crossPact:1.5,             // 계약 · 강한 고민 — 경계선 피해 배수
+  pactWrongPct:0.05,         // 계약 · 굳은 손 — 오답 피해(최대 기력 비율, 층 난이도를 곱한다)
+  critHealCap:0.02,          // 치명타 회복 — 1초에 최대 기력의 이만큼까지
   alertEvery:10, alertChoicesByChapter:[4,5,5,6,6], alertBrickHp:3,
   /* 경보 후보 수 — 이 층부터 이만큼 */
   alertChoiceCurve:[[1,4],[9,5],[24,6],[34,7]],
@@ -1560,7 +1562,7 @@ const GEARS = [
    text:lv=>`상태이상 한 겹마다 치명타 확률 +${[0,2.1,3.5,5.4,8.6,13.8,15.2,16.6,18][lv]}%`,
    critPer:[0,0.021,0.035,0.054,0.086,0.138,0.152,0.166,0.18]},
   {id:'pouch', icon:'⊙', name:'피주머니', tier:2, line:'rain',
-   text:lv=>`치명타가 터지면 기력 +${[0,1,2,3,4,7,8,9,10][lv]}`,
+   text:lv=>`치명타가 터지면 기력 +${[0,1,2,3,4,7,8,9,10][lv]} (1초에 최대 기력 2%까지)`,
    critHeal:[0,1,2,3,4,7,8,9,10]},
   {id:'jamo',  icon:'字', name:'자모', tier:3, line:'poison',
    text:lv=>`치명타가 터지면 상태이상이 ${lv}겹 쌓인다`,
@@ -1974,7 +1976,7 @@ const UPGRADES = [
   {id:'temper', name:'연마',  desc:'구슬 최대 레벨 +1 (5→8)',     unit:140, cap:3},
   /* ── 치명타 ── 확률만 오르고 배수는 3배로 고정이다 ── */
   {id:'keen',   name:'예기',  desc:'치명타 확률 +2%',             unit:55,  cap:5},
-  {id:'edge',   name:'서슬',  desc:'치명타가 터지면 기력 +1',      unit:70,  cap:3},
+  {id:'edge',   name:'서슬',  desc:'치명타가 터지면 기력 +1 (치명타 회복은 1초에 최대 기력 2%까지)',      unit:70,  cap:3},
   /* ── 갑옷 ── 탄 한 발을 한 겹이 막는다 ── */
   {id:'armor',  name:'갑옷',  desc:'탄 1발을 막는 갑옷을 1겹 두르고 시작한다 (최대 5겹)',
    unit:46,  cap:5},
@@ -1991,7 +1993,7 @@ const UPGRADES = [
    먹의 계약 — 심연 한 단마다 규칙이 하나씩 더 붙는다. 누적된다
    ══════════════════════════════════════════════════════════ */
 const PACTS = [
-  {n:1, name:'굳은 손',   text:'경보를 틀리면 기력이 깎인다'},
+  {n:1, name:'굳은 손',   text:'경보를 틀리면 최대 기력의 5%가 깎인다 (깊은 층일수록 더)'},
   {n:2, name:'얕은 서랍', text:'고를 카드가 한 장 줄어든다'},
   {n:3, name:'무거운 석판',text:'석판이 25% 단단해진다'},
   {n:4, name:'강한 고민', text:'석판이 경계선을 넘을 때 받는 피해 +50%'},
@@ -2001,7 +2003,7 @@ const PACTS = [
 ];
 const depth   = ()=>(S&&S.depth)||0;              // 이번 판의 심연 깊이
 const pactOn  = k=>depth()>=k;                    // 그 계약이 걸려 있는가
-const abyssHard = ()=>1+CONFIG.abyssStep*depth();     // 하강·보스 공격에 곱한다
+const abyssHard = ()=>1+CONFIG.abyssStep*depth();     // 하강·보스 공격·몸통·몸돌·경계선 피해에 곱한다
 const bossHpHard= ()=>(1+CONFIG.bossHpStep*depth())
                      *((S&&S.stage>=CONFIG.deepHpFrom)?CONFIG.deepHpMul:1);
 const bossHpAt  =d=>1+CONFIG.bossHpStep*d;
@@ -2882,10 +2884,14 @@ function runInk(){
   return Math.round(t*abyssInkMul()*CONFIG.inkRunMul);
 }
 
+/* 받는 피해에 최대 기력을 절반쯤 반영 — ×√(최대 기력÷100), 100 아래로는 줄이지 않는다.
+   이미 기력 비율로 정해진 피해(opt.raw)와 기력이 바닥날 때의 마무리는 빼고 */
+const hurtScale=()=>Math.max(1,Math.sqrt((S.energyMax||CONFIG.energyMax)/CONFIG.energyMax));
 function hurt(amount,opt){
   if(S.isAbyss&&S.boss) amount*=CONFIG.abyssPitDmg;
   if(amount<=0)return;
   if(S.invuln>0)return;
+  if(!(opt&&opt.raw)) amount*=hurtScale();
   if(S.tome&&S.tome.hurtMul) amount*=S.tome.hurtMul;
   if(fateHas('weight')) amount*=2;             // 저주 · 중압
   if(omenHas('scar'))   amount*=1.5;           // 그늘 · 생채기
@@ -3098,7 +3104,7 @@ function resolveAlert(correct){
     S.hardLeft=CONFIG.hardRows;          // 다음 줄들이 굳는다
     for(const x of S.bricks){ if(x.quiz){x.quiz=false;x.isAnswer=false;} }
     S.alertMsg={text:`정답은 ‘${ans.w}’ — 손이 굳었다`,t:2.0,ok:false};
-    if(pactOn(1)) hurt(10);                      // 계약 · 굳은 손
+    if(pactOn(1)) hurt(S.energyMax*CONFIG.pactWrongPct*diff(),{raw:true});   // 계약 · 굳은 손 — 최대 기력 5% × 층 난이도
     vibe('wrong'); wrongStun();
     hurt(CONFIG.alertWrongDamage);
     if(S.screen!=='play')return;
@@ -3515,6 +3521,11 @@ function nearbyBricks(b,n){
    보여 줄 때는 최근 5개 층의 피해 합 ÷ 시간 합.
    시간은 싸우는 화면(play)에서만 흐른다 — 카드·뜻 맞히기·멈춤은 빠진다.
    석판 상한·남은 체력, 보스 방벽에 깎이기 전 값으로 센다 */
+function critHealTick(dt){                  // 치명타 회복 몫 — 1초에 최대 기력 2%만큼 차오른다(그 이상 쌓이지 않음)
+  if(!S||!(dt>0))return;
+  const cap=S.energyMax*CONFIG.critHealCap;
+  S.chBudget=Math.min(cap,(S.chBudget===undefined?cap:S.chBudget)+cap*dt);
+}
 const DPS_FLOORS=5;
 const dpsFloor=()=>{
   const d=S.dps||(S.dps={});
@@ -3613,7 +3624,11 @@ function critFx(b,ball,mul,dv){
   S.shake=Math.max(S.shake||0, big?11:5);
   vibe(big?'boss':'right');
   if(big) S.critVeil=0.36;                      // 9배 — 가장자리가 붉게 물든다
-  if(S.critHeal)  S.energy=Math.min(S.energyMax,S.energy+S.critHeal);
+  if(S.critHeal){                                         // 피주머니 · 서슬 — 1초에 최대 기력 2%까지
+    const cap=S.energyMax*CONFIG.critHealCap, give=Math.min(S.critHeal, S.chBudget===undefined?cap:S.chBudget);
+    S.chBudget=(S.chBudget===undefined?cap:S.chBudget)-give;
+    S.energy=Math.min(S.energyMax,S.energy+give);
+  }
   if(S.critMark)  b.critMark=S.critMark;                 // 낙관 — 다음 한 대
   if(S.critStack){                                        // 자모 — 상태이상을 얹는다
     const n=S.critStack;
@@ -6150,7 +6165,7 @@ function updateHazards(dt){
     if(q.t<=0){ S.pools.splice(i,1); continue; }                       // 내가 만든 먹은 나를 해치지 않는다
     if(Math.hypot(S.px-q.x,S.py-q.y)<q.r){
       S.energy-=CONFIG.poolDps*dt;
-      if(S.energy<=0){ S.energy=0; hurt(1); if(S.screen!=='play')return; }
+      if(S.energy<=0){ S.energy=0; hurt(1,{raw:true}); if(S.screen!=='play')return; }
     }
   }
   if(S.squeeze){
@@ -6262,7 +6277,7 @@ function gimTick(dt){
   /* 과부하 — 기력이 저절로 탄다 */
   if(gimOn('overload')){
     S.energy-=(S.gimFlash?CONFIG.overloadDrainR:CONFIG.overloadDrain)*dt;
-    if(S.energy<=0){ S.energy=1; S.invuln=0; hurt(2); if(S.screen!=='play')return; }
+    if(S.energy<=0){ S.energy=1; S.invuln=0; hurt(2,{raw:true}); if(S.screen!=='play')return; }
   }
 
   /* 메아리 — 그림자가 줄을 따라 내려오며 짙어지다 되살아난다 */
@@ -8884,7 +8899,7 @@ function update(dt){
           S.bricks.splice(i,1);
           burst(b.x+b.w/2,b.y+b.h/2,18,'stone');
           S.shake=Math.max(S.shake,12);
-          hurt(CONFIG.bodyBrickDamage*diff());
+          hurt(CONFIG.bodyBrickDamage*diff()*abyssHard());
           if(S.screen!=='play')return;
         }
         continue;
@@ -8897,7 +8912,7 @@ function update(dt){
         /* 골무 — 몸에 닿든 경계선을 넘든 똑같이 덜 아프다 */
         const tz=touched&&S.tome&&S.tome.touchMul;    // 호질 — 몸에 닿을 때만
         if(touched){
-          hurt(CONFIG.brickTouchDamage*(1-(S.touchCut||0))*(tz?S.tome.touchMul:1)*diff());
+          hurt(CONFIG.brickTouchDamage*(1-(S.touchCut||0))*(tz?S.tome.touchMul:1)*diff()*abyssHard());
           if(S.screen!=='play')return;
         }else{                                        // 넘어간 것은 줄마다 모아 둔다
           const k=b.row!=null?b.row:('x'+i);
@@ -8910,7 +8925,7 @@ function update(dt){
     /* 경계선 — (함께 넘은 석판 수 ÷ 2) × 피해를 한 번에. 최대 기력 절반까지 (한 방에 끝나지 않게) */
     if(fell.size){
       let n=0; for(const v of fell.values()) n+=v;
-      hurt(CONFIG.brickDamage*(1-(S.touchCut||0))*diff()*n/2*(pactOn(4)?CONFIG.crossPact:1), {capPct:0.5});
+      hurt(CONFIG.brickDamage*(1-(S.touchCut||0))*diff()*abyssHard()*n/2*(pactOn(4)?CONFIG.crossPact:1), {capPct:0.5});
       if(S.screen!=='play')return;
     }
     // 금 석판 — 줄에 섞이지 않고 혼자, 빈 칸을 골라 내려온다
@@ -13642,7 +13657,7 @@ function drawActive(){
 }
 
 const _update2=update;
-update=function(dt){ if(S&&S.screen==='play'){ acTick(dt); dpsTick(dt); } return _update2(dt); };
+update=function(dt){ if(S&&S.screen==='play'){ acTick(dt); dpsTick(dt); critHealTick(dt); } return _update2(dt); };
 const _dmgOf=dmgOf;                          // 막걸리 — 구슬 위력만 두 배 (보스도)
 dmgOf=function(ball){ return _dmgOf(ball)*((S&&S.acBuff>0)?(S.acMul||2):1); };
 const _breakBrick2=breakBrick;
