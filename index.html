@@ -787,8 +787,8 @@ const CONFIG = {
   ballDamageStart:3, spread:0,
   fanArc:0.785,          // 춘향 — 부채꼴이 벌어지는 각(45°)
   fanMidSpd:1.7,         // 춘향 — 한가운데 화살이 이만큼 빠르다
-  chargeMax:2.0,         // 김첨지 — 힘을 실을 수 있는 최대 시간(초)
-  chargeStep:0.2,        // 이만큼마다 한 눈금씩 오른다
+  chargeMax:1.0,         // 김첨지 — 힘을 실을 수 있는 최대 시간(초)
+  chargeStep:0.1,        // 이만큼마다 한 눈금씩 오른다 — 1초면 열한 배
   chargePer:1.0,         // 한 눈금이 더해 주는 배수
   jeomsunCells:5,        // 점순이 — 구슬이 나는 거리(칸)
   jeomsunDmg:2.0,        // 점순이 — 그 대신 위력
@@ -2048,7 +2048,7 @@ const CHARS = [
    p2:'용마(龍馬)', p2desc:'60초마다 용마가 울며 <b>모든 석판</b>을 친다<br>그 석판 체력의 50%'},
   {id:'kimcheomji', name:'김첨지', work:'운수 좋은 날',
    skill:'차징샷 · 인력거',
-   desc:'발사를 <b>누르고 있으면</b> 힘이 실린다. 0.2초마다 한 배씩, 2초면 <b>열한 배</b><br>'
+   desc:'발사를 <b>누르고 있으면</b> 힘이 실린다. 0.1초마다 한 배씩, 1초면 <b>열한 배</b><br>'
        +'손을 떼면 나간다. 실린 만큼 구슬이 금빛으로 물든다. 가득 실으면 석판을 한 번에 깨뜨릴 수 있다<br>'
        +'7초마다 <b>좌우 끝</b>에 짧은 벽이 3초간 서서 빠지는 구슬을 되받는다',
    floor:40, cost:380, color:'#6FA8E0',
@@ -3327,7 +3327,7 @@ function myeongLow(){
   return 1+Math.min(0.5,Math.max(0,1-S.energy/S.energyMax)/2);
 }
 
-/* 김첨지 — 실린 힘. 0.2초마다 한 눈금, 2초면 가득(열한 배) */
+/* 김첨지 — 실린 힘. 0.1초마다 한 눈금, 1초면 가득(열한 배) */
 function chargeMulOf(t){
   const cap=Math.floor(CONFIG.chargeMax/CONFIG.chargeStep);
   const step=Math.min(cap, Math.floor(Math.max(0,t)/CONFIG.chargeStep+1e-9));
@@ -3461,6 +3461,19 @@ const FX={
   gold:'#E5B24F', stone:'#9E8F6E', vermilion:'#E2593F', jade:'#52BFA0',
 };
 const fxCol=c=>FX[c]||C['--stone-deep'];
+/* 벼락 모양 — 한 번 정해 두고 그린다. 굵은 줄기 하나에 곁가지 둘셋 */
+function boltPath(x,y){
+  const seg=9, dy=(y-CEIL_Y)/seg, main=[[x+(Math.random()-.5)*60,CEIL_Y]];
+  for(let k=1;k<seg;k++) main.push([x+(Math.random()-.5)*56*(1-k/seg)+(main[k-1][0]-x)*.35, CEIL_Y+dy*k]);
+  main.push([x,y]);
+  const forks=[], nf=2+Math.floor(Math.random()*2);
+  for(let f=0;f<nf;f++){
+    const k0=2+Math.floor(Math.random()*(seg-3)), dir=Math.random()<.5?-1:1, pts=[main[k0]];
+    for(let j=1;j<=3;j++) pts.push([pts[j-1][0]+dir*(18+Math.random()*22), pts[j-1][1]+dy*(.5+Math.random()*.4)]);
+    forks.push(pts);
+  }
+  return {main,forks};
+}
 function burst(x,y,n,c){
   for(let i=0;i<n;i++)S.sparks.push({x,y,vx:(Math.random()-.5)*560,vy:(Math.random()-.5)*560,t:.55,c});
 }
@@ -5629,7 +5642,29 @@ function charTick(dt){
       S.rageOn=CONFIG.rageSec; recalc();
       S.alertMsg={text:'날개가 펴진다',t:1.4,ok:true};
       vibe('boss'); S.winFlash=Math.max(S.winFlash||0,.5);
+      S.wingFx=S.wingFx||[]; S.wingDrip=0;
+      featherBurst(S.wingFx,S.px,S.py-10,12,260*heroK());
+      S.rings=S.rings||[];
+      S.rings.push({x:S.px,y:S.py-4,r:14,max:150*heroK(),t:.5,dur:.5,rgb:'229,178,79',sh:'#E5B24F',lw:10});
     }
+    if(S.rageOn>WING_CLOSE && !(S.wing6>0)){          // 날개 끝에서 깃털이 떨어진다
+      S.wingDrip=(S.wingDrip||0)-dt;
+      if(S.wingDrip<=0){ S.wingDrip=.15; const now=performance.now()/1000, K=heroK();
+        const open=wingOpenK(CONFIG.rageSec-S.rageOn,S.rageOn), flap=Math.sin(now*9.4)*.22;
+        for(const sx of [-1,1]){ const q=wingTip(sx,open,flap); featherBurst(S.wingFx,S.px+q[0]*K,S.py+q[1]*K,1,40*K); } }
+    }
+    if(S.wing6>0){                                   // 여섯 날개
+      S.wing6On=(S.wing6On||0)+dt; S.wing6-=dt;
+      if(S.wing6>WING_CLOSE){
+        S.wingDrip6=(S.wingDrip6||0)-dt;
+        if(S.wingDrip6<=0){ S.wingDrip6=.15; const now=performance.now()/1000, K=heroK();
+          const open=wingOpenK(S.wing6On,S.wing6);
+          for(const o of WING6){ const flap=Math.sin(now*9.4-o.ph)*.22;
+            for(const sx of [-1,1]){ const q=wingTip(sx,open,flap,o); featherBurst(S.wingFx,S.px+q[0]*K,S.py+q[1]*K,1,40*K); } } }
+      }
+      if(S.wing6<=0){ S.wing6=0; S.wing6On=0; }
+    }
+    if(S.wingFx&&S.wingFx.length) tickFeathers(S.wingFx,dt);
     const was=S.rageOn>0;
     if(S.rageOn>0) S.rageOn-=dt;
     if(was!==(S.rageOn>0)) recalc();
@@ -5647,6 +5682,7 @@ function charTick(dt){
         S.shake=Math.max(S.shake,20); S.winFlash=Math.max(S.winFlash||0,.8);
         vibe('boss');
         S.alertMsg={text:'용마가 운다',t:1.8,ok:true};
+        wing6Start();
       }
     }
   }
@@ -8926,12 +8962,27 @@ function update(dt){
       if(b.turnT<=0){
         b.turned=!b.def.orbit;                        // 회전도끼는 계속 돈다
         if(b.def.orbit) b.turnT=at(b.def.turn,b.lv);
-        const sp=Math.hypot(b.vx,b.vy);
+        const sp=Math.hypot(b.vx,b.vy)||CONFIG.ballSpeed;
         const a=Math.atan2(S.py-b.y,S.px-b.x);
         b.vx=Math.cos(a)*sp; b.vy=Math.sin(a)*sp;
-        b.life=Math.max(b.life,1.6);
+        if(!b.def.orbit){                             // 부메랑 — 돌아오는 길은 뚫고, 끝까지 좇는다
+          b.homing=true; b.pierce=999;
+          b.life=Math.max(b.life, Math.hypot(S.px-b.x,S.py-b.y)/sp+1.5);
+        }else b.life=Math.max(b.life,1.6);
         burst(b.x,b.y,4,'gold');
       }
+    }
+    if(b.homing){                                     // 부메랑 — 인물 쪽으로 방향을 잡고, 닿으면 잡는다
+      const dx=S.px-b.x, dy=S.py-b.y, d=Math.hypot(dx,dy);
+      if(d<40){
+        burst(S.px,S.py,8,'gold');
+        S.rings=S.rings||[];
+        S.rings.push({x:S.px,y:S.py,r:14,max:70,t:.35,dur:.35,rgb:'229,178,79',sh:'#E5B24F',lw:8});
+        vibe('hit');
+        S.balls.splice(i,1); continue;
+      }
+      const sp=Math.hypot(b.vx,b.vy)||CONFIG.ballSpeed;
+      b.vx=dx/d*sp; b.vy=dy/d*sp;
     }
     if(b.reBoomAt!==undefined){                      // 화포의 새끼 — 한 번 더 터진다
       b.reBoomAt-=dt;
@@ -8966,6 +9017,7 @@ function update(dt){
     else q.y-=(q.big?70:46)*dt;
     if(q.t<=0)S.nums.splice(i,1);}
   S.shake=Math.max(0,S.shake-dt*40);S.flash=Math.max(0,S.flash-dt*1.6);
+  if(S.boltFlash>0) S.boltFlash=Math.max(0,S.boltFlash-dt*3.5);   // 우투리 벼락 번쩍임
 }
 
 /* ---------- 그리기 ---------- */
@@ -9036,6 +9088,21 @@ function draw(){
       ctx.beginPath();ctx.moveTo(bm.x1,bm.y1);ctx.lineTo(bm.x2,bm.y2);ctx.stroke();
       ctx.shadowBlur=0;ctx.globalAlpha=1;continue;
     }
+    if(bm.path){                                 // 우투리 벼락 — 푸른 겉빛 + 흰 속줄기, 깜빡이며 사라진다
+      const k=bm.t/(bm.t0||.4), on=k>.7||(Math.floor(k*14)%2===0);
+      ctx.globalAlpha=(on?1:.35)*Math.min(1,k*2.2);
+      const line=pts=>{ ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1]); for(let j=1;j<pts.length;j++) ctx.lineTo(pts[j][0],pts[j][1]); ctx.stroke(); };
+      ctx.lineCap='round'; ctx.lineJoin='round';
+      ctx.shadowColor='#8FC8FF'; ctx.shadowBlur=26;
+      ctx.strokeStyle='rgba(143,200,255,.55)'; ctx.lineWidth=14; line(bm.path.main);
+      ctx.lineWidth=6; for(const f of bm.path.forks) line(f);
+      ctx.shadowBlur=10; ctx.strokeStyle='#FFFFFF';
+      ctx.lineWidth=4; line(bm.path.main);
+      ctx.lineWidth=2; for(const f of bm.path.forks) line(f);
+      ctx.fillStyle='rgba(255,255,255,.9)'; ctx.shadowColor='#BFE3FF'; ctx.shadowBlur=30;
+      ctx.beginPath(); ctx.arc(bm.x,bm.y,10+26*k,0,7); ctx.fill();
+      ctx.lineCap='butt'; ctx.lineJoin='miter'; ctx.shadowBlur=0; ctx.globalAlpha=1; continue;
+    }
     ctx.strokeStyle=FX.bolt;ctx.lineWidth=3;      // 벼락 — 지그재그로 내리꽂힌다
     ctx.shadowColor=FX.bolt;ctx.shadowBlur=16;
     ctx.beginPath();ctx.moveTo(bm.x,CEIL_Y);
@@ -9073,9 +9140,9 @@ function draw(){
       if(g.t<=0){ S.rings.splice(i,1); continue; }
       const k=1-g.t/g.dur;
       ctx.save();
-      ctx.strokeStyle=`rgba(82,191,160,${(1-k)*0.92})`;
-      ctx.lineWidth=14*(1-k)+2.5;
-      ctx.shadowColor='#52BFA0'; ctx.shadowBlur=30*(1-k);
+      ctx.strokeStyle=`rgba(${g.rgb||'82,191,160'},${(1-k)*0.92})`;
+      ctx.lineWidth=(g.lw||14)*(1-k)+2.5;
+      ctx.shadowColor=g.sh||'#52BFA0'; ctx.shadowBlur=30*(1-k);
       ctx.beginPath(); ctx.arc(g.x,g.y,g.r+(g.max-g.r)*k,0,Math.PI*2); ctx.stroke();
       ctx.restore();
     }
@@ -9298,6 +9365,7 @@ function draw(){
   }
   if(S.flash>0){ctx.fillStyle=`rgba(226,89,63,${S.flash*.3})`;ctx.fillRect(-40,-40,VW+80,VH+80);}
   if(S.winFlash>0){ctx.fillStyle=`rgba(229,178,79,${S.winFlash*.28})`;ctx.fillRect(-40,-40,VW+80,VH+80);}
+  if(S.boltFlash>0){ctx.fillStyle=`rgba(210,232,255,${S.boltFlash*.32})`;ctx.fillRect(-40,-40,VW+80,VH+80);}
   if(S.healFx>0){ctx.fillStyle=`rgba(82,191,160,${S.healFx*.18})`;ctx.fillRect(-40,-40,VW+80,VH+80);}
   if(S.phaseFx>0){                       // 2페이즈 전환 — 보스 색으로 명멸
     const col=S.boss?S.boss.def.color:'#E2593F';
@@ -11333,8 +11401,120 @@ function drawCharFx(){
   }
   ctx.restore();
 }
+/* ══ 우투리 날개 — 미리보기(wing_preview.html)에서 옮김 ════════
+   on: 펴진 뒤 지난 시간, left: 남은 시간, now: 초 */
+const WING_OPEN=.35, WING_CLOSE=.3, WING_BLINK=.6;
+/* 깃털 세 겹 — at: 팔 위 자리(0 어깨 ~ 1 끝), a: 방향(라디안, 0=바깥쪽 수평, +는 아래), len·w: 길이·폭 */
+const WING_ROWS=[
+  {n:5, at:[.62,1.00], a:[.10,-.62], len:[64,92], w:12, c0:'#D8502E', c1:'#FFD978'},   // 첫째깃 — 길고 뾰족하다
+  {n:7, at:[.18,.80],  a:[1.05,.28], len:[46,62], w:13, c0:'#C4402A', c1:'#F6B455'},   // 둘째깃
+  {n:5, at:[.08,.70],  a:[.95,.35],  len:[24,34], w:12, c0:'#A8322A', c1:'#EE8A3A'},   // 덮깃 — 짧다
+];
+function wingOpenK(on,left){                            // 펼친 정도 0~1 (살짝 더 벌어졌다 돌아온다)
+  if(left<WING_CLOSE) return Math.max(0,left/WING_CLOSE);
+  if(on>=WING_OPEN) return 1;
+  const x=on/WING_OPEN;
+  return 1+Math.sin(x*Math.PI)*.12 - (1-x)*(1-x)*1;    // 0에서 시작, 1.1쯤 넘었다가 1
+}
+function drawFeather(len,w,c0,c1){                      // 끝이 뾰족한 잎 모양 — 원점에서 +x 쪽으로
+  const g=ctx.createLinearGradient(0,0,len,0);
+  g.addColorStop(0,c0); g.addColorStop(1,c1);
+  ctx.fillStyle=g;
+  ctx.beginPath(); ctx.moveTo(0,0);
+  ctx.quadraticCurveTo(len*.45,-w, len,0);
+  ctx.quadraticCurveTo(len*.5,w*.75, 0,0);
+  ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(2,0); ctx.lineTo(len*.9,0); ctx.stroke();   // 깃대
+}
+function drawWing(sx,open,flap,now,o){               // o — 여섯 날개용 {ox,oy,rot,sc,tip}
+  o=o||{};
+  ctx.save();
+  ctx.translate(sx*(18+(o.ox||0)),-8+(o.oy||0)); ctx.scale(sx,1);   // 오른쪽 기준으로 그리고 왼쪽은 뒤집는다
+  ctx.rotate((o.rot||0)+(1-open)*1.25 - flap*.9);       // 접히면 아래로 · 날갯짓은 위아래
+  const sc=o.sc||1;
+  ctx.scale(sc*(.25+.75*open), sc*(.55+.45*open));
+  const armEnd=[74,-52];
+  const armAt=t=>[armEnd[0]*t, armEnd[1]*t - Math.sin(t*Math.PI)*10];
+  ctx.lineWidth=1; ctx.strokeStyle='rgba(255,226,168,.55)';
+  for(const R of WING_ROWS){
+    for(let i=0;i<R.n;i++){
+      const k=R.n>1?i/(R.n-1):0;
+      const t=R.at[0]+(R.at[1]-R.at[0])*k;
+      const [x,y]=armAt(t);
+      const lag=Math.sin(now*9.4-1.1-t*1.4)*.14*t*open;   // 바깥 깃털이 늦게 따라온다
+      ctx.save(); ctx.translate(x,y);
+      ctx.rotate(R.a[0]+(R.a[1]-R.a[0])*k + lag);
+      drawFeather(R.len[0]+(R.len[1]-R.len[0])*k, R.w, R.c0, o.tip||R.c1);
+      ctx.restore();
+    }
+  }
+  ctx.restore();
+}
+function wingTip(sx,open,flap,o){                       // 날개 끝 자리 — 불티가 떨어지는 곳
+  o=o||{};
+  const a=(o.rot||0)+(1-open)*1.25-flap*.9, r=95*(o.sc||1)*(.25+.75*open);
+  const base=Math.atan2(-60,80);
+  return [sx*(18+(o.ox||0)+Math.cos(base+a)*r), -8+(o.oy||0)+Math.sin(base+a)*r];
+}
+/* 여섯 날개 — 용마의 번개·용마가 온다·용마가 울 때 10초.
+   가운데 1.5배, 위·아래는 그 60%. 세 쌍이 조금씩 어긋난 박자로 퍼덕인다. 그림만 바뀐다 */
+const WING6_SEC=10;
+const WING6=[
+  {oy:14,  ox:-2, rot:.78,  sc:.9, tip:'#FFE39A', ph:1.6},   // 아래
+  {oy:-16, ox:-4, rot:-.58, sc:.9, tip:'#FFF2B8', ph:.8},    // 위
+  {sc:1.5, ph:0},                                            // 가운데 — 맨 앞
+];
+function drawWings6(on,left,now){
+  const open=wingOpenK(on,left); if(open<=0) return;
+  let alpha=1;
+  if(left<WING_BLINK+WING_CLOSE && left>=WING_CLOSE) alpha=(Math.floor(now*12)%2)?.45:1;
+  ctx.save(); ctx.globalAlpha*=alpha;
+  ctx.shadowColor='#FF9A5A'; ctx.shadowBlur=26;
+  for(const o of WING6){ const flap=Math.sin(now*9.4-o.ph)*.22*Math.min(1,open);
+    drawWing(-1,open,flap,now,o); drawWing(1,open,flap,now,o); }
+  ctx.restore();
+}
+function wing6Start(){                                  // 여섯 날개가 펴진다
+  if(!S)return;
+  const fresh=!(S.wing6>0);
+  S.wing6=WING6_SEC; if(fresh) S.wing6On=0;
+  S.wingFx=S.wingFx||[]; S.wingDrip=0;
+  featherBurst(S.wingFx,S.px,S.py-10,24,320*heroK());
+  S.rings=S.rings||[];
+  S.rings.push({x:S.px,y:S.py-4,r:14,max:220*heroK(),t:.6,dur:.6,rgb:'229,178,79',sh:'#E5B24F',lw:12});
+  S.winFlash=Math.max(S.winFlash||0,.6);
+}
+/* 깃털 불티 — 흩날리고 천천히 가라앉는다 */
+function featherBurst(list,x,y,n,spd){
+  for(let i=0;i<n;i++){ const a=Math.random()*Math.PI*2, v=spd*(.5+Math.random()*.7);
+    list.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-40,t:1.3+Math.random()*.6,rot:Math.random()*6,vr:(Math.random()-.5)*6}); }
+}
+function tickFeathers(list,dt){
+  for(let i=list.length-1;i>=0;i--){ const f=list[i];
+    f.t-=dt; if(f.t<=0){ list.splice(i,1); continue; }
+    f.vx*=Math.pow(.25,dt); f.vy=f.vy*Math.pow(.25,dt)+60*dt;       // 공기에 걸려 느려지고 천천히 떨어진다
+    f.x+=f.vx*dt+Math.sin(f.t*5+f.rot)*18*dt; f.y+=f.vy*dt; f.rot+=f.vr*dt; }
+}
+function drawFeathers(list){
+  ctx.save(); ctx.lineWidth=.8; ctx.strokeStyle='rgba(255,226,168,.6)';
+  for(const f of list){ ctx.save(); ctx.translate(f.x,f.y); ctx.rotate(f.rot);
+    ctx.globalAlpha=Math.min(1,f.t*1.4); drawFeather(16,5,'#E0603A','#FFD978'); ctx.restore(); }
+  ctx.restore();
+}
+function drawWings(on,left,now){
+  let open=wingOpenK(on,left);
+  if(open<=0) return;
+  let alpha=1;
+  if(left<WING_BLINK+WING_CLOSE && left>=WING_CLOSE) alpha=(Math.floor(now*12)%2)?.45:1;   // 끝나 간다
+  const flap=Math.sin(now*9.4)*.22*Math.min(1,open);
+  ctx.save(); ctx.globalAlpha*=alpha;
+  ctx.shadowColor='#FF8A4A'; ctx.shadowBlur=22;          // 빛 번짐은 날개 전체에 한 번
+  drawWing(-1,open,flap,now); drawWing(1,open,flap,now);
+  ctx.restore();
+}
+const heroK=()=>0.7*shrink();                   // 인물 그림 배율 — 날개 깃털도 같이 쓴다
 function drawHero(){
-  const x=S.px,y=S.py,K=0.7*shrink();        // 30% 작게 · 판이 넓어지면 더 작게
+  const x=S.px,y=S.py,K=heroK();             // 30% 작게 · 판이 넓어지면 더 작게
   const blink=S.invuln>0&&Math.floor(S.invuln*14)%2===0;
   ctx.save();
   ctx.translate(x,y);ctx.scale(K,K);
@@ -11358,15 +11538,9 @@ function drawHero(){
     ctx.fillStyle='#FF7A4A'; ctx.shadowColor='#FF5A3A'; ctx.shadowBlur=34+18*q;
     ctx.beginPath(); ctx.arc(0,-4,44+8*q,0,7); ctx.fill();
     ctx.restore();
-    ctx.strokeStyle=`rgba(255,190,150,${.6+.35*q})`;   // 겨드랑이의 날개
-    ctx.lineWidth=3; ctx.lineCap='round';
-    ctx.beginPath();
-    for(const sx of [-1,1]){
-      ctx.moveTo(sx*20,-6);
-      ctx.quadraticCurveTo(sx*(40+8*q),-26-6*q, sx*(30+6*q),-2);
-    }
-    ctx.stroke(); ctx.lineCap='butt';
+    if(!(S.wing6>0)) drawWings(CONFIG.rageSec-S.rageOn, S.rageOn, performance.now()/1000);   // 겨드랑이의 날개
   }
+  if(S.wing6>0) drawWings6(S.wing6On||0, S.wing6, performance.now()/1000);   // 여섯 날개
   ctx.fillStyle=cc;ctx.shadowColor=cc;ctx.shadowBlur=S.rageOn>0?30:16;
   roundRect(-22,-14,44,42,9);ctx.fill();ctx.shadowBlur=0;
   ctx.fillStyle=C['--paper'];ctx.beginPath();ctx.arc(0,-30,17,0,7);ctx.fill();
@@ -11374,6 +11548,12 @@ function drawHero(){
   ctx.translate(0,-4);ctx.rotate(Math.atan2(S.aimY,S.aimX)+Math.PI/2);
   ctx.fillStyle=C['--gold'];ctx.fillRect(-7,-46,14,20);
   ctx.restore();
+  if(S.wingFx&&S.wingFx.length){                   // 우투리 — 흩날리는 깃털
+    ctx.save(); ctx.lineWidth=.8; ctx.strokeStyle='rgba(255,226,168,.6)';
+    for(const f of S.wingFx){ ctx.save(); ctx.translate(f.x,f.y); ctx.scale(K,K); ctx.rotate(f.rot);
+      ctx.globalAlpha=Math.min(1,f.t*1.4); drawFeather(16,5,'#E0603A','#FFD978'); ctx.restore(); }
+    ctx.restore();
+  }
   if(S.revives>0){
     ctx.save();ctx.globalAlpha=.8;ctx.fillStyle=C['--jade'];
     ctx.font=`600 16px 'IBM Plex Sans KR',sans-serif`;ctx.textAlign='center';
@@ -13324,6 +13504,7 @@ function useActive(){
   }else if(id==='utturi'){
     S.bolt={left:t2?40:10, next:0, gap:t2?0.10:0.20, pct:t2?0.8:0.6, bp:t2?0.01:0.02};   // 보스 — 기술2 40번 × 1%
     S.shout={text:nm,big:!!t2,t:1.6,max:1.6};
+    wing6Start();
   }else if(acFire(id,t2)){
     S.shout={text:nm,big:!!t2,t:1.6,max:1.6};
   }else return;
@@ -13382,10 +13563,14 @@ function acTick(dt){
     if(t.length){
       const q=t[Math.floor(Math.random()*t.length)];
       const qx=q.x+q.w/2, qy=q.y+q.h/2;
-      S.beams.push({x:qx, y:qy, t:.22, bolt:true});   /* 천장에서 지그재그로 내리꽂힌다 */
+      S.beams.push({x:qx, y:qy, t:.4, t0:.4, bolt:true, path:boltPath(qx,qy)});   /* 천장에서 내리꽂힌다 */
       chip(q, Math.max(1,Math.ceil((q.maxHp||q.hp)*(b.pct||0.6))), 'bolt');
-      burst(qx, qy, 10, 'bolt');
-      S.shake=Math.max(S.shake,7);
+      burst(qx, qy, 20, 'bolt');
+      S.rings=S.rings||[];
+      S.rings.push({x:qx,y:qy,r:10,max:90,t:.4,dur:.4,rgb:'190,225,255',sh:'#9FD0FF',lw:10});
+      b.cnt=(b.cnt||0)+1;
+      if(b.gap>=0.2 || b.cnt%4===1) S.boltFlash=Math.max(S.boltFlash||0,.55);   // 기술2는 네 번에 한 번만
+      S.shake=Math.max(S.shake,12); vibe('hit');
     }
     if(b.left<=0) S.bolt=null;
   }
