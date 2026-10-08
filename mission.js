@@ -222,10 +222,13 @@ function misClaim(m,week){
   saveMeta(); if(typeof vibe==='function') vibe('right');
   renderMis();
 }
+function misInkBonus(){ return typeof gEventOver==='function' && gEventOver(); }
 function misClaimBonus(){
   const B=mBox();
   if(B.wBonus||!misWeek().every(m=>misDone(m,1))) return;
-  B.wBonus=1; META.wshard=(META.wshard||0)+1;
+  B.wBonus=1;
+  if(misInkBonus()) META.ink=(META.ink||0)+GAM.shardInk;   // 한글날 이벤트가 끝나면 조각 대신 먹
+  else META.wshard=(META.wshard||0)+1;
   saveMeta(); if(typeof vibe==='function') vibe('boss');
   renderMis();
 }
@@ -267,10 +270,11 @@ function renderMis(){
 
   const d=document.createElement('div');                 // 여섯을 다 이루면
   d.className='misItem bonus'+(B.wBonus?' got':(all?' done':''));
+  const ib=misInkBonus();
   d.innerHTML=`<div class="mi"><div class="mn">여섯을 다 이루면</div>
-      <div class="mh">작가의 조각 하나</div></div>
+      <div class="mh">${ib?`먹 ${GAM.shardInk}`:'작가의 조각 하나'}</div></div>
     <button class="btn ${all&&!B.wBonus?'gold':'ghost'} mget"${all&&!B.wBonus?'':' disabled'}>${
-      B.wBonus?'✓':'조각'}</button>`;
+      B.wBonus?'✓':(ib?'먹':'조각')}</button>`;
   const bb=d.querySelector('.mget');
   if(all&&!B.wBonus) bb.onclick=misClaimBonus;
   list.appendChild(d);
