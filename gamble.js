@@ -141,7 +141,11 @@ function gambleEnd(wins){                        // -1 이면 지나친 것이�
     if(wins>=3) mBump('gamPerfect');
   }
   if(wins>=2) S.bonusInk += (wins>=3 ? GAM.ink3 : GAM.ink2);
-  if(wins>=3){ META.wshard=(META.wshard||0)+1; try{ saveMeta(); }catch(e){} }   // 조각은 3승만
+  if(wins>=3){                                   // 조각은 3승만 — 이벤트가 끝났으면 먹으로
+    if(gEventOver()) META.ink=(META.ink||0)+GAM.shardInk;
+    else META.wshard=(META.wshard||0)+1;
+    try{ saveMeta(); }catch(e){}
+  }
   GB=null; S.screen='play'; show(null);
   if(done) done(wins);
 }
@@ -320,6 +324,12 @@ function gReward(wins){
   const narr=!!META.narrator;
   const got=wins>=3;                             // 조각은 세 판을 다 이겨야
   let t=`먹 <b style="color:var(--gold)">+${ink}</b>`;
+  if(gEventOver()){                              // 이벤트가 끝나면 조각 대신 먹
+    if(got) t += `<br>먹 <b style="color:var(--gold)">+${GAM.shardInk}</b>`
+        + ` <span style="font-size:.72em;color:var(--stone-deep)">작가의 조각 대신</span>`;
+    else t += `<div style="margin-top:.6em;font-size:.72em;color:var(--stone-deep)">`
+        +`세 판을 다 이겼으면 먹 ${GAM.ink3+GAM.shardInk}이었다</div>`;
+  }else{
   if(got) t += `<br>작가의 조각 <b style="color:var(--gold)">+1</b>`
       + ` <span style="font-size:.72em;color:var(--stone-deep)">모두 ${have}개</span>`;
   if(got && !narr) t += left>0
@@ -329,6 +339,7 @@ function gReward(wins){
       +`조각 ${need}개가 찼다 — 대장간에서 서술자를 부를 수 있다</div>`;
   if(wins<3) t += `<div style="margin-top:.6em;font-size:.72em;color:var(--stone-deep)">`
       +`세 판을 다 이겼으면 작가의 조각과 먹 ${GAM.ink3}이었다</div>`;
+  }
   if(typeof showResult==='function'){
     showResult(wins>=3?'세 판을 다 이겼다':'두 판을 이겼다',
                wins>=3?'⚅':'⚄',
@@ -979,6 +990,24 @@ const GHELP=[
 /* ══ 대장간 ═══════════════════════════════════════════
    본 게임의 renderShop 뒤에 두 칸을 덧붙인다.
    이 파일이 없으면 두 칸도 같이 사라지고 대장간은 그대로 돈다 */
+/* 한글날 선착순 — 2026년 10월 9일 오전 7시(한국)에 닫는다.
+   시각은 깃허브 서버의 Date 머리글로 맞춘다(핸드폰 시계를 돌려도 소용없다).
+   서버에 닿지 못하면 핸드폰 시계를 쓴다. 서버 시각으로 끝난 것을 보면 기록해 둔다 */
+const G_END=Date.parse('2026-10-09T07:00:00+09:00');
+let gSkew=0, gSynced=false;
+function gEventOver(){
+  if(META.evHangul) return true;
+  if(Date.now()+gSkew<G_END) return false;
+  if(gSynced){ META.evHangul=1; try{ saveMeta(); }catch(e){} }
+  return true;
+}
+try{
+  fetch(location.href, {method:'HEAD', cache:'no-store'}).then(r=>{
+    const t=Date.parse(r.headers.get('Date')||'');
+    if(!isNaN(t)){ gSkew=t-Date.now(); gSynced=true; }
+  }).catch(()=>{});
+}catch(e){}
+
 function gShopRow(name, sub, price, cls, onclick){
   const d=document.createElement('div');
   d.className='up'+(cls?' '+cls:'');
@@ -993,6 +1022,15 @@ function gShopRow(name, sub, price, cls, onclick){
 function gShopRows(){
   const list=el('shopList'); if(!list) return;
   const shard=META.wshard||0, cost=GAM.shardInk, need=GAM.narrShard;
+
+  /* 한글날 선착순이 끝났다 — 조각 칸은 지우고, 서술자 칸은 닫는다.
+     이미 연 사람은 다시 볼 수 있게 둔다 */
+  if(gEventOver()){
+    if(META.narrator) gShopRow('서술자의 개입', '이미 열었다. 눌러서 다시 본다.',
+      '받으실 것', 'maxed', ()=>gNarrShow());
+    else gShopRow('서술자의 개입', '한글날 선착순 이벤트가 종료되었습니다.', '종료', '', null);
+    return;
+  }
 
   /* 하나 — 먹으로 조각을 산다. 몇 번이든 산다 */
   const canBuy=META.ink>=cost;
